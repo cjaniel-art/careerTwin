@@ -144,4 +144,12 @@ Nenhuma dessas decisões foi tomada silenciosamente: cada uma está registrada c
 
 ---
 
+---
+
+## 12. Ambiente de homologação
+
+Publicado a pedido do Product Owner em **https://careertwin-nine.vercel.app** (Vercel, projeto `cjaniel-arts-projects/careertwin`, conectado ao GitHub para deploy automático a cada push em `main`). Usa o projeto Supabase `careertwin-dev` (mesmo de desenvolvimento — decisão explícita do Product Owner de não separar dev/homologação por ora) e uma chave real da Anthropic (`AI_PROVIDER_API_KEY`), então as extrações e análises usam IA real, não o adapter sintético.
+
+Mudança de configuração feita especificamente para homologação: `mailer_autoconfirm` habilitado no projeto Supabase (via Management API) — cadastro não exige mais confirmação por e-mail, evitando que testadores externos esbarrem no limite de envio do SMTP free tier do Supabase. Detalhes e trade-offs em `open-decisions.md #8`.
+
 *Este relatório reflete o estado do repositório no commit `0087970`. Nenhum dado de teste permanece no banco `careertwin-dev` — todos os usuários e registros sintéticos criados para verificação ao vivo foram removidos ao final de cada fluxo testado.*
