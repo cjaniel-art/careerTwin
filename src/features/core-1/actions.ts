@@ -15,6 +15,7 @@ import {
   IPP_RUBRIC_VERSION,
   CORE_1_CONFIG_VERSION,
 } from "@/config/engine/versions";
+import { isAccountDeletionPending } from "@/lib/account-status";
 
 async function requireUser() {
   const supabase = await createSupabaseServerClient();
@@ -38,6 +39,11 @@ export interface Core1Preconditions {
 export async function checkCore1Preconditions(): Promise<Core1Preconditions> {
   const { supabase, user } = await requireUser();
   const missing: string[] = [];
+
+  if (await isAccountDeletionPending(supabase, user.id)) {
+    missing.push("conta em processo de exclusão");
+    return { ok: false, missing };
+  }
 
   const { data: profile, error: profileError } = await supabase
     .from("professional_profiles")

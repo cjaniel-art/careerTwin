@@ -14,6 +14,7 @@ import { calculateConfidence } from "@/domain/scores/confidence";
 import { determineApplicationRecommendation } from "@/domain/scores/recommendation";
 import { ENGINE_VERSION, IAO_RUBRIC_VERSION, CORE_2_CONFIG_VERSION } from "@/config/engine/versions";
 import { submitOpportunitySchema } from "./schemas";
+import { isAccountDeletionPending } from "@/lib/account-status";
 
 export interface Core2ActionState {
   error?: string;
@@ -50,6 +51,10 @@ export async function submitOpportunityAction(
   const text = (pastedText as string).slice(0, CORE_2_CONFIG.opportunity.maxPastedTextCharacters);
 
   const { supabase, user } = await requireUser();
+
+  if (await isAccountDeletionPending(supabase, user.id)) {
+    return { error: "Sua conta está em processo de exclusão. Não é possível enviar novas vagas." };
+  }
 
   const { data: opportunity } = await supabase
     .from("opportunities")
@@ -168,6 +173,11 @@ export interface Core2Preconditions {
 export async function checkJobAnalysisPreconditions(opportunityId: string): Promise<Core2Preconditions> {
   const { supabase, user } = await requireUser();
   const missing: string[] = [];
+
+  if (await isAccountDeletionPending(supabase, user.id)) {
+    missing.push("conta em processo de exclusão");
+    return { ok: false, missing };
+  }
 
   const { data: profile } = await supabase
     .from("professional_profiles")

@@ -15,6 +15,7 @@ import {
   personalDataSchema,
   targetContextSchema,
 } from "./schemas";
+import { isAccountDeletionPending } from "@/lib/account-status";
 
 export interface OnboardingActionState {
   error?: string;
@@ -82,6 +83,11 @@ export async function uploadDocumentAction(
   }
 
   const { supabase, user } = await requireUser();
+
+  if (await isAccountDeletionPending(supabase, user.id)) {
+    return { error: "Sua conta está em processo de exclusão. Não é possível enviar novos documentos." };
+  }
+
   const documentId = randomUUID();
 
   let storagePath: string | null = null;

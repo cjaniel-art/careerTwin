@@ -50,9 +50,11 @@ export default async function ProfileAnalysisEntryPage() {
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-              <Button asChild size="sm" className="mt-4">
-                <Link href="/onboarding">Continuar onboarding</Link>
-              </Button>
+              {!preconditions.missing.includes("conta em processo de exclusão") ? (
+                <Button asChild size="sm" className="mt-4">
+                  <Link href="/onboarding">Continuar onboarding</Link>
+                </Button>
+              ) : null}
             </div>
           ) : (
             <form action={startProfileAnalysisAction}>

@@ -13,7 +13,7 @@ Status: `not_started` · `in_progress` · `done` · `blocked` (referencia `open-
 | Cadastro | PRD 00 §Cadastro | RF-AUTH-001..010 | `/cadastro` | `auth.users`, `user_accounts`, `consent_records` | RN-AUTH-001..008 | verificado ao vivo no navegador contra Supabase real (ver relatório final); sem teste automatizado ainda | `signup_started`, `signup_completed` (não instrumentados ainda) | in_progress |
 | Login/Sessão | PRD 00 §Login | RF-AUTH-011..022 | `/login` | `auth.users`, `user_accounts` | RN-AUTH-001..008 | verificado ao vivo no navegador; sem teste automatizado ainda | `login_started`, `login_completed`, `login_failed` (não instrumentados ainda) | in_progress |
 | Recuperação de senha | PRD 00 §Recuperação | RF-AUTH-023..028 | `/recuperar-senha`, `/redefinir-senha` | `auth.users` | mensagem neutra obrigatória | implementado, não testado ao vivo (requer e-mail real) | (aguardando registro no catálogo canônico) | in_progress |
-| Exclusão de conta | PRD 00 §Conta, Segurança §7 | RF-AUTH-029..034 | `/app/conta` | `deletion_requests` | metas 15/30 dias | `tests/integration/deletion.test.ts` | `account_deletion_requested` (versão mínima) | not_started |
+| Exclusão de conta | PRD 00 §Conta, Segurança §7 | RF-AUTH-029..034 | `/app/conta` | `deletion_requests`, `user_accounts.status` | metas 15/30 dias | verificado ao vivo: passos 1-6 dos 21 do fluxo (solicitação registrada, `deletion_pending`, novas análises/uploads/vagas bloqueados com mensagem específica) — passos 7-21 (expurgo real de todas as tabelas, remoção da conta de auth, expiração de backups) exigem worker, ausente neste ambiente (open-decisions #22, mesma limitação do #20); sem teste automatizado dedicado | `account_deletion_requested` (não instrumentado) | in_progress |
 | Proteção de rotas / redirecionamento | PRD 00, Sitemap §7 | RF-AUTH-017..022 | middleware global | `user_accounts.onboarding_status` | backend nunca confia em `user_id` do cliente | verificado ao vivo: `/onboarding` sem sessão redireciona para `/login?redirect=%2Fonboarding` | — | done |
 
 ## Banco de dados e segurança (Modelo de Dados, Segurança)
@@ -92,12 +92,12 @@ Status: `not_started` · `in_progress` · `done` · `blocked` (referencia `open-
 
 | Área | Doc/Seção | Rota(s) | Tabela(s) | Status |
 |---|---|---|---|---|
-| Dashboard | Sitemap §4 | `/app/dashboard` | leitura agregada, sem cálculo | not_started |
+| Dashboard | Sitemap §4 | `/app/dashboard` | leitura agregada, sem cálculo | done |
 | Meu perfil | Sitemap §4 | `/app/perfil/*` | `professional_profiles`, `profile_versions` | not_started |
-| Histórico | Sitemap §4 | `/app/historico` | `analyses` | not_started |
-| Ações | Sitemap §4 | `/app/acoes` | `actions` | not_started |
-| Créditos e oferta simulada | Sitemap §4, Modelo de Negócio | `/app/creditos` | `credit_accounts`, `purchase_intents` | not_started |
-| Conta | Sitemap §4, Segurança §7 | `/app/conta` | `deletion_requests`, `consent_records` | not_started |
+| Histórico | Sitemap §4 | `/app/historico` | `analyses` | done |
+| Ações | Sitemap §4 | `/app/acoes` | `actions` | done |
+| Créditos e oferta simulada | Sitemap §4, Modelo de Negócio | `/app/creditos` | `credit_accounts`, `purchase_intents` | done |
+| Conta | Sitemap §4, Segurança §7 | `/app/conta` | `deletion_requests`, `consent_records` | in_progress (exclusão parcial — ver linha "Exclusão de conta"; `consent_records` ainda não é gravado nem exibido) |
 
 ## Analytics e observabilidade
 

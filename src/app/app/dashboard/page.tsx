@@ -9,12 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export const metadata = { title: "Dashboard — CareerTwin" };
 export const dynamic = "force-dynamic";
 
-/**
- * Partial — reads real aggregated state (credits, last Core 1/Core 2
- * analyses) without recalculating anything client-side (Sitemap §4).
- * Histórico completo, contexto-alvo e ações pendentes ainda não foram
- * implementados nesta sessão — ver relatório final.
- */
+/** Reads real aggregated state (credits, last Core 1/Core 2 analyses) without recalculating anything client-side (Sitemap §4). */
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -61,6 +56,9 @@ export default async function DashboardPage() {
           </Button>
           <Button asChild size="sm" variant="secondary">
             <Link href="/app/acoes">Ações</Link>
+          </Button>
+          <Button asChild size="sm" variant="secondary">
+            <Link href="/app/conta">Conta</Link>
           </Button>
         </div>
       </div>
