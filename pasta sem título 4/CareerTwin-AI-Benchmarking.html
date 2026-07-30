@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CareerTwin AI — Benchmarking de Mercado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1A1726; --ink-soft:#514C61; --ink-faint:#8B8597;
+  --paper:#FAF7F2; --paper-2:#F2ECE2; --card:#FFFFFF;
+  --line:#E5DDCF; --line-soft:#EFE9DD;
+  --violet:#5A3FE0; --violet-deep:#33208A; --violet-wash:#EEEAFB;
+  --green:#2E9E6B; --green-wash:#E7F4EC;
+  --amber:#C98711; --amber-wash:#FBF1DC;
+  --rose:#D2415C; --rose-wash:#FBE7EB;
+  --slate:#5C6678; --slate-wash:#EDEEF1;
+  --blue:#2C6CAF; --blue-wash:#E6EEF6;
+  --radius:14px; --radius-sm:9px;
+  --maxw:1280px;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Inter",system-ui,sans-serif; font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+@media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important;} }
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px;}
+
+/* ---------- Header ---------- */
+header.masthead{ background:var(--ink); color:var(--paper); border-bottom:3px solid var(--violet); }
+.masthead-inner{padding:36px 0 32px;}
+.eyebrow{
+  font-family:"JetBrains Mono",monospace; font-size:11.5px; letter-spacing:.22em;
+  text-transform:uppercase; color:#B8AEEE; margin:0 0 14px;
+}
+h1.title{
+  font-family:"Bricolage Grotesque",sans-serif; font-weight:800;
+  font-size:clamp(28px,4.6vw,46px); line-height:1.08; letter-spacing:-.02em;
+  margin:0 0 16px; max-width:22ch;
+}
+.title .accent{color:#B7A6F5;}
+.lede{font-size:clamp(15px,1.8vw,17px); color:#D9D4E4; max-width:68ch; margin:0;}
+.meta-row{
+  display:flex; flex-wrap:wrap; gap:10px 26px; margin-top:24px;
+  font-family:"JetBrains Mono",monospace; font-size:12px; color:#C7C0DD;
+}
+.meta-row b{color:var(--paper); font-weight:600;}
+
+/* ---------- Tabs ---------- */
+.tabbar-outer{position:sticky; top:0; z-index:30; background:var(--paper); border-bottom:1px solid var(--line);}
+.tabbar{display:flex; gap:4px; overflow-x:auto; padding:10px 0 0; scrollbar-width:none;}
+.tabbar::-webkit-scrollbar{display:none;}
+.tab{
+  flex:0 0 auto; appearance:none; border:0; background:none; cursor:pointer;
+  font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.04em;
+  color:var(--ink-soft); padding:13px 16px 14px; border-bottom:2.5px solid transparent;
+  display:flex; align-items:center; gap:9px; white-space:nowrap; transition:color .15s;
+}
+.tab .num{
+  font-size:10px; width:19px; height:19px; display:grid; place-items:center;
+  border:1px solid var(--line); border-radius:5px; color:var(--ink-faint);
+}
+.tab:hover{color:var(--ink);}
+.tab[aria-selected="true"]{color:var(--violet-deep); border-bottom-color:var(--violet); font-weight:600;}
+.tab[aria-selected="true"] .num{border-color:var(--violet); color:var(--violet); background:var(--violet-wash);}
+
+/* ---------- Panels ---------- */
+.panel{display:none; padding:40px 0 90px; animation:fade .25s ease;}
+.panel.active{display:block;}
+@keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+
+.section-head{margin:0 0 30px;}
+.section-eyebrow{
+  font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--violet); margin:0 0 9px;
+}
+h2.section-title{
+  font-family:"Bricolage Grotesque",sans-serif; font-weight:700;
+  font-size:clamp(23px,3.2vw,32px); letter-spacing:-.02em; line-height:1.08; margin:0 0 12px;
+}
+.section-intro{color:var(--ink-soft); max-width:74ch; margin:0; font-size:15px;}
+
+/* ---------- KPI row ---------- */
+.kpi-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:36px;}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+.kpi-card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:20px 18px; display:flex; flex-direction:column; gap:4px;
+}
+.kpi-num{
+  font-family:"Bricolage Grotesque",sans-serif; font-weight:800; font-size:34px;
+  color:var(--violet-deep); letter-spacing:-.01em; line-height:1;
+}
+.kpi-label{font-size:13px; font-weight:600; color:var(--ink); margin-top:6px;}
+.kpi-sub{font-size:12px; color:var(--ink-faint);}
+
+/* ---------- Finding cards ---------- */
+.finding-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px;}
+@media(max-width:860px){.finding-grid{grid-template-columns:1fr;}}
+.finding{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:20px 20px 18px; position:relative;
+}
+.finding-num{
+  font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--violet);
+  letter-spacing:.08em; display:block; margin-bottom:8px;
+}
+.finding h4{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:16px; margin:0 0 8px; letter-spacing:-.01em;}
+.finding p{margin:0; font-size:13.5px; color:var(--ink-soft); line-height:1.6;}
+
+/* ---------- Product cards (collapsible) ---------- */
+.pcard-list{display:flex; flex-direction:column; gap:10px;}
+.pcard{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  overflow:hidden;
+}
+.pcard-head{
+  width:100%; appearance:none; border:0; background:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:16px 18px; text-align:left;
+}
+.pcard-titlewrap{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;}
+.pcard-titlewrap h4{
+  font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:16px; margin:0; letter-spacing:-.01em;
+}
+.ptag{
+  font-family:"JetBrains Mono",monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--violet-deep); background:var(--violet-wash); padding:3px 9px; border-radius:20px;
+}
+.pcard-meta{display:flex; align-items:center; gap:14px; flex-shrink:0;}
+.pmodel{font-family:"JetBrains Mono",monospace; font-size:11.5px; color:var(--ink-faint); white-space:nowrap; display:none;}
+@media(min-width:700px){.pmodel{display:inline;}}
+.chev{color:var(--ink-faint); transition:transform .2s; flex-shrink:0;}
+.pcard-head[aria-expanded="true"] .chev{transform:rotate(180deg); color:var(--violet);}
+
+.pcard-body{display:none; padding:0 18px 20px; border-top:1px solid var(--line-soft);}
+.pcard-body.open{display:block; animation:fade .2s ease;}
+.pgrid{display:grid; grid-template-columns:1fr 1fr; gap:14px; padding-top:16px;}
+@media(max-width:640px){.pgrid{grid-template-columns:1fr;}}
+.pfield.full{grid-column:1/-1;}
+.plabel{
+  font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--ink-faint); display:block; margin-bottom:5px;
+}
+.plabel.good{color:var(--green);}
+.plabel.bad{color:var(--rose);}
+.plabel.accent{color:var(--violet);}
+.pfield p{margin:0; font-size:13.5px; color:var(--ink-soft); line-height:1.55;}
+
+/* ---------- Inspirational grid ---------- */
+.insp-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+@media(max-width:900px){.insp-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:620px){.insp-grid{grid-template-columns:1fr;}}
+.icard{
+  background:var(--amber-wash); border:1px solid #EBD9AE; border-radius:var(--radius); padding:18px;
+}
+.icard h4{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:15px; margin:0 0 8px; color:var(--ink);}
+.icard p{margin:0; font-size:13px; color:var(--ink-soft); line-height:1.6;}
+
+/* ---------- Matrix heatmap ---------- */
+.mx-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--card);}
+table.matrix{border-collapse:collapse; width:100%; min-width:880px;}
+table.matrix thead th{
+  font-family:"JetBrains Mono",monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--ink-faint); font-weight:600; text-align:center; padding:12px 8px;
+  border-bottom:1px solid var(--line); white-space:nowrap;
+}
+table.matrix thead th.mx-rowhead{text-align:left; padding-left:16px;}
+table.matrix td{padding:7px 6px; text-align:center; border-bottom:1px solid var(--line-soft);}
+table.matrix td.mx-rowhead{
+  text-align:left; padding-left:16px; font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap;
+}
+table.matrix tr.ct-row{background:var(--violet-wash);}
+table.matrix tr.ct-row td.mx-rowhead{color:var(--violet-deep);}
+table.matrix tr:last-child td{border-bottom:0;}
+.mx-dot{
+  display:inline-block; width:16px; height:16px; border-radius:5px; background:var(--line-soft);
+}
+.lvl-0 .mx-dot, i.mx-dot.lvl-0{background:#EFE9DD;}
+.lvl-1 .mx-dot, i.mx-dot.lvl-1{background:#C9B6F2;}
+.lvl-2 .mx-dot, i.mx-dot.lvl-2{background:#8A6CE8;}
+.lvl-3 .mx-dot, i.mx-dot.lvl-3{background:var(--violet-deep);}
+.mx-legend{display:flex; gap:18px; margin-top:14px; flex-wrap:wrap;}
+.mx-legend span{
+  display:flex; align-items:center; gap:7px; font-family:"JetBrains Mono",monospace;
+  font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em;
+}
+.mx-legend i.mx-dot{width:13px; height:13px; border-radius:4px;}
+.mx-note{font-size:12px; color:var(--ink-faint); margin-top:14px; font-style:italic;}
+
+/* ---------- Gap list ---------- */
+.gap-list{display:flex; flex-direction:column; gap:12px; margin-bottom:26px;}
+.gap-item{
+  background:var(--card); border:1px solid var(--line); border-left:4px solid var(--violet);
+  border-radius:var(--radius-sm); padding:16px 20px;
+}
+.gap-tag{
+  font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--violet); display:block; margin-bottom:6px;
+}
+.gap-item h4{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:15.5px; margin:0 0 7px;}
+.gap-item p{margin:0; font-size:13.5px; color:var(--ink-soft); line-height:1.6;}
+.gap-item strong{color:var(--ink); font-weight:600;}
+
+.callout{
+  background:var(--rose-wash); border:2px solid #EFC8D0; border-radius:var(--radius); padding:20px 22px;
+}
+.callout-label{
+  font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--rose); font-weight:700; margin:0 0 8px;
+}
+.callout p:last-child{margin:0; font-size:14px; color:var(--ink); line-height:1.65;}
+
+/* ---------- Sources ---------- */
+.src-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:20px;}
+@media(max-width:980px){.src-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:640px){.src-grid{grid-template-columns:repeat(2,1fr);}}
+.src-col h4{
+  font-family:"JetBrains Mono",monospace; font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--violet-deep); margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line);
+}
+.src-col ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;}
+.src-col li{font-size:12.5px; color:var(--ink-soft);}
+
+/* ---------- Footer ---------- */
+.report-footer{border-top:1px solid var(--line); padding:22px 0; margin-top:0;}
+.report-footer p{
+  font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink-faint); margin:0; text-align:center;
+}
+
+/* ---------- Focus visibility ---------- */
+button:focus-visible{outline:2px solid var(--violet); outline-offset:2px;}
+
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap masthead-inner">
+    <p class="eyebrow">CareerTwin AI · Benchmarking de Mercado</p>
+    <h1 class="title">Quem já resolve <span class="accent">pedaços</span> do problema — e onde sobra espaço para um copiloto de empregabilidade.</h1>
+    <p class="lede">Análise de 27 soluções (11 brasileiras, 16 internacionais) mais 6 referências inspiracionais de outros setores, organizadas por funcionalidades, modelo de negócio, uso de IA e escala. Inclui matriz comparativa em 9 dimensões e leitura de oportunidades para o CareerTwin AI.</p>
+    <div class="meta-row">
+      <span>Produtos analisados <b>27 diretos + 6 inspiracionais</b></span>
+      <span>Mercados <b>Brasil · EUA · Global</b></span>
+      <span>Atualizado em <b>Junho/2026</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="tabbar-outer">
+  <nav class="wrap tabbar" id="tabbar">
+    <button class="tab" aria-selected="true" data-panel="p-resumo"><span class="num">01</span>Sumário</button>
+    <button class="tab" data-panel="p-matriz"><span class="num">02</span>Matriz Comparativa</button>
+    <button class="tab" data-panel="p-br"><span class="num">03</span>Brasil</button>
+    <button class="tab" data-panel="p-intl"><span class="num">04</span>Internacional</button>
+    <button class="tab" data-panel="p-insp"><span class="num">05</span>Inspiracionais</button>
+    <button class="tab" data-panel="p-gaps"><span class="num">06</span>Gaps &amp; Oportunidades</button>
+    <button class="tab" data-panel="p-fontes"><span class="num">07</span>Fontes</button>
+  </nav>
+</div>
+
+<main class="wrap">
+
+  <!-- ============ PANEL 1: RESUMO ============ -->
+  <section class="panel active" id="p-resumo">
+    <div class="section-head">
+      <p class="section-eyebrow">Visão executiva</p>
+      <h2 class="section-title">O mercado fragmenta a jornada. O CareerTwin propõe integrá-la.</h2>
+      <p class="section-intro">Nenhum dos 27 produtos analisados resolve a jornada completa de recolocação de ponta a ponta — da leitura crítica da vaga até a preparação para entrevista — com explicabilidade e preservação de autenticidade como núcleo da proposta.</p>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-num">27</span>
+        <span class="kpi-label">soluções mapeadas</span>
+        <span class="kpi-sub">11 brasileiras · 16 internacionais</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-num">0</span>
+        <span class="kpi-label">com explicabilidade como núcleo</span>
+        <span class="kpi-sub">scores existem, mas são pouco explicados</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-num">2M+</span>
+        <span class="kpi-label">usuários do líder em job tracking (Teal)</span>
+        <span class="kpi-sub">prova de demanda por organização da busca</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-num">30x</span>
+        <span class="kpi-label">crescimento anual do Jobright.ai</span>
+        <span class="kpi-sub">validação do modelo "copiloto agêntico" nos EUA</span>
+      </div>
+    </div>
+
+    <div class="finding-grid">
+      <div class="finding">
+        <span class="finding-num">01</span>
+        <h4>O Brasil não tem um "Jobright local"</h4>
+        <p>Catho, Gupy, Revelo e InfoJobs ainda tratam IA de forma genérica — geração de currículo ou triagem do lado do recrutador. Nenhum player nacional faz diagnóstico de aderência explicável + skill gap mapping para o candidato.</p>
+      </div>
+      <div class="finding">
+        <span class="finding-num">02</span>
+        <h4>Score virou padrão — mas sem explicabilidade real</h4>
+        <p>Jobscan, Teal, Rezi e Jobright já usam score de aderência. O problema: reviews reais (Jobright, Sonara) relatam outputs genéricos. O discurso de "match explicado" já é usado no marketing — falta entregar de fato.</p>
+      </div>
+      <div class="finding">
+        <span class="finding-num">03</span>
+        <h4>Evidências profissionais são tratadas como nicho criativo</h4>
+        <p>Portfólio ainda é associado a áreas digitais/criativas. Nenhuma solução democratiza o conceito de "evidência de competência" para vendas, operações, RH, saúde ou jurídico.</p>
+      </div>
+      <div class="finding">
+        <span class="finding-num">04</span>
+        <h4>Lacunas de skills viram keyword, não plano de ação</h4>
+        <p>Jobscan e Teal dizem "falta SQL". Coursera e Google Certificates ensinam SQL. Nenhuma solução conecta diagnóstico → priorização → aprendizagem → atualização de currículo/LinkedIn num único fluxo.</p>
+      </div>
+      <div class="finding">
+        <span class="finding-num">05</span>
+        <h4>Automação de volume é um jogo à parte — e arriscado</h4>
+        <p>LazyApply (2,2★) e Sonara (reviews mistas) mostram que "candidatar em massa" tem teto de satisfação baixo. O caminho de qualidade explicável > volume, já hipotetizado no canvas do CareerTwin, é validado pelo mercado.</p>
+      </div>
+      <div class="finding">
+        <span class="finding-num">06</span>
+        <h4>B2B para universidades já tem case provado — nos EUA</h4>
+        <p>Jobscan está em mais de 3.000 centros de carreira universitários americanos. No Brasil, esse modelo de parceria com universidades/RH ainda está praticamente vazio — oportunidade clara para a perna B2B do CareerTwin.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PANEL 2: MATRIZ ============ -->
+  <section class="panel" id="p-matriz">
+    <div class="section-head">
+      <p class="section-eyebrow">Feature matrix</p>
+      <h2 class="section-title">Matriz Comparativa — 9 dimensões, 24 soluções</h2>
+      <p class="section-intro">Intensidade de cor = profundidade da funcionalidade na solução (não apenas presença/ausência). A linha do CareerTwin AI reflete o nível pretendido pelo Canvas de Hipóteses do MVP, não uma medição de produto já construído.</p>
+    </div>
+    
+    <div class="mx-scroll">
+    <table class="matrix">
+      <thead><tr><th class='mx-rowhead'>Produto</th><th>Busca de vagas</th><th>Currículo/ATS</th><th>LinkedIn</th><th>Evidências profissionais</th><th>Lacunas de skills</th><th>Plano de ação</th><th>Tracker</th><th>Entrevistas</th><th>IA</th></tr></thead>
+      <tbody><tr class='ct-row'><td class='mx-rowhead'>CareerTwin AI*</td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Gupy</td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Vagas.com</td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Catho</td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>InfoJobs</td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>99Jobs</td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Revelo</td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>GeekHunter</td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Trampos</td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>LinkedIn</td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Indeed</td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Glassdoor</td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Teal</td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Jobscan</td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-3' title='Muito alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Resume Worded</td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Rezi</td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-3' title='Muito alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Huntr</td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-3' title='Muito alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Simplify</td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Jobright.ai</td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Kickresume</td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Enhancv</td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>Coursera</td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>CareerFoundry / GA</td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td></tr><tr class=''><td class='mx-rowhead'>ADPList</td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-2' title='Alto'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td><td class='mx-cell lvl-1' title='Médio'><span class='mx-dot'></span></td><td class='mx-cell lvl-0' title='Baixo'><span class='mx-dot'></span></td></tr></tbody>
+    </table>
+    </div>
+    <div class="mx-legend">
+      <span><i class="mx-dot lvl-0"></i> Baixo</span>
+      <span><i class="mx-dot lvl-1"></i> Médio</span>
+      <span><i class="mx-dot lvl-2"></i> Alto</span>
+      <span><i class="mx-dot lvl-3"></i> Muito alto</span>
+    </div>
+    
+    <p class="mx-note">* CareerTwin AI ainda em discovery — níveis refletem a ambição do MVP definida no Canvas de Hipóteses, sujeitos a validação.</p>
+  </section>
+
+  <!-- ============ PANEL 3: BRASIL ============ -->
+  <section class="panel" id="p-br">
+    <div class="section-head">
+      <p class="section-eyebrow">Mercado nacional</p>
+      <h2 class="section-title">Benchmarks brasileiros</h2>
+      <p class="section-intro">Portais de vagas tradicionais, ATS corporativos e marketplaces de nicho dominam o cenário nacional. A camada de orientação ao candidato — currículo, LinkedIn, lacunas — ainda é pouco explorada com profundidade.</p>
+    </div>
+    <div class="pcard-list">
+      
+    <article class="pcard" data-origin="br">
+      <button class="pcard-head" aria-expanded="false" data-target="card-br-0">
+        <div class="pcard-titlewrap">
+          <h4>Gupy</h4>
+          <span class="ptag">Líder ATS LatAm</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">B2B (SaaS p/ empresas)</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-br-0">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Plataforma nº1 de RH na América Latina; milhares de empresas clientes</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Agentes de IA para triagem, ranqueamento de afinidade e criação de vagas</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Ajudar empresas a gerenciar processos seletivos em escala, organizar candidatos e automatizar etapas.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Forte penetração no mercado brasileiro de RH; integração com processos corporativos; alto volume de vagas.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Experiência do candidato pode ser impessoal; pouco feedback explicativo após reprovação; baixo apoio prático ao currículo/LinkedIn.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Camada de explicabilidade para o candidato: por que a vaga parece aderente, o que falta, como adaptar a narrativa.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="br">
+      <button class="pcard-head" aria-expanded="false" data-target="card-br-1">
+        <div class="pcard-titlewrap">
+          <h4>Vagas.com</h4>
+          <span class="ptag">Portal tradicional</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">B2B (anúncio de vagas)</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-br-1">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Grande base nacional, candidatura gratuita</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Não é eixo percebido pelo usuário</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Dar acesso a vagas e permitir candidatura gratuita.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Marca conhecida, gratuidade para candidatos, grande base de vagas.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Experiência transacional; pouca personalização profunda; baixa orientação de conversão.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Combinar busca de vagas com diagnóstico de aderência e melhoria de materiais.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="br">
+      <button class="pcard-head" aria-expanded="false" data-target="card-br-2">
+        <div class="pcard-titlewrap">
+          <h4>Catho</h4>
+          <span class="ptag">Marca histórica</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Assinatura + anúncios</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-br-2">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Histórico de dezenas de milhões de cadastros no Brasil</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Análise Inteligente de CV (geração assistida)</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Ajudar candidatos a encontrar vagas e aumentar chances via exposição e serviços complementares.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Reconhecimento de marca, volume de vagas, histórico no mercado.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Experiência percebida como menos moderna vs. ferramentas internacionais de IA.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Oferecer valor antes da candidatura: diagnóstico gratuito, plano de ação, adaptação por vaga.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="br">
+      <button class="pcard-head" aria-expanded="false" data-target="card-br-3">
+        <div class="pcard-titlewrap">
+          <h4>InfoJobs</h4>
+          <span class="ptag">Marketplace de volume</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">B2B + serviços</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-br-3">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Grande base de vagas, presença em diferentes setores</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Recomendações e matching, não é diferencial central</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Conectar candidatos a vagas de diferentes áreas e níveis.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Volume, capilaridade e reconhecimento.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Pode estimular candidatura em massa sem aumentar qualidade do match.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Incorporar mecanismos de qualidade da candidatura.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="br">
+      <button class="pcard-head" aria-expanded="false" data-target="card-br-4">
+        <div class="pcard-titlewrap">
+          <h4>99Jobs</h4>
+          <span class="ptag">Fit cultural/entrada</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">B2B (employer branding)</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-br-4">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Forte para jovens talentos e programas de estágio/trainee</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Não é diferencial central</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Conectar talentos a empresas considerando valores, cultura e oportunidades de entrada.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Linguagem acessível, foco em cultura e início de carreira.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Menor aderência para sêniores, liderança ou recolocação executiva.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Aprender com o foco em fit cultural, mas expandir para fit de competências e senioridade.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="br">
+      <button class="pcard-head" aria-expanded="false" data-target="card-br-5">
+        <div class="pcard-titlewrap">
+          <h4>Revelo</h4>
+          <span class="ptag">Marketplace tech curado</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">B2B / marketplace</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-br-5">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Mais de 1,5 milhão de candidatos cadastrados, 24 mil empresas atendidas</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Apoia matching, curadoria e validação de perfis tech</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Reduzir fricção entre talentos qualificados (tech) e empresas contratantes.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Foco em talentos de tecnologia; curadoria; conexão com vagas remotas em dólar.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Segmentação forte; pode não atender bem profissionais fora de tecnologia.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>O modelo curado inspira uma solução que selecione melhores oportunidades, não apenas liste vagas.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="br">
+      <button class="pcard-head" aria-expanded="false" data-target="card-br-6">
+        <div class="pcard-titlewrap">
+          <h4>GeekHunter</h4>
+          <span class="ptag">Nicho tech</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">B2B / recrutamento especializado</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-br-6">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Especialização em tecnologia</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Apoia matching e curadoria</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Ajudar empresas a contratar talentos tech e profissionais a encontrar oportunidades aderentes.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Segmentação e curadoria.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Baixa generalização para outros públicos.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Lógica de nicho pode inspirar trilhas por família ocupacional, sem travar o produto numa única carreira.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="br">
+      <button class="pcard-head" aria-expanded="false" data-target="card-br-7">
+        <div class="pcard-titlewrap">
+          <h4>Trampos</h4>
+          <span class="ptag">Comunidade digital</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Vagas + educação + mídia</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-br-7">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Forte em nichos de comunicação/produto/marketing</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Não é diferencial central</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Conectar profissionais digitais a oportunidades alinhadas ao mercado de comunicação e produto.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Linguagem, comunidade e foco em nichos digitais.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Menor cobertura para áreas tradicionais, operacionais ou executivas.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Construir evidências profissionais aplicáveis a qualquer área, não só criativas.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="br">
+      <button class="pcard-head" aria-expanded="false" data-target="card-br-8">
+        <div class="pcard-titlewrap">
+          <h4>Empregos.com.br</h4>
+          <span class="ptag">Portal tradicional</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Portal de vagas + serviços</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-br-8">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Volume, reconhecimento, cobertura ampla</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Não é diferencial central</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Dar acesso a oportunidades e permitir candidatura a vagas.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Volume, reconhecimento e cobertura ampla.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Baixa personalização profunda; pouca orientação sobre qualidade da candidatura.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Camadas de inteligência para entender onde aplicar e como adaptar a narrativa.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="br">
+      <button class="pcard-head" aria-expanded="false" data-target="card-br-9">
+        <div class="pcard-titlewrap">
+          <h4>CIEE</h4>
+          <span class="ptag">Estágio e entrada</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Institucional / parcerias</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-br-9">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Forte capilaridade institucional em estágio e aprendizagem</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Não é diferencial central</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Conectar jovens a oportunidades de estágio e aprendizagem, apoiando inclusão produtiva.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Credibilidade, foco em inclusão e capilaridade.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Menor aderência para profissionais plenos, sêniores ou em transição avançada.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Lógica de orientação/formação inicial para jornadas adaptadas a diferentes momentos de carreira.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="br">
+      <button class="pcard-head" aria-expanded="false" data-target="card-br-10">
+        <div class="pcard-titlewrap">
+          <h4>Emprega.AI</h4>
+          <span class="ptag">IA generalista BR</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">B2C (freemium)</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-br-10">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Nicho, em crescimento</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Análise de currículo, sugestão de vagas e skills em alta</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Construir carreira com apoio de IA: análise de CV, vagas e cursos recomendados.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Inclui foco em concursos públicos e freelancers — diferencial local.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Escala ainda pequena frente aos grandes portais.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Aprofundar diagnóstico de aderência além da geração de currículo.</p></div>
+        </div>
+      </div>
+    </article>
+    </div>
+  </section>
+
+  <!-- ============ PANEL 4: INTERNACIONAL ============ -->
+  <section class="panel" id="p-intl">
+    <div class="section-head">
+      <p class="section-eyebrow">Mercado global</p>
+      <h2 class="section-title">Benchmarks internacionais</h2>
+      <p class="section-intro">EUA concentra os players mais maduros em IA aplicada à empregabilidade — de ferramentas de ATS score a copilotos agênticos de auto-apply. É também onde os riscos de "volume sem qualidade" ficam mais visíveis.</p>
+    </div>
+    <div class="pcard-list">
+      
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-0">
+        <div class="pcard-titlewrap">
+          <h4>LinkedIn</h4>
+          <span class="ptag">Infraestrutura de identidade</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Freemium + Premium + Recruiter + Ads</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-0">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Mais de 1 bilhão de usuários; ~15% assina Premium</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>IA em busca, recomendações, recrutamento e Premium (match score, reescrita de perfil, AI Job Discovery)</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Permitir que profissionais construam presença, sejam encontrados, ampliem rede e desenvolvam competências.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Efeito de rede dominante; alta visibilidade para recrutadores; dados ricos de carreira.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Alta competição/ruído; otimização exige conhecimento tácito; feedback de baixa performance é limitado.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Camada de inteligência sobre o LinkedIn: diagnóstico de perfil, headline, Sobre, experiências, skills e narrativa de transição.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-1">
+        <div class="pcard-titlewrap">
+          <h4>Indeed</h4>
+          <span class="ptag">Buscador global de volume</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Publicidade de vagas + soluções B2B</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-1">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Uma das maiores bases globais de vagas</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Recomendações, matching e otimização de busca</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Facilitar a busca por vagas em escala, conectando candidatos a empresas.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Volume, simplicidade, forte SEO.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Estimula volume de candidaturas mais que qualidade; pouca personalização profunda.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Incorporar score de aderência, plano de ação e melhoria contínua da busca.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-2">
+        <div class="pcard-titlewrap">
+          <h4>Glassdoor</h4>
+          <span class="ptag">Transparência e decisão</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Employer branding + ads</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-2">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Referência global em avaliações de empresas</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Apoia organização e recomendação, não é diferencial central</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Ajudar profissionais a avaliar empresas, salários, cultura e entrevistas antes de aplicar/aceitar.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Transparência, reputação, apoio à decisão.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Dados dependem de contribuição dos usuários; viés de avaliações extremas.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Integrar &#x27;essa vaga é aderente ao meu momento?&#x27; ao plano de candidatura, não só &#x27;sou aderente à vaga?&#x27;.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-3">
+        <div class="pcard-titlewrap">
+          <h4>Teal</h4>
+          <span class="ptag">Workflow de busca completo</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Freemium + assinatura (~US$29/mês)</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-3">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Mais de 2 milhões de usuários; founded 2019; US$20,7M captados</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Forte: AI Resume Builder, Job Description Match, geração de bullets/resumo</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Ajudar profissionais a organizar a busca, adaptar currículos e aumentar entrevistas.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Integra job tracker + AI resume + matching numa experiência simples; extensão com 4,9★.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Lacunas tendem a aparecer como gaps de keywords; pouca contextualização para mercados locais (BR).</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Versão contextualizada para o Brasil, com explicabilidade, trilhas de competências e guardrails contra exageros.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-4">
+        <div class="pcard-titlewrap">
+          <h4>Jobscan</h4>
+          <span class="ptag">Padrão-ouro em ATS score</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Freemium + assinatura</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-4">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Adotado por mais de 3.000 centros de carreira universitários nos EUA</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>IA/ML para análise, recomendações e otimização de match</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Ajudar candidatos a otimizar currículo para ATS e aumentar chances de entrevista.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Clareza de score; diagnóstico objetivo; feedback acionável.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Pode induzir excesso de otimização por palavras-chave; não resolve narrativa de carreira completa.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Combinar score objetivo com motor de autenticidade: &#x27;essa sugestão é verdadeira para sua experiência?&#x27;.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-5">
+        <div class="pcard-titlewrap">
+          <h4>Resume Worded</h4>
+          <span class="ptag">Feedback instantâneo</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Freemium + assinatura + B2B educacional</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-5">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Forte tração com universidades/bootcamps</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>IA para análise e feedback de currículo e LinkedIn</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Dar feedback personalizado e imediato para melhorar currículo e perfil do LinkedIn.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Feedback rápido; currículo e LinkedIn no mesmo produto; linguagem didática.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Menos integração com acompanhamento de candidaturas.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Inspirar feedback rápido, complementado com plano de ação e rastreamento de resultados.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-6">
+        <div class="pcard-titlewrap">
+          <h4>Rezi</h4>
+          <span class="ptag">Criação rápida com IA</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Freemium + assinatura</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-6">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Base ativa de candidatos focados em ATS</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Forte: IA escreve, pontua e adapta currículo (Rezi Score)</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Criar, pontuar e adaptar currículos para job descriptions com foco em ATS.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Criação rápida; foco ATS; score e keyword targeting.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Risco de currículos genéricos; pouco apoio à autenticidade e evidências.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Usar IA para organizar experiências reais em blocos reutilizáveis, não fabricar narrativa.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-7">
+        <div class="pcard-titlewrap">
+          <h4>Huntr</h4>
+          <span class="ptag">CRM de busca de emprego</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Freemium + assinatura + B2B (universidades/coaches)</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-7">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Forte tração entre job seekers ativos nos EUA</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Forte em currículo, revisão e tailoring</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Reduzir o caos da busca, centralizando vagas, contatos, entrevistas, currículos e métricas.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Reduz desorganização; integra tracking + currículo + entrevistas; métricas de busca.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Ainda centrado em workflow de candidatura; menor foco em desenvolvimento de competências.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Inspirar um CRM de carreira, mas com inteligência diagnóstica mais profunda.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-8">
+        <div class="pcard-titlewrap">
+          <h4>Simplify</h4>
+          <span class="ptag">Autofill e fricção zero</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Freemium/assinatura</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-8">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Forte tração entre quem aplica em alto volume</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Forte em tailoring e automação (autofill)</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Ajudar candidatos a encontrar vagas relevantes, preencher aplicações rápido e acompanhar.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Redução de esforço repetitivo; matching; autofill; tracker.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Risco de acelerar candidaturas sem aumentar qualidade (&#x27;apply more&#x27; vs &#x27;apply better&#x27;).</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Combinar automação com freios inteligentes: só acelerar quando o perfil estiver minimamente aderente.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-9">
+        <div class="pcard-titlewrap">
+          <h4>Kickresume</h4>
+          <span class="ptag">Currículo visual + site pessoal</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Freemium + assinatura</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-9">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Base global ampla, forte apelo visual</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Forte em escrita de currículo e cover letter</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Ajudar candidatos a criar currículos e cartas visualmente atraentes com rapidez.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Design e templates; website pessoal; facilidade para começar.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Risco de priorizar estética sobre conteúdo e ATS.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Separar modo &#x27;currículo ATS&#x27; de modo &#x27;evidências profissionais&#x27;, cada um para seu contexto.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-10">
+        <div class="pcard-titlewrap">
+          <h4>Enhancv</h4>
+          <span class="ptag">Currículo humano + ATS</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Freemium + assinatura</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-10">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Base global, posicionamento premium</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Forte: AI Writer + One-click Job Tailoring</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Criar currículos humanos, personalizados e compatíveis com ATS.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Equilíbrio entre estética e ATS; personalização; linguagem mais humana.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Menos forte em tracking de candidaturas e LinkedIn.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Boa referência de tom: IA com foco em currículo humano, não apenas otimização robótica.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-11">
+        <div class="pcard-titlewrap">
+          <h4>Novoresume</h4>
+          <span class="ptag">Builder simples</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Freemium</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-11">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Base ampla, uso pontual</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Menos central que ferramentas mais recentes</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Facilitar criação de currículos profissionais e visualmente organizados.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Simplicidade, visual e templates.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Menor profundidade em IA, ATS avançado e job tracking.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Mostra que boa usabilidade importa, mas não basta para resolver recolocação.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-12">
+        <div class="pcard-titlewrap">
+          <h4>Careerflow.ai</h4>
+          <span class="ptag">Copiloto de LinkedIn</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Freemium + assinatura</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-12">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Escala média, crescimento orgânico</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Resume analyzer, LinkedIn optimization, job tracker, coaching</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Otimizar resume, LinkedIn e tracking de candidaturas num único copiloto.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Forte em personal branding no LinkedIn, não só currículo.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Sobreposição de escopo com Teal/Jobscan; diferenciação ainda em construção.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Modelo de &#x27;copiloto multi-ferramenta&#x27; é próximo da proposta de jornada integrada.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-13">
+        <div class="pcard-titlewrap">
+          <h4>Jobright.ai</h4>
+          <span class="ptag">Copiloto agêntico</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Assinatura (~US$30–40/mês)</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-13">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Mais de 520 mil profissionais; crescendo 30x ao ano; ~US$7,7M captados</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Copiloto conversacional &#x27;Orion&#x27; + AI Agent de auto-apply fim a fim</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Encontrar, customizar e submeter candidaturas em nome do usuário.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Trustpilot 4,8/5 (1.708 avaliações); match score; networking de referências; UX elogiada.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Reviews relatam outputs genéricos em casos reais; &#x27;auto-apply&#x27; ainda limitado apesar do marketing.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Mostra que o discurso de &#x27;match explicado&#x27; já é usado no marketing — execução real ainda rasa.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-14">
+        <div class="pcard-titlewrap">
+          <h4>Sonara AI</h4>
+          <span class="ptag">Auto-apply passivo</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Assinatura (~US$29/mês, sem free tier)</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-14">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Base menor, nicho</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>Geração de currículo/carta + auto-apply contínuo</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>&#x27;Apply until you&#x27;re hired&#x27; — candidaturas automáticas contínuas em segundo plano.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Conveniência percebida; updates diários.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Reviews relatam 25–40% de falha em verificações; reputação mista (4,1/5, poucas avaliações).</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Evidencia o limite do modelo &#x27;volume&#x27; sem qualidade.</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="pcard" data-origin="intl">
+      <button class="pcard-head" aria-expanded="false" data-target="card-intl-15">
+        <div class="pcard-titlewrap">
+          <h4>LazyApply</h4>
+          <span class="ptag">Volume extremo</span>
+        </div>
+        <div class="pcard-meta">
+          <span class="pmodel">Assinatura (a partir de US$99/ano)</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="pcard-body" id="card-intl-15">
+        <div class="pgrid">
+          <div class="pfield"><span class="plabel">Escala</span><p>Alto volume de uso, reputação mista</p></div>
+          <div class="pfield"><span class="plabel">Uso de IA</span><p>&#x27;Job GPT&#x27; para auto-apply em massa</p></div>
+          <div class="pfield full"><span class="plabel">Proposta de valor</span><p>Aplicar para milhares de vagas em um clique via extensão.</p></div>
+          <div class="pfield"><span class="plabel good">Pontos fortes</span><p>Velocidade e volume.</p></div>
+          <div class="pfield"><span class="plabel bad">Limitações</span><p>Trustpilot 2,2/5 (108 avaliações); queixas de aplicações genéricas e baixa personalização.</p></div>
+          <div class="pfield full"><span class="plabel accent">Oportunidade p/ CareerTwin</span><p>Modelo oposto à filosofia de qualidade — referência do que evitar.</p></div>
+        </div>
+      </div>
+    </article>
+    </div>
+  </section>
+
+  <!-- ============ PANEL 5: INSPIRACIONAIS ============ -->
+  <section class="panel" id="p-insp">
+    <div class="section-head">
+      <p class="section-eyebrow">Fora da categoria</p>
+      <h2 class="section-title">Benchmarks inspiracionais</h2>
+      <p class="section-intro">Produtos de outros setores que já resolveram, em domínios diferentes, os mesmos desafios de diagnóstico, score explicável, progresso e confiança em IA que o CareerTwin precisa resolver para empregabilidade.</p>
+    </div>
+    <div class="insp-grid">
+      
+    <article class="icard">
+      <h4>Duolingo</h4>
+      <p>Microações diárias, streaks e progressão gamificada reduzem ansiedade e transformam jornadas grandes em passos pequenos: revisar um bullet, adaptar uma seção do LinkedIn, treinar uma pergunta de entrevista.</p>
+    </article>
+
+    <article class="icard">
+      <h4>Strava</h4>
+      <p>&#x27;Diário de treino&#x27; aplicado à busca de emprego: candidaturas qualificadas, taxa de resposta, entrevistas, evolução de currículo e skills, consistência semanal — com foco em progresso saudável, não comparação tóxica.</p>
+    </article>
+
+    <article class="icard">
+      <h4>Serasa Score</h4>
+      <p>Score como diagnóstico simples e acionável só funciona se for explicável e não determinista — decompor em dimensões (aderência, clareza, evidências, skills) em vez de um número opaco.</p>
+    </article>
+
+    <article class="icard">
+      <h4>Nubank / Guiabolso</h4>
+      <p>Transformar dados dispersos (vagas, versões de currículo, contatos, entrevistas, cursos) em diagnóstico, categorias, alertas e plano de ação centralizado.</p>
+    </article>
+
+    <article class="icard">
+      <h4>Credit Karma</h4>
+      <p>Explicar os fatores que compõem um score, indicar o que mais impacta o resultado e sugerir ações concretas — base para um score de empregabilidade explicável.</p>
+    </article>
+
+    <article class="icard">
+      <h4>Microsoft Copilot</h4>
+      <p>IA como assistente contextual dentro do fluxo, não substituto — o candidato mantém autoria, veracidade e controle; a IA estrutura, compara, explica e revisa, sem inventar.</p>
+    </article>
+    </div>
+  </section>
+
+  <!-- ============ PANEL 6: GAPS ============ -->
+  <section class="panel" id="p-gaps">
+    <div class="section-head">
+      <p class="section-eyebrow">Síntese estratégica</p>
+      <h2 class="section-title">Gaps de mercado e onde o CareerTwin pode vencer</h2>
+      <p class="section-intro">Oito lacunas estruturais aparecem de forma consistente em praticamente todos os concorrentes analisados — diretos e indiretos.</p>
+    </div>
+
+    <div class="gap-list">
+      <div class="gap-item">
+        <span class="gap-tag">Gap 01</span>
+        <h4>Falta de visão integrada da jornada</h4>
+        <p>O mercado fragmenta a experiência: uma ferramenta para vaga (Indeed), outra para currículo (Rezi), outra para LinkedIn (Resume Worded), outra para curso (Coursera), outra para tracker (Huntr). <strong>Oportunidade:</strong> plataforma integrada de reposicionamento profissional — exatamente a tese do CareerTwin.</p>
+      </div>
+      <div class="gap-item">
+        <span class="gap-tag">Gap 02</span>
+        <h4>Diagnóstico sem plano de ação</h4>
+        <p>Muitas soluções mostram problemas (score baixo, keyword faltando), mas não priorizam o que fazer primeiro. <strong>Oportunidade:</strong> transformar diagnóstico em plano semanal com esforço, impacto e evidência esperada.</p>
+      </div>
+      <div class="gap-item">
+        <span class="gap-tag">Gap 03</span>
+        <h4>Pouca personalização por momento de carreira</h4>
+        <p>Júnior, sênior, liderança, pós-demissão e mudança de área têm necessidades muito diferentes — quase nenhum produto segmenta a jornada por isso. <strong>Oportunidade:</strong> onboarding por momento de carreira e objetivo.</p>
+      </div>
+      <div class="gap-item">
+        <span class="gap-tag">Gap 04</span>
+        <h4>Evidências profissionais pouco democratizadas</h4>
+        <p>"Portfólio" ainda soa como coisa de área criativa/tech. <strong>Oportunidade:</strong> modelos de prova profissional por área — cases, indicadores, relatos, certificações — para qualquer profissão.</p>
+      </div>
+      <div class="gap-item">
+        <span class="gap-tag">Gap 05</span>
+        <h4>IA pouco explicável</h4>
+        <p>Ferramentas geram sugestões sem dizer por quê. <strong>Oportunidade:</strong> toda recomendação do CareerTwin deve justificar qual requisito da vaga está sendo respondido e qual evidência sustenta a afirmação.</p>
+      </div>
+      <div class="gap-item">
+        <span class="gap-tag">Gap 06</span>
+        <h4>Falta de feedback emocionalmente seguro</h4>
+        <p>Rejeição sem explicação reduz autoeficácia — dor validada tanto no desk research quanto nas reviews de usuários de Jobright/Sonara. <strong>Oportunidade:</strong> feedback honesto, específico e encorajador, sem prometer aprovação.</p>
+      </div>
+      <div class="gap-item">
+        <span class="gap-tag">Gap 07</span>
+        <h4>Pouca conexão entre aprendizagem e candidatura</h4>
+        <p>Cursos (Coursera, Google Certificates) ficam soltos do currículo e da vaga-alvo. <strong>Oportunidade:</strong> conectar lacuna → curso/microprojeto → atualização de currículo, LinkedIn e evidências.</p>
+      </div>
+      <div class="gap-item">
+        <span class="gap-tag">Gap 08</span>
+        <h4>Candidatura em massa sem estratégia</h4>
+        <p>Autofill e auto-apply (LazyApply, Sonara, Jobright Agent) aumentam volume, não qualidade — e a satisfação desses produtos é visivelmente mais baixa. <strong>Oportunidade:</strong> orientar a aplicar melhor, não apenas aplicar mais.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p class="callout-label">Risco a monitorar</p>
+      <p>O discurso de "match explicado" já está sendo usado no marketing de Jobright e Sonara, mesmo que a execução real seja superficial segundo reviews. A diferenciação do CareerTwin vai precisar se provar na experiência — profundidade real do "porquê" — não apenas no posicionamento.</p>
+    </div>
+  </section>
+
+  <!-- ============ PANEL 7: FONTES ============ -->
+  <section class="panel" id="p-fontes">
+    <div class="section-head">
+      <p class="section-eyebrow">Metodologia</p>
+      <h2 class="section-title">Fontes consultadas</h2>
+      <p class="section-intro">Pesquisa combinando desk research direcionado (24 perfis de produto) e busca web complementar (dados de avaliação, funding e tração em 2026).</p>
+    </div>
+
+    <div class="src-grid">
+      <div class="src-col">
+        <h4>Plataformas brasileiras</h4>
+        <ul><li>Gupy</li><li>Vagas.com</li><li>Catho</li><li>InfoJobs Brasil</li><li>99Jobs</li><li>Revelo</li><li>GeekHunter</li><li>Trampos</li><li>Empregos.com.br</li><li>CIEE</li><li>Emprega.AI</li></ul>
+      </div>
+      <div class="src-col">
+        <h4>Plataformas internacionais</h4>
+        <ul><li>LinkedIn / LinkedIn Learning</li><li>Indeed</li><li>Glassdoor</li><li>Teal</li><li>Jobscan</li><li>Resume Worded</li><li>Rezi</li><li>Huntr</li><li>Simplify</li><li>Kickresume</li><li>Enhancv</li><li>Novoresume</li><li>Careerflow.ai</li><li>Jobright.ai</li><li>Sonara AI</li><li>LazyApply</li></ul>
+      </div>
+      <div class="src-col">
+        <h4>Educação &amp; mentoria</h4>
+        <ul><li>Coursera Career Academy</li><li>Google Career Certificates</li><li>CareerFoundry</li><li>General Assembly</li><li>ADPList</li></ul>
+      </div>
+      <div class="src-col">
+        <h4>Inspiracionais</h4>
+        <ul><li>Duolingo</li><li>Strava</li><li>Serasa Score</li><li>Nubank / Guiabolso</li><li>Credit Karma</li><li>Microsoft Copilot</li></ul>
+      </div>
+      <div class="src-col">
+        <h4>Dados de mercado &amp; reviews 2026</h4>
+        <ul><li>Trustpilot (Teal, Jobright, Sonara, LazyApply)</li><li>Tracxn / PitchBook (Jobright funding)</li><li>Chrome Web Store (extensões)</li><li>Capterra (Gupy)</li><li>WEF Future of Jobs Report</li><li>PNAD Contínua / Novo Caged</li></ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="report-footer">
+  <div class="wrap">
+    <p>CareerTwin AI — Benchmarking de Mercado · Documento de apoio ao discovery · Junho/2026</p>
+  </div>
+</footer>
+
+<script>
+// Tabs
+const tabs = document.querySelectorAll('.tab');
+const panels = document.querySelectorAll('.panel');
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.setAttribute('aria-selected', 'false'));
+    tab.setAttribute('aria-selected', 'true');
+    const target = tab.getAttribute('data-panel');
+    panels.forEach(p => p.classList.toggle('active', p.id === target));
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  });
+});
+
+// Product card collapse
+document.querySelectorAll('.pcard-head').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const targetId = btn.getAttribute('data-target');
+    const body = document.getElementById(targetId);
+    const isOpen = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!isOpen));
+    body.classList.toggle('open', !isOpen);
+  });
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * CareerTwin design tokens (HSL triples, consumed via hsl(var(--token))).
+ * Exact hex source of truth: docs/implementation/extracts/sitemap-auth-design-escopo.md
+ *   Laranja CareerTwin #FF5A1F · Preto profundo #111111 · Branco #FFFFFF · Off-white #F5F5F4
+ *   Cinza claro #E7E7E5 · Cinza médio #8A8A87 · Pêssego claro #FBE4D8 · Laranja escuro #D9440C
+ * --destructive uses a standard semantic red (not the brand orange) per the explicit rule
+ * "o laranja da marca não deve representar erro" — exact hex left as an engineering choice,
+ * see open-decisions.md (non_blocking).
+ */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 7%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+
+    --primary: 16 100% 56%;
+    --primary-dark: 16 90% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 60 9% 97%;
+    --secondary-foreground: 0 0% 7%;
+
+    --muted: 60 9% 97%;
+    --muted-foreground: 60 1% 54%;
+
+    --accent: 60 9% 97%;
+    --accent-foreground: 0 0% 7%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 60 4% 90%;
+    --input: 60 4% 90%;
+    --ring: 16 100% 56%;
+
+    --peach: 21 81% 92%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+}
