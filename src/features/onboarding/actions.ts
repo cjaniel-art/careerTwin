@@ -492,5 +492,6 @@ export async function completeOnboardingAction(): Promise<void> {
   }
 
   await supabase.from("user_accounts").update({ onboarding_status: "completed" }).eq("user_id", user.id);
-  redirect("/app/dashboard");
+  // PRD 01 §9 passo 23 / Sitemap: destino recomendado após o onboarding é o Core 1.
+  redirect("/app/analise-perfil");
 }

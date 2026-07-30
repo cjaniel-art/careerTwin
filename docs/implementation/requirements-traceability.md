@@ -46,17 +46,17 @@ Status: `not_started` · `in_progress` · `done` · `blocked` (referencia `open-
 
 | Área | Doc/Seção | Requisitos | Rota(s) | Tabela(s) | Fórmula/regra | Teste | Evento(s) | Status |
 |---|---|---|---|---|---|---|---|---|
-| Pré-condições e gatilho | PRD 02 §7 | — | `/app/analise-perfil` | — | bloqueio → `insufficient_data` | `tests/unit/core1-preconditions.test.ts` | `profile_analysis_blocked` | not_started |
-| Congelamento de versões | PRD 02 §9, §12 | RF-C1-001..011 | — | `analyses` | chave de idempotência §12 | `tests/integration/core1-idempotency.test.ts` | `profile_analysis_started` | not_started |
+| Pré-condições e gatilho | PRD 02 §7 | — | `/app/analise-perfil` | — | bloqueio → mensagem de dados faltantes | verificado ao vivo (perfil/contexto-alvo não confirmados bloqueiam corretamente); sem teste automatizado | `profile_analysis_blocked` (não instrumentado) | in_progress |
+| Congelamento de versões | PRD 02 §9, §12 | RF-C1-001..011 | — | `analyses` | chave de idempotência §12 | verificado ao vivo: 2ª chamada reutiliza a análise existente (0 duplicatas); sem teste automatizado | `profile_analysis_started` (não instrumentado) | in_progress |
 | Cálculo do IPP | Motor §5–7 | — | — | `src/domain/scores/ipp.ts` | pesos 15/20/20/15/10/10/10; `Math.round` | `tests/unit/ipp-engine.test.ts` (9 testes, passando) | — | done |
 | Confiança | Motor §13 | — | — | `src/domain/scores/confidence.ts` | pesos 30/30/25/15 | `tests/unit/confidence-engine.test.ts` (5 testes, passando) | — | done |
 | Recomendações e priorização | PRD 02 §20–21 | RF-C1-029..041 | `/app/analise-perfil/[analysisId]` | `recommendations` | máx 8/3 destacadas; `priorityScore100` | `tests/unit/priority-engine.test.ts` (motor de priorização testado, 4 testes); UI/persistência não implementadas | `recommendation_viewed/selected` | in_progress |
-| Tradução da experiência | PRD 02 §22 | RF-C1-042..050 | idem | — | validação de autenticidade obrigatória | `tests/unit/experience-translation.test.ts` (AUT-001..005) | `experience_suggestion_copied` | not_started |
-| Plano de evolução / ações | PRD 02 §23 | RF-C1-051..056 | `/app/acoes` | `actions` | máx 5 ações | `tests/e2e/actions.spec.ts` | `action_started/completed` | not_started |
-| Histórico/reanálise | PRD 02 §24–25 | RF-C1-057..068 | `/app/analise-perfil/comparar/[id]`, `/app/historico` | `analyses` | imutabilidade | `tests/integration/core1-reanalysis.test.ts` | `profile_reanalysis_started/completed` | not_started |
-| Feedback | PRD 02 §26 | RF-C1-069..073 | idem resultado | `analysis_feedback` | 1 feedback principal/análise | `tests/unit/feedback.test.ts` | `analysis_feedback_submitted` | not_started |
-| Créditos (Core 1) | PRD 02 §27 | RF-C1-074..076 | — | `credit_ledger` | gratuito no MVP | `tests/integration/credits.test.ts` | — | not_started |
-| Guardrails de autenticidade | Guardrails §2–4, §7 | — | validador pós-IA | `authenticityValidation` | bloquear relatório se inflado | `tests/unit/authenticity-validator.test.ts` (AUT-001..005) | — | not_started |
+| Tradução da experiência | PRD 02 §22 | RF-C1-042..050 | idem | — | validação de autenticidade obrigatória | não implementada nesta sessão | `experience_suggestion_copied` | not_started |
+| Plano de evolução / ações | PRD 02 §23 | RF-C1-051..056 | `/app/acoes` | `actions` | máx 5 ações | não implementada nesta sessão (recomendações persistem; conversão em ações não) | `action_started/completed` | not_started |
+| Histórico/reanálise | PRD 02 §24–25 | RF-C1-057..068 | `/app/analise-perfil/comparar/[id]`, `/app/historico` | `analyses` | imutabilidade | análises anteriores preservadas no banco (verificado); telas de histórico/comparação não implementadas | `profile_reanalysis_started/completed` | in_progress |
+| Feedback | PRD 02 §26 | RF-C1-069..073 | idem resultado | `analysis_feedback` | 1 feedback principal/análise | não implementada nesta sessão (tabela pronta) | `analysis_feedback_submitted` | not_started |
+| Créditos (Core 1) | PRD 02 §27 | RF-C1-074..076 | — | `credit_ledger` | gratuito no MVP (Core 1 não consome crédito) | verificado ao vivo (nenhuma reserva/consumo gerado pelo Core 1) | — | done |
+| Guardrails de autenticidade | Guardrails §2–4, §7 | — | validador pós-IA | `authenticityValidation` | bloquear relatório se inflado | schema reserva o campo `authenticityValidation`; validador de bloqueio automático não implementado | — | in_progress |
 
 ## Core 2 — Diagnóstico de Aderência (PRD 03, Prompts e Schemas, Qualidade)
 

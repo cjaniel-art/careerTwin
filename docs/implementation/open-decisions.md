@@ -114,17 +114,15 @@ Toda pendência abaixo é registrada, não resolvida silenciosamente. Nenhum ite
 
 Conforme autorizado explicitamente pelo prompt mestre desta sessão. Registrado aqui como não definitivo até aprovação no Decision Log real do produto.
 
----
+## 19. Proteção contra senha vazada (HaveIBeenPwned) desabilitada no projeto Supabase — `missing_external_configuration`
 
-## Resumo por classificação
+**Origem:** advisor de segurança do Supabase (`auth_leaked_password_protection`), projeto `careertwin-dev`.
+**Impacto:** nenhum bloqueio funcional — é uma configuração do painel de Auth (Authentication → Policies), não exposta pelas ferramentas MCP disponíveis nesta sessão, portanto não pôde ser ativada programaticamente.
+**Ação recomendada:** habilitar manualmente antes de produção em qualquer projeto Supabase real (não apenas o de desenvolvimento criado nesta sessão).
 
-| Classificação | Quantidade | Itens |
-|---|---|---|
-| `blocking` (parcial, escopo restrito) | 5 | #1, #2, #3, #10, #12 |
-| `provisional` | 5 | #5, #8, #9, #11, #18 |
-| `missing_external_configuration` | 1 | #4 |
-| `missing_asset` | 1 | #7 |
-| `non_blocking` | 4 | #6, #15, #16, #17 |
-| `resolved_by_precedence` | 2 | #13, #14 |
+## 20. Processamento síncrono em vez de fila/worker real — `provisional`
+
+**Documentos afetados:** Arquitetura §4.6, PRD 01 §19, PRD 02 §12, PRD 03 §20 (todos especificam fila durável + worker + retentativas 15s/60s/5min + DLQ).
+**Decisão de implementação adotada nesta sessão:** como este ambiente não tem uma fila/worker provisionados, a extração de documentos e a análise do Core 1 rodam de forma síncrona dentro da própria requisição do usuário, mas usando exatamente o mesmo modelo de dados (`processing_jobs`, `analyses.status`) que uma fila real usaria — a troca por um worker de verdade não deve exigir mudança de schema, apenas mover a chamada de `runProfileAnalysis`/`processDocument` para fora da requisição HTTP. Idempotência, versionamento e não-consumo de crédito em falha técnica foram implementados e testados normalmente.
 
 Nenhum item acima impede a implementação do restante do MVP. Todos os bloqueios são de escopo restrito (uma sub-funcionalidade específica retorna `insufficient_data` ou permanece com configuração provisória) e documentados em código com comentários e/ou constantes nomeadas apontando para este arquivo.
