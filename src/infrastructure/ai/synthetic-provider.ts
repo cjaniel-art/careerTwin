@@ -191,8 +191,168 @@ function synthesizeCore1Output(content: string) {
   };
 }
 
+/**
+ * Core 2 structuring fixture (P-007/P-008 combined). Derives a small,
+ * deterministic set of requirements from simple keyword presence — never
+ * invents a "blocking" requirement without an explicit textual cue, matching
+ * PRD 03 §11 ("blocking exige evidência textual explícita").
+ */
+function synthesizeOpportunityStructure(content: string) {
+  const lower = content.toLowerCase();
+  const insufficientContent = content.trim().length < 300;
+  const excerpt = (needle: string) => content.slice(Math.max(0, lower.indexOf(needle) - 20), Math.max(0, lower.indexOf(needle)) + 80) || content.slice(0, 100);
+
+  const requirements: unknown[] = insufficientContent
+    ? []
+    : [
+        {
+          requirementId: "req-experience-1",
+          description: "Experiência prévia relevante para a vaga.",
+          category: "experience",
+          criticality: "mandatory",
+          isCritical: true,
+          applicability: "applicable",
+          extractionConfidence: 0.75,
+          sourceExcerpt: excerpt("experi"),
+          ambiguous: false,
+          userConfirmed: false,
+        },
+        {
+          requirementId: "req-skill-1",
+          description: "Conhecimento das ferramentas e tecnologias mencionadas na vaga.",
+          category: "skill",
+          criticality: "desired",
+          isCritical: false,
+          applicability: "applicable",
+          extractionConfidence: 0.6,
+          sourceExcerpt: excerpt("conhec"),
+          ambiguous: true,
+          userConfirmed: false,
+        },
+      ];
+
+  if (lower.includes("presencial") || lower.includes("obrigatóri")) {
+    requirements.push({
+      requirementId: "req-location-1",
+      description: "Disponibilidade para o modelo de trabalho exigido pela vaga.",
+      category: "location",
+      criticality: "blocking",
+      isCritical: true,
+      applicability: "applicable",
+      extractionConfidence: 0.8,
+      sourceExcerpt: excerpt("presencial") || excerpt("obrigatóri"),
+      ambiguous: false,
+      userConfirmed: false,
+    });
+  }
+
+  return {
+    schemaVersion: "opportunity-structure/1.1",
+    opportunityType: "job",
+    opportunityVersionId: "synthetic",
+    title: "",
+    company: "",
+    sourceType: "pasted_text",
+    requirements,
+    responsibilities: [],
+    senioritySignals: [],
+    ambiguities: insufficientContent ? ["Conteúdo insuficiente para estruturar a vaga."] : [],
+    warnings: ["Estruturação gerada pelo adapter sintético de desenvolvimento — não é uma extração real de IA."],
+  };
+}
+
+/**
+ * Core 2 diagnosis fixture (P-009). Never assigns matchFactor/weight/IAO —
+ * only a matchStatus per requirement, exactly like the real schema demands.
+ */
+function synthesizeCore2Output(content: string) {
+  let input = { experienceCount: 0, evidenceCount: 0, requirementIds: [] as string[], hasBlocking: false };
+  try {
+    input = { ...input, ...JSON.parse(content) };
+  } catch {
+    // insufficient/absent structured input -> everything below stays "unknown"
+  }
+
+  const hasProfile = input.experienceCount > 0;
+  const requirementAssessments = input.requirementIds.map((id, index) => {
+    if (id.startsWith("req-location") || id.includes("blocking")) {
+      return {
+        requirementId: id,
+        matchStatus: "unknown" as const,
+        reasoning: "Nenhuma informação específica de localização foi fornecida para esta oportunidade (avaliação sintética).",
+        profileEvidence: [],
+        gapType: "desconhecida" as const,
+        assessmentConfidence: 0.5,
+      };
+    }
+    const matchStatus = hasProfile
+      ? (index === 0 ? ("confirmed_match" as const) : ("partial_match" as const))
+      : ("evidence_gap" as const);
+    return {
+      requirementId: id,
+      matchStatus,
+      reasoning: hasProfile
+        ? "Experiência confirmada no perfil sustenta este requisito (avaliação sintética)."
+        : "Perfil confirmado não possui evidência suficiente para este requisito (avaliação sintética).",
+      profileEvidence: [],
+      gapType: hasProfile ? undefined : ("evidencia" as const),
+      assessmentConfidence: hasProfile ? 0.75 : 0.4,
+    };
+  });
+
+  return {
+    analysisType: "job_fit_analysis",
+    profileVersionId: "synthetic",
+    targetContextVersionId: "synthetic",
+    opportunityVersionId: "synthetic",
+    promptVersion: "1.0.0",
+    schemaVersion: "core-2/1.1",
+    rubricVersion: "synthetic",
+    confidenceAssessment: {
+      reasons: ["Avaliação gerada pelo adapter sintético de desenvolvimento."],
+      missingInformation: hasProfile ? [] : ["Nenhuma experiência confirmada no perfil."],
+      conflicts: [],
+    },
+    requirementAssessments,
+    seniorityAssessment: {
+      expected: "mid",
+      observed: hasProfile ? "mid" : "insufficient_data",
+      signals: [],
+      gaps: [],
+      assessmentConfidence: hasProfile ? 0.7 : 0.3,
+    },
+    strengths: [],
+    gaps: [],
+    risks: input.hasBlocking
+      ? [
+          {
+            riskKey: "risk-location-1",
+            type: "location_mismatch" as const,
+            title: "Modalidade de trabalho não confirmada",
+            description: "A vaga exige uma modalidade específica e não há informação fornecida para esta oportunidade.",
+            severity: "medium" as const,
+            requirementIds: input.requirementIds.filter((id) => id.startsWith("req-location")),
+            evidenceRefs: [],
+            mitigableBeforeApplication: true,
+          },
+        ]
+      : [],
+    recommendationCandidate: {
+      scope: "application" as const,
+      type: hasProfile ? "apply_with_adjustments" : "develop_gaps_before_applying",
+      reasoning: "Candidato gerado pelo adapter sintético — a recomendação final é calculada pelo backend.",
+      relatedRequirementIds: input.requirementIds,
+    },
+    actionCandidates: [],
+    authenticityValidation: { warnings: [], blockedClaims: [] },
+    warnings: ["Análise gerada pelo adapter sintético de desenvolvimento — não é uma análise real de IA."],
+  };
+}
+
 const SYNTHETIC_BUILDERS: Record<string, (content: string) => unknown> = {
   "P-001": (content) => synthesizeProfileExtraction(content, "resume"),
   "P-002": (content) => synthesizeProfileExtraction(content, "linkedin"),
   "P-005": (content) => synthesizeCore1Output(content),
+  "P-007": (content) => synthesizeOpportunityStructure(content),
+  "P-009": (content) => synthesizeCore2Output(content),
 };

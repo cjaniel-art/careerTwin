@@ -10,10 +10,10 @@ export const metadata = { title: "Dashboard — CareerTwin" };
 export const dynamic = "force-dynamic";
 
 /**
- * Partial — reads real aggregated state (credits, last Core 1 analysis)
- * without recalculating anything client-side (Sitemap §4). Histórico
- * completo, contexto-alvo, ações pendentes e Core 2 ainda não implementados
- * nesta sessão — ver relatório final.
+ * Partial — reads real aggregated state (credits, last Core 1/Core 2
+ * analyses) without recalculating anything client-side (Sitemap §4).
+ * Histórico completo, contexto-alvo e ações pendentes ainda não foram
+ * implementados nesta sessão — ver relatório final.
  */
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -22,13 +22,21 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/app/dashboard");
 
-  const [{ data: creditAccount }, { data: lastAnalysis }] = await Promise.all([
+  const [{ data: creditAccount }, { data: lastProfileAnalysis }, { data: lastJobAnalysis }] = await Promise.all([
     supabase.from("credit_accounts").select("available_credits").eq("user_id", user.id).single(),
     supabase
       .from("analyses")
-      .select("id, status, created_at, profile_analysis_results(ipp_display_score, ipp_band)")
+      .select("id, status, profile_analysis_results(ipp_display_score)")
       .eq("user_id", user.id)
       .eq("analysis_type", "profile_analysis")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("analyses")
+      .select("id, status, fit_analysis_results(iao_display_score)")
+      .eq("user_id", user.id)
+      .eq("analysis_type", "job_analysis")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -47,17 +55,19 @@ export default async function DashboardPage() {
 
       <h1 className="text-2xl font-semibold text-foreground">Olá, {user.email}</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Histórico completo, contexto-alvo, ações pendentes e Diagnóstico de Aderência ainda não foram
-        implementados nesta sessão.
+        Histórico completo, contexto-alvo e ações pendentes ainda não foram implementados nesta sessão.
       </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+      <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Créditos disponíveis</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <p className="text-3xl font-bold text-foreground">{creditAccount?.available_credits ?? 0}</p>
+            <Button asChild size="sm" variant="secondary">
+              <Link href="/app/creditos">Ver créditos</Link>
+            </Button>
           </CardContent>
         </Card>
 
@@ -66,13 +76,13 @@ export default async function DashboardPage() {
             <CardTitle className="text-base">Análise de Perfil</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {lastAnalysis?.status === "completed" ? (
+            {lastProfileAnalysis?.status === "completed" ? (
               <>
                 <p className="text-sm text-muted-foreground">
-                  Última análise: IPP {lastAnalysis.profile_analysis_results?.[0]?.ipp_display_score}
+                  Última análise: IPP {lastProfileAnalysis.profile_analysis_results?.[0]?.ipp_display_score}
                 </p>
                 <Button asChild size="sm" variant="secondary">
-                  <Link href={`/app/analise-perfil/${lastAnalysis.id}`}>Ver resultado</Link>
+                  <Link href={`/app/analise-perfil/${lastProfileAnalysis.id}`}>Ver resultado</Link>
                 </Button>
               </>
             ) : (
@@ -80,6 +90,31 @@ export default async function DashboardPage() {
                 <p className="text-sm text-muted-foreground">Você ainda não fez sua Análise de Perfil.</p>
                 <Button asChild size="sm">
                   <Link href="/app/analise-perfil">Fazer Análise de Perfil</Link>
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Diagnóstico de Aderência</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {lastJobAnalysis?.status === "completed" ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Última análise: IAO {lastJobAnalysis.fit_analysis_results?.[0]?.iao_display_score}
+                </p>
+                <Button asChild size="sm" variant="secondary">
+                  <Link href={`/app/aderencia/${lastJobAnalysis.id}`}>Ver resultado</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">Você ainda não analisou uma vaga.</p>
+                <Button asChild size="sm">
+                  <Link href="/app/aderencia">Analisar vaga ou cargo</Link>
                 </Button>
               </>
             )}
