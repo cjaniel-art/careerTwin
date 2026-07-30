@@ -53,10 +53,17 @@ export default async function DashboardPage() {
         </form>
       </div>
 
-      <h1 className="text-2xl font-semibold text-foreground">Olá, {user.email}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Histórico completo, contexto-alvo e ações pendentes ainda não foram implementados nesta sessão.
-      </p>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-foreground">Olá, {user.email}</h1>
+        <div className="flex gap-2">
+          <Button asChild size="sm" variant="secondary">
+            <Link href="/app/historico">Histórico</Link>
+          </Button>
+          <Button asChild size="sm" variant="secondary">
+            <Link href="/app/acoes">Ações</Link>
+          </Button>
+        </div>
+      </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <Card>

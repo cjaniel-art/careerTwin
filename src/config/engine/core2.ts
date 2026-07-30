@@ -1,4 +1,5 @@
 import { CONFIDENCE_CONFIG } from "./confidence";
+import { ACTIONS_CONFIG } from "./actions";
 
 /**
  * Core 2 (Diagnóstico de Aderência / IAO) engine configuration.
@@ -69,9 +70,7 @@ export const CORE_2_CONFIG = {
 
   confidence: CONFIDENCE_CONFIG,
 
-  actions: {
-    maximum: 5,
-  },
+  actions: ACTIONS_CONFIG,
 
   processing: {
     attemptTimeoutSeconds: 300,

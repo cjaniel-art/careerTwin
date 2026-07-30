@@ -5,28 +5,11 @@ import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
+import { CONFIDENCE_LABELS, DIMENSION_LABELS, IPP_BAND_LABELS } from "@/lib/result-labels";
+import { convertRecommendationToActionAction } from "@/features/actions/actions";
 
 export const metadata = { title: "Resultado — Análise de Perfil — CareerTwin" };
 export const dynamic = "force-dynamic";
-
-const IPP_BAND_LABELS: Record<string, string> = {
-  low_readiness: "Baixa prontidão observável",
-  developing_readiness: "Prontidão em desenvolvimento",
-  good_readiness: "Boa prontidão observável",
-  high_readiness: "Alta prontidão observável",
-};
-
-const CONFIDENCE_LABELS: Record<string, string> = { low: "Baixa confiança", medium: "Média confiança", high: "Alta confiança" };
-
-const DIMENSION_LABELS: Record<string, string> = {
-  objective_clarity: "Clareza do objetivo profissional",
-  experience_quality: "Qualidade das experiências",
-  evidence_and_results: "Evidências e resultados",
-  skills_and_tools: "Competências e ferramentas",
-  cross_source_consistency: "Consistência entre fontes",
-  positioning_quality: "Qualidade do posicionamento",
-  profile_completeness: "Completude do perfil",
-};
 
 export default async function ProfileAnalysisResultPage({
   params,
@@ -57,7 +40,7 @@ export default async function ProfileAnalysisResultPage({
       .eq("analysis_id", analysisId),
     supabase
       .from("recommendations")
-      .select("recommendation_key, category, title, problem, suggested_action, reasoning, priority_order, status")
+      .select("id, recommendation_key, category, title, problem, suggested_action, reasoning, priority_order, status")
       .eq("analysis_id", analysisId)
       .order("priority_order", { ascending: true }),
   ]);
@@ -156,6 +139,19 @@ export default async function ProfileAnalysisResultPage({
                 <p className="mt-1 text-sm text-foreground">
                   <strong>Ação sugerida:</strong> {r.suggested_action}
                 </p>
+                {r.status === "generated" || r.status === "highlighted" ? (
+                  <form action={convertRecommendationToActionAction} className="mt-2">
+                    <input type="hidden" name="recommendationId" value={r.id} />
+                    <input type="hidden" name="redirectTo" value={`/app/analise-perfil/${analysisId}`} />
+                    <Button type="submit" size="sm" variant="secondary">
+                      Converter em ação
+                    </Button>
+                  </form>
+                ) : r.status === "converted_to_action" ? (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Já está no seu <Link href="/app/acoes" className="underline">plano de ações</Link>.
+                  </p>
+                ) : null}
               </div>
             ))
           ) : (

@@ -5,34 +5,10 @@ import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
+import { IAO_BAND_LABELS, MATCH_LABELS, RECOMMENDATION_LABELS } from "@/lib/result-labels";
 
 export const metadata = { title: "Resultado — Diagnóstico de Aderência — CareerTwin" };
 export const dynamic = "force-dynamic";
-
-const IAO_BAND_LABELS: Record<string, string> = {
-  low_observable_fit: "Baixa aderência observável",
-  partial_fit: "Aderência parcial",
-  good_observable_fit: "Boa aderência observável",
-  high_observable_fit: "Alta aderência observável",
-};
-
-const RECOMMENDATION_LABELS: Record<string, string> = {
-  apply_now: "Aplicar agora",
-  apply_with_adjustments: "Aplicar com ajustes",
-  develop_gaps_before_applying: "Desenvolver lacunas antes de aplicar",
-  do_not_prioritize: "Não priorizar esta vaga neste momento",
-  insufficient_data: "Dados insuficientes",
-};
-
-const MATCH_LABELS: Record<string, string> = {
-  confirmed_match: "Atendido com evidência",
-  partial_match: "Parcialmente atendido",
-  communication_gap: "Lacuna de comunicação",
-  evidence_gap: "Informado, mas não comprovado",
-  unknown: "Dados insuficientes",
-  not_observed: "Não observado",
-  confirmed_mismatch: "Incompatibilidade confirmada",
-};
 
 export default async function JobAnalysisResultPage({
   params,
