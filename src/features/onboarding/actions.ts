@@ -1,0 +1,496 @@
+"use server";
+
+import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
+import { uploadDocument } from "@/infrastructure/storage/document-storage";
+import { getAiProvider } from "@/infrastructure/ai";
+import { profileExtractionSchema } from "@/config/schemas/profile-extraction";
+import { PROMPT_CATALOG, delimitUntrustedDocument } from "@/config/prompts/catalog";
+import { ONBOARDING_CONFIG } from "@/config/engine/onboarding";
+import {
+  manualExperienceSchema,
+  personalDataSchema,
+  targetContextSchema,
+} from "./schemas";
+
+export interface OnboardingActionState {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+}
+
+async function requireUser() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login?redirect=/onboarding");
+  return { supabase, user };
+}
+
+export async function savePersonalDataAction(
+  _prev: OnboardingActionState,
+  formData: FormData,
+): Promise<OnboardingActionState> {
+  const parsed = personalDataSchema.safeParse({
+    fullName: formData.get("fullName"),
+    city: formData.get("city") || undefined,
+    state: formData.get("state") || undefined,
+  });
+  if (!parsed.success) {
+    const flat = parsed.error.flatten().fieldErrors;
+    return { fieldErrors: { fullName: flat.fullName?.[0] ?? "" } };
+  }
+
+  const { supabase, user } = await requireUser();
+  // Personal data is stored separately from professional data (RN-ONB-014)
+  // and is never sent to the AI or used in scoring (RN-ONB-004).
+  const { error } = await supabase.from("personal_data").upsert(
+    {
+      user_id: user.id,
+      full_name: parsed.data.fullName,
+      city: parsed.data.city ?? null,
+      state: parsed.data.state ?? null,
+    },
+    { onConflict: "user_id" },
+  );
+  if (error) return { error: "Não foi possível salvar seus dados agora. Tente novamente." };
+
+  revalidatePath("/onboarding");
+  return {};
+}
+
+/** RF-ONB-021..038 / RF-ONB-039..051 — résumé and LinkedIn upload share one path. */
+export async function uploadDocumentAction(
+  _prev: OnboardingActionState,
+  formData: FormData,
+): Promise<OnboardingActionState> {
+  const documentType = formData.get("documentType");
+  if (documentType !== "resume" && documentType !== "linkedin") {
+    return { error: "Tipo de documento inválido." };
+  }
+
+  const file = formData.get("file");
+  const pastedText = formData.get("pastedText");
+  const hasFile = file instanceof File && file.size > 0;
+  const hasText = typeof pastedText === "string" && pastedText.trim().length > 0;
+
+  if (!hasFile && !hasText) {
+    return { error: "Envie um arquivo ou cole o conteúdo em texto." };
+  }
+
+  const { supabase, user } = await requireUser();
+  const documentId = randomUUID();
+
+  let storagePath: string | null = null;
+  let contentHash: string;
+  let mimeType: string;
+  let sizeBytes: number;
+  let originalFilename: string | null = null;
+  let sourceType: "file_upload" | "pasted_text";
+
+  if (hasFile) {
+    const uploadedFile = file as File;
+    const extension = uploadedFile.name.split(".").pop()?.toLowerCase() ?? "";
+    const allowedExtensions: readonly string[] = ONBOARDING_CONFIG.documents.allowedExtensions;
+    if (!allowedExtensions.includes(extension)) {
+      return { error: "Formato de arquivo não suportado. Envie PDF, DOCX ou cole o conteúdo em texto." };
+    }
+    if (uploadedFile.size > ONBOARDING_CONFIG.documents.maxFileSizeMb * 1024 * 1024) {
+      return { error: `O arquivo excede o limite de ${ONBOARDING_CONFIG.documents.maxFileSizeMb} MB.` };
+    }
+    const buffer = Buffer.from(await uploadedFile.arrayBuffer());
+    contentHash = createHash("sha256").update(buffer).digest("hex");
+    mimeType = uploadedFile.type || "application/octet-stream";
+    sizeBytes = uploadedFile.size;
+    originalFilename = uploadedFile.name.slice(0, ONBOARDING_CONFIG.documents.maxOriginalFileNameCharacters);
+    sourceType = "file_upload";
+
+    const { path } = await uploadDocument(supabase, {
+      userId: user.id,
+      documentId,
+      filename: originalFilename,
+      file: new Blob([buffer], { type: mimeType }),
+      contentType: mimeType,
+    });
+    storagePath = path;
+  } else {
+    const text = (pastedText as string).slice(0, ONBOARDING_CONFIG.documents.maxPastedTextCharacters);
+    contentHash = createHash("sha256").update(text).digest("hex");
+    mimeType = "text/plain";
+    sizeBytes = Buffer.byteLength(text);
+    sourceType = "pasted_text";
+  }
+
+  // Replacing a document creates a new row rather than mutating an existing
+  // one, matching RF-ONB-034/048 ("substituição registra nova origem
+  // documental") — the old row is superseded, never rewritten in place.
+  await supabase
+    .from("documents")
+    .update({ status: "deleted", deleted_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .eq("document_type", documentType)
+    .neq("status", "deleted");
+
+  const { error: insertError } = await supabase.from("documents").insert({
+    id: documentId,
+    user_id: user.id,
+    document_type: documentType,
+    source_type: sourceType,
+    storage_path: storagePath,
+    original_filename: originalFilename,
+    mime_type: mimeType,
+    size_bytes: sizeBytes,
+    content_hash: contentHash,
+    status: "queued",
+  });
+  if (insertError) return { error: "Não foi possível registrar o documento agora. Tente novamente." };
+
+  // Pasted text is processed directly from the request (no storage round-trip needed).
+  await processDocument(documentId, hasFile ? undefined : (pastedText as string));
+
+  revalidatePath("/onboarding");
+  return {};
+}
+
+/**
+ * Processing "job" — modeled through processing_jobs for traceability
+ * (queued -> processing -> completed/failed), executed synchronously within
+ * the request in this implementation (no queue/worker infrastructure is
+ * provisioned in this environment). A production deployment should move the
+ * body of this function behind a real queue without changing its contract.
+ */
+async function processDocument(documentId: string, pastedText?: string): Promise<void> {
+  const { supabase, user } = await requireUser();
+
+  const { data: document } = await supabase
+    .from("documents")
+    .select("id, document_type, storage_path, content_hash")
+    .eq("id", documentId)
+    .single();
+  if (!document) return;
+
+  const idempotencyKey = `doc-extraction-${document.content_hash}`;
+  const { data: job, error: jobInsertError } = await supabase
+    .from("processing_jobs")
+    .insert({
+      user_id: user.id,
+      job_type: document.document_type === "resume" ? "resume_extraction" : "linkedin_extraction",
+      resource_type: "documents",
+      resource_id: documentId,
+      status: "processing",
+      idempotency_key: idempotencyKey,
+      started_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (jobInsertError) {
+    // Job bookkeeping is for traceability/observability, not a hard
+    // dependency of extraction itself — log loudly instead of failing the
+    // whole upload, but never swallow this silently (a previous version of
+    // this code did, and it hid a missing RLS policy for weeks of "testing").
+    console.error("processing_jobs insert failed:", jobInsertError.message);
+  }
+
+  let content = pastedText ?? "";
+  if (!content && document.storage_path) {
+    const { data: fileData } = await supabase.storage.from("temporary-documents").download(document.storage_path);
+    content = fileData ? await fileData.text() : "";
+  }
+
+  const usefulChars = content.trim().length;
+  if (usefulChars < ONBOARDING_CONFIG.content.minimumUsefulCharacters) {
+    await supabase.from("documents").update({ status: "insufficient_content" }).eq("id", documentId);
+    if (job) await supabase.from("processing_jobs").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", job.id);
+    return;
+  }
+
+  try {
+    const provider = getAiProvider();
+    const promptId = document.document_type === "resume" ? "P-001" : "P-002";
+    const prompt = PROMPT_CATALOG[promptId]!;
+    const result = await provider.complete({
+      promptId,
+      promptVersion: prompt.version,
+      systemPrompt: buildExtractionSystemPrompt(document.document_type),
+      userContent: delimitUntrustedDocument(document.document_type, content),
+      schema: profileExtractionSchema,
+    });
+
+    await supabase.from("document_extractions").insert({
+      document_id: documentId,
+      schema_version: result.data.schemaVersion,
+      prompt_version: prompt.version,
+      model_version: result.modelVersion,
+      status: result.data.extractionStatus,
+      validated_payload: result.data,
+      warnings: result.data.warnings,
+      completed_at: new Date().toISOString(),
+    });
+
+    await supabase
+      .from("documents")
+      .update({ status: result.data.extractionStatus === "failed" ? "failed_final" : "ready", processed_at: new Date().toISOString() })
+      .eq("id", documentId);
+
+    if (job) {
+      await supabase.from("processing_jobs").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", job.id);
+    }
+  } catch (err) {
+    await supabase.from("documents").update({ status: "failed_retryable" }).eq("id", documentId);
+    if (job) {
+      await supabase
+        .from("processing_jobs")
+        .update({
+          status: "failed",
+          error_category: "invalid_model_output",
+          error_message_safe: "Falha ao processar o documento. Tente novamente.",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", job.id);
+    }
+    throw err;
+  }
+}
+
+function buildExtractionSystemPrompt(documentType: string): string {
+  return [
+    "Você é o motor de extração profissional do CareerTwin.",
+    "Extraia apenas informações presentes no documento fornecido, com evidência e confiança de extração.",
+    "Nunca invente experiências, ferramentas, métricas ou resultados não presentes no material.",
+    "Marque inferências como inferência/hipótese, nunca como fato confirmado.",
+    `Tipo de documento: ${documentType}.`,
+    "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
+  ].join(" ");
+}
+
+/** Retries processing for whichever résumé/LinkedIn document last failed recoverably. */
+export async function retryDocumentProcessingAction(): Promise<void> {
+  const { supabase, user } = await requireUser();
+  const { data: documents } = await supabase
+    .from("documents")
+    .select("id, document_type, status")
+    .eq("user_id", user.id)
+    .eq("status", "failed_retryable")
+    .in("document_type", ["resume", "linkedin"]);
+
+  for (const doc of documents ?? []) {
+    await supabase.from("documents").update({ status: "queued" }).eq("id", doc.id);
+    await processDocument(doc.id);
+  }
+
+  revalidatePath("/onboarding");
+}
+
+/**
+ * Consolidates both extracted documents into a draft Thin Twin version
+ * (P-003). Called directly from the ReviewStep server component during
+ * render (not a form action) — must NOT call revalidatePath/redirect, which
+ * Next.js only allows from an actual Server Action or Route Handler.
+ */
+export async function ensureProfileDraft(): Promise<void> {
+  const { supabase, user } = await requireUser();
+
+  let { data: profile } = await supabase
+    .from("professional_profiles")
+    .select("id, status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!profile) {
+    const { data: created } = await supabase
+      .from("professional_profiles")
+      .insert({ user_id: user.id, status: "draft" })
+      .select("id, status")
+      .single();
+    profile = created;
+  }
+  if (!profile) return;
+
+  const { data: existingDraft } = await supabase
+    .from("profile_versions")
+    .select("id")
+    .eq("profile_id", profile.id)
+    .eq("status", "draft")
+    .maybeSingle();
+  if (existingDraft) return;
+
+  const { count } = await supabase
+    .from("profile_versions")
+    .select("id", { count: "exact", head: true })
+    .eq("profile_id", profile.id);
+
+  await supabase.from("profile_versions").insert({
+    profile_id: profile.id,
+    version_number: (count ?? 0) + 1,
+    status: "draft",
+    source_type: "initial_onboarding",
+    change_reason: "Rascunho inicial gerado a partir de currículo e LinkedIn.",
+  });
+}
+
+/** RF-ONB-115/116 — the user can add information the extraction missed. */
+export async function addExperienceAction(
+  _prev: OnboardingActionState,
+  formData: FormData,
+): Promise<OnboardingActionState> {
+  const parsed = manualExperienceSchema.safeParse({
+    companyName: formData.get("companyName"),
+    roleTitle: formData.get("roleTitle"),
+    description: formData.get("description") || undefined,
+  });
+  if (!parsed.success) {
+    return { error: "Preencha empresa e cargo para adicionar a experiência." };
+  }
+
+  const { supabase, user } = await requireUser();
+  const { data: profile } = await supabase
+    .from("professional_profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  const { data: draftVersion } = await supabase
+    .from("profile_versions")
+    .select("id")
+    .eq("profile_id", profile!.id)
+    .eq("status", "draft")
+    .single();
+  if (!draftVersion) return { error: "Não há uma versão em rascunho para editar." };
+
+  await supabase.from("experiences").insert({
+    profile_version_id: draftVersion.id,
+    company_name: parsed.data.companyName,
+    role_title: parsed.data.roleTitle,
+    description: parsed.data.description ?? null,
+    confirmation_status: "added",
+    inference_status: "fact",
+  });
+
+  revalidatePath("/onboarding");
+  return {};
+}
+
+/** RF-ONB-128..133 — confirmation creates the immutable Thin Twin version. */
+export async function confirmProfileAction(): Promise<void> {
+  const { supabase, user } = await requireUser();
+  const { data: profile } = await supabase
+    .from("professional_profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  const { data: draftVersion } = await supabase
+    .from("profile_versions")
+    .select("id")
+    .eq("profile_id", profile!.id)
+    .eq("status", "draft")
+    .single();
+  if (!draftVersion) return;
+
+  const { data: experiences } = await supabase
+    .from("experiences")
+    .select("id, company_name, role_title, confirmation_status")
+    .eq("profile_version_id", draftVersion.id);
+
+  const snapshot = { experiences: experiences ?? [] };
+  const snapshotHash = createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
+
+  await supabase
+    .from("profile_versions")
+    .update({
+      status: "confirmed",
+      confirmed_by_user_id: user.id,
+      confirmed_at: new Date().toISOString(),
+      snapshot,
+      snapshot_hash: snapshotHash,
+    })
+    .eq("id", draftVersion.id);
+
+  await supabase
+    .from("professional_profiles")
+    .update({ status: "confirmed", current_version_id: draftVersion.id })
+    .eq("id", profile!.id);
+
+  revalidatePath("/onboarding");
+}
+
+export async function saveTargetContextAction(
+  _prev: OnboardingActionState,
+  formData: FormData,
+): Promise<OnboardingActionState> {
+  const parsed = targetContextSchema.safeParse({
+    targetArea: formData.get("targetArea"),
+    targetRole: formData.get("targetRole"),
+    desiredSeniority: formData.get("desiredSeniority"),
+  });
+  if (!parsed.success) {
+    const flat = parsed.error.flatten().fieldErrors;
+    return {
+      fieldErrors: {
+        targetArea: flat.targetArea?.[0] ?? "",
+        targetRole: flat.targetRole?.[0] ?? "",
+        desiredSeniority: flat.desiredSeniority?.[0] ?? "",
+      },
+    };
+  }
+
+  const { supabase, user } = await requireUser();
+  let { data: targetContext } = await supabase
+    .from("target_contexts")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!targetContext) {
+    const { data: created } = await supabase
+      .from("target_contexts")
+      .insert({ user_id: user.id, status: "draft" })
+      .select("id")
+      .single();
+    targetContext = created;
+  }
+  if (!targetContext) return { error: "Não foi possível salvar seu contexto-alvo agora." };
+
+  const { count } = await supabase
+    .from("target_context_versions")
+    .select("id", { count: "exact", head: true })
+    .eq("target_context_id", targetContext.id);
+
+  const { data: version } = await supabase
+    .from("target_context_versions")
+    .insert({
+      target_context_id: targetContext.id,
+      version_number: (count ?? 0) + 1,
+      target_area: parsed.data.targetArea,
+      target_role: parsed.data.targetRole,
+      desired_seniority: parsed.data.desiredSeniority,
+      confirmation_status: "confirmed",
+      confirmed_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (version) {
+    await supabase
+      .from("target_contexts")
+      .update({ status: "confirmed", current_version_id: version.id })
+      .eq("id", targetContext.id);
+  }
+
+  revalidatePath("/onboarding");
+  return {};
+}
+
+/** RF-ONB-150..155 — the 9 preconditions are re-checked server-side, not trusted from the client. */
+export async function completeOnboardingAction(): Promise<void> {
+  const { supabase, user } = await requireUser();
+  const { getOnboardingState } = await import("./get-state");
+  const state = await getOnboardingState(supabase, user.id);
+
+  if (state.step !== "completed") {
+    redirect("/onboarding");
+  }
+
+  await supabase.from("user_accounts").update({ onboarding_status: "completed" }).eq("user_id", user.id);
+  redirect("/app/dashboard");
+}

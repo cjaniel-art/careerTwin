@@ -1,17 +1,21 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
+import { getOnboardingState } from "@/features/onboarding/get-state";
 import { logoutAction } from "@/features/auth/actions";
 import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
+import { OnboardingProgress } from "@/features/onboarding/onboarding-progress";
+import { WelcomeStep } from "@/features/onboarding/steps/welcome-step";
+import { IdentificationStep } from "@/features/onboarding/steps/identification-step";
+import { DocumentUploadStep } from "@/features/onboarding/steps/document-upload-step";
+import { ProcessingStep } from "@/features/onboarding/steps/processing-step";
+import { ReviewStep } from "@/features/onboarding/steps/review-step";
+import { TargetContextStep } from "@/features/onboarding/steps/target-context-step";
+import { CompletionStep } from "@/features/onboarding/steps/completion-step";
 
 export const metadata = { title: "Onboarding — CareerTwin" };
+export const dynamic = "force-dynamic";
 
-/**
- * Stub — the full 9-step onboarding flow (PRD 01) is not implemented in this
- * session (see relatório final / docs/implementation/requirements-traceability.md).
- * This page only proves the authenticated flow reaches this route correctly
- * and lets the signed-in user log out.
- */
 export default async function OnboardingPage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -19,21 +23,45 @@ export default async function OnboardingPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/onboarding");
 
+  const state = await getOnboardingState(supabase, user.id);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
-      <Wordmark />
-      <div className="max-w-md space-y-3">
-        <h1 className="text-2xl font-semibold text-foreground">Vamos organizar sua trajetória profissional</h1>
-        <p className="text-sm text-muted-foreground">
-          Você está autenticado como <strong>{user.email}</strong>. O fluxo completo de onboarding (envio de
-          currículo e LinkedIn, revisão do Thin Twin, contexto-alvo) ainda não foi implementado nesta sessão.
-        </p>
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 py-10">
+      <div className="mb-8 flex items-center justify-between">
+        <Wordmark />
+        <form action={logoutAction}>
+          <Button type="submit" variant="tertiary" size="sm">
+            Sair
+          </Button>
+        </form>
       </div>
-      <form action={logoutAction}>
-        <Button type="submit" variant="secondary">
-          Sair
-        </Button>
-      </form>
+
+      <OnboardingProgress currentStep={state.step} />
+
+      <div className="mt-8">
+        {state.step === "welcome" || state.step === "identification" ? <WelcomeStep /> : null}
+        {state.step === "identification" ? <IdentificationStep /> : null}
+        {state.step === "resume_upload" ? (
+          <DocumentUploadStep
+            documentType="resume"
+            title="Envio do currículo"
+            description="Envie seu currículo em PDF ou DOCX. Também é possível colar o conteúdo em texto."
+          />
+        ) : null}
+        {state.step === "linkedin_upload" ? (
+          <DocumentUploadStep
+            documentType="linkedin"
+            title="Envio do LinkedIn"
+            description="Envie o PDF exportado do LinkedIn ou cole o conteúdo do seu perfil."
+          />
+        ) : null}
+        {state.step === "processing" ? (
+          <ProcessingStep resumeStatus={state.resumeStatus} linkedinStatus={state.linkedinStatus} />
+        ) : null}
+        {state.step === "review" ? <ReviewStep userId={user.id} /> : null}
+        {state.step === "target_context" ? <TargetContextStep /> : null}
+        {state.step === "completed" ? <CompletionStep /> : null}
+      </div>
     </main>
   );
 }
