@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
 import { IAO_BAND_LABELS, MATCH_LABELS, RECOMMENDATION_LABELS } from "@/lib/result-labels";
+import { FeedbackForm } from "@/features/feedback/feedback-form";
 
 export const metadata = { title: "Resultado — Diagnóstico de Aderência — CareerTwin" };
 export const dynamic = "force-dynamic";
@@ -31,13 +32,19 @@ export default async function JobAnalysisResultPage({
   if (!analysis) redirect("/app/aderencia");
   if (analysis.status !== "completed") redirect(`/app/aderencia/processando/${analysisId}`);
 
-  const [{ data: result }, { data: assessments }, { data: limits }] = await Promise.all([
+  const [{ data: result }, { data: assessments }, { data: limits }, { data: feedback }] = await Promise.all([
     supabase.from("fit_analysis_results").select("*").eq("analysis_id", analysisId).single(),
     supabase
       .from("requirement_assessments")
       .select("requirement_id, match_status, reasoning, gap_type, requirements(description, criticality)")
       .eq("analysis_id", analysisId),
     supabase.from("analysis_limits").select("limit_type, reason").eq("analysis_id", analysisId),
+    supabase
+      .from("analysis_feedback")
+      .select("usefulness_score, specificity, application_intent, comment")
+      .eq("analysis_id", analysisId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
   return (
@@ -106,6 +113,20 @@ export default async function JobAnalysisResultPage({
               </div>
             );
           })}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Seu feedback</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FeedbackForm
+            analysisId={analysisId}
+            redirectTo={`/app/aderencia/${analysisId}`}
+            showApplicationIntent
+            existing={feedback ?? null}
+          />
         </CardContent>
       </Card>
 

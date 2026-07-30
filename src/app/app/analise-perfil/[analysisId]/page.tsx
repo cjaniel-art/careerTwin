@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
 import { CONFIDENCE_LABELS, DIMENSION_LABELS, IPP_BAND_LABELS } from "@/lib/result-labels";
 import { convertRecommendationToActionAction } from "@/features/actions/actions";
+import { FeedbackForm } from "@/features/feedback/feedback-form";
 
 export const metadata = { title: "Resultado — Análise de Perfil — CareerTwin" };
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export default async function ProfileAnalysisResultPage({
   if (!analysis) redirect("/app/analise-perfil");
   if (analysis.status !== "completed") redirect(`/app/analise-perfil/processando/${analysisId}`);
 
-  const [{ data: result }, { data: dimensions }, { data: recommendations }] = await Promise.all([
+  const [{ data: result }, { data: dimensions }, { data: recommendations }, { data: feedback }] = await Promise.all([
     supabase.from("profile_analysis_results").select("*").eq("analysis_id", analysisId).single(),
     supabase
       .from("profile_dimension_results")
@@ -43,6 +44,12 @@ export default async function ProfileAnalysisResultPage({
       .select("id, recommendation_key, category, title, problem, suggested_action, reasoning, priority_order, status")
       .eq("analysis_id", analysisId)
       .order("priority_order", { ascending: true }),
+    supabase
+      .from("analysis_feedback")
+      .select("usefulness_score, specificity, application_intent, comment")
+      .eq("analysis_id", analysisId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
   return (
@@ -157,6 +164,20 @@ export default async function ProfileAnalysisResultPage({
           ) : (
             <p className="text-sm text-muted-foreground">Nenhuma recomendação gerada nesta análise.</p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Seu feedback</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FeedbackForm
+            analysisId={analysisId}
+            redirectTo={`/app/analise-perfil/${analysisId}`}
+            showApplicationIntent={false}
+            existing={feedback ?? null}
+          />
         </CardContent>
       </Card>
 
