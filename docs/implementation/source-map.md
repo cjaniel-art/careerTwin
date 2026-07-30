@@ -2,7 +2,9 @@
 
 Inventário de todos os documentos-fonte encontrados no repositório em `/Users/macbook/Documents/Projeto CareerTwin`, sua finalidade, posição na regra de precedência e status. Base para `requirements-traceability.md` e `open-decisions.md`.
 
-Todos os documentos foram lidos integralmente (via agentes de extração paralelos) e sintetizados em `docs/implementation/extracts/*.md`. Este source-map referencia os extracts, não os arquivos originais, para navegação — os originais continuam sendo a fonte legal de verdade.
+Todos os documentos foram lidos integralmente (via agentes de extração paralelos) e sintetizados em `docs/implementation/extracts/*.md`. Este source-map referencia os extracts, não os arquivos originais, para navegação.
+
+**Nota (30/07/2026):** as pastas de documentos-fonte originais (exportadas do Notion) foram removidas do repositório a pedido do Product Owner após a conclusão da implementação, para manter no GitHub apenas o projeto de software. Os `extracts/*.md` abaixo passam a ser a única cópia literal do conteúdo desses documentos dentro deste repositório — as referências a seções específicas (ex.: "PRD 03 §35") em `open-decisions.md`/`requirements-traceability.md` continuam verificáveis neles.
 
 ## Regra de precedência aplicada (conforme os próprios documentos)
 

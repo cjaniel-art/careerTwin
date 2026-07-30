@@ -92,4 +92,4 @@ docs/
 - Currículo, LinkedIn e descrições de vaga são sempre tratados como dados não confiáveis, nunca como instruções.
 - Sem pagamento real no MVP — créditos e oferta são simulados.
 
-Ver os documentos originais em `Inteligência Artificial - Estrutura, análise e confiabilidade da inteligência do produto/Guardrails ....md` para a lista completa.
+Ver `docs/implementation/extracts/core1-motor-guardrails.md` (extração literal do documento "Guardrails") para a lista completa.
