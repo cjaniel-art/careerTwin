@@ -11,18 +11,24 @@ import { z } from "zod";
  * In production (NODE_ENV=production) this means the app fails fast and loudly instead
  * of silently running against a fake/dev backend.
  */
+// An env var declared but left blank (`KEY=`) arrives as "", not undefined.
+// Treat that the same as "absent" here; requireEnv() is what actually enforces
+// presence for the adapters that need it.
+const optionalNonEmptyString = () =>
+  z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+  NEXT_PUBLIC_APP_URL: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
 
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  NEXT_PUBLIC_SUPABASE_URL: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalNonEmptyString(),
+  SUPABASE_SERVICE_ROLE_KEY: optionalNonEmptyString(),
 
-  AI_PROVIDER_API_KEY: z.string().min(1).optional(),
-  AI_PROVIDER_MODEL: z.string().min(1).optional(),
+  AI_PROVIDER_API_KEY: optionalNonEmptyString(),
+  AI_PROVIDER_MODEL: optionalNonEmptyString(),
 
-  ANALYTICS_WRITE_KEY: z.string().min(1).optional(),
+  ANALYTICS_WRITE_KEY: optionalNonEmptyString(),
 
   RESUME_UPLOAD_MAX_MB: z.coerce.number().positive().default(5),
 });
