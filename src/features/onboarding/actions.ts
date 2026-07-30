@@ -16,6 +16,8 @@ import {
   targetContextSchema,
 } from "./schemas";
 import { isAccountDeletionPending } from "@/lib/account-status";
+import { trackEvent } from "@/infrastructure/analytics";
+import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
 
 export interface OnboardingActionState {
   error?: string;
@@ -153,6 +155,11 @@ export async function uploadDocumentAction(
     status: "queued",
   });
   if (insertError) return { error: "Não foi possível registrar o documento agora. Tente novamente." };
+
+  trackEvent(documentType === "resume" ? ANALYTICS_EVENTS.resumeUploaded : ANALYTICS_EVENTS.linkedinUploaded, {
+    userId: user.id,
+    properties: { documentType },
+  });
 
   // Pasted text is processed directly from the request (no storage round-trip needed).
   await processDocument(documentId, hasFile ? undefined : (pastedText as string));
@@ -418,6 +425,8 @@ export async function confirmProfileAction(): Promise<void> {
     .update({ status: "confirmed", current_version_id: draftVersion.id })
     .eq("id", profile!.id);
 
+  trackEvent(ANALYTICS_EVENTS.twinProfileConfirmed, { userId: user.id });
+
   revalidatePath("/onboarding");
 }
 
@@ -481,6 +490,7 @@ export async function saveTargetContextAction(
       .from("target_contexts")
       .update({ status: "confirmed", current_version_id: version.id })
       .eq("id", targetContext.id);
+    trackEvent(ANALYTICS_EVENTS.targetRoleDefined, { userId: user.id });
   }
 
   revalidatePath("/onboarding");
@@ -498,6 +508,7 @@ export async function completeOnboardingAction(): Promise<void> {
   }
 
   await supabase.from("user_accounts").update({ onboarding_status: "completed" }).eq("user_id", user.id);
+  trackEvent(ANALYTICS_EVENTS.onboardingCompleted, { userId: user.id });
   // PRD 01 §9 passo 23 / Sitemap: destino recomendado após o onboarding é o Core 1.
   redirect("/app/analise-perfil");
 }

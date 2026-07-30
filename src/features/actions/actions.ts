@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { ACTIONS_CONFIG } from "@/config/engine/actions";
+import { trackEvent } from "@/infrastructure/analytics";
+import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
 
 async function requireUser() {
   const supabase = await createSupabaseServerClient();
@@ -52,6 +54,8 @@ export async function convertRecommendationToActionAction(formData: FormData): P
 
   await supabase.from("recommendations").update({ status: "converted_to_action" }).eq("id", recommendationId);
 
+  trackEvent(ANALYTICS_EVENTS.recommendationSelected, { userId: user.id });
+
   revalidatePath("/app/acoes");
   if (typeof redirectTo === "string") revalidatePath(redirectTo);
 }
@@ -84,5 +88,10 @@ export async function advanceActionStatusAction(formData: FormData): Promise<voi
   if (nextStatus === "completed") patch.completed_at = new Date().toISOString();
 
   await supabase.from("actions").update(patch).eq("id", actionId);
+
+  trackEvent(ANALYTICS_EVENTS.actionStatusChanged, { userId: user.id, properties: { actionStatus: nextStatus as "pending" | "selected" | "in_progress" | "completed" } });
+  if (nextStatus === "in_progress") trackEvent(ANALYTICS_EVENTS.actionStarted, { userId: user.id });
+  if (nextStatus === "completed") trackEvent(ANALYTICS_EVENTS.actionCompleted, { userId: user.id });
+
   revalidatePath("/app/acoes");
 }

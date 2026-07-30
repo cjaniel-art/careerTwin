@@ -16,6 +16,8 @@ import {
   CORE_1_CONFIG_VERSION,
 } from "@/config/engine/versions";
 import { isAccountDeletionPending } from "@/lib/account-status";
+import { trackEvent } from "@/infrastructure/analytics";
+import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
 
 async function requireUser() {
   const supabase = await createSupabaseServerClient();
@@ -143,6 +145,7 @@ export async function startProfileAnalysisAction(): Promise<void> {
     if (insertError) {
       redirect("/app/analise-perfil?erro=1");
     }
+    trackEvent(ANALYTICS_EVENTS.profileAnalysisStarted, { userId: user.id, analysisId, analysisType: "profile_analysis" });
   }
 
   redirect(`/app/analise-perfil/processando/${analysisId}`);
@@ -295,9 +298,21 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
       })
       .eq("id", analysisId);
 
+    trackEvent(ANALYTICS_EVENTS.profileAnalysisCompleted, {
+      userId: user.id,
+      analysisId,
+      analysisType: "profile_analysis",
+      properties: {
+        ippBand: mapIppBand(ipp.level),
+        confidenceLevel: confidence.level,
+        recommendationCount: result.data.recommendations.length,
+      },
+    });
+
     return { ok: true };
   } catch (err) {
     await supabase.from("analyses").update({ status: "failed_retryable" }).eq("id", analysisId);
+    trackEvent(ANALYTICS_EVENTS.profileAnalysisFailed, { userId: user.id, analysisId, analysisType: "profile_analysis" });
     console.error("runProfileAnalysis failed:", err instanceof Error ? err.message : err);
     return { ok: false };
   }

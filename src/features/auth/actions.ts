@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
+import { trackEvent } from "@/infrastructure/analytics";
+import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
 import {
   loginSchema,
   requestPasswordResetSchema,
@@ -63,6 +65,8 @@ export async function signUpAction(_prev: AuthActionState, formData: FormData): 
     ]);
   }
 
+  if (data.user) trackEvent(ANALYTICS_EVENTS.signupCompleted, { userId: data.user.id });
+
   if (!data.session) {
     // Email confirmation is required by the current Supabase Auth config.
     redirect("/cadastro/confirme-seu-email");
@@ -83,6 +87,7 @@ export async function loginAction(_prev: AuthActionState, formData: FormData): P
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
+    trackEvent(ANALYTICS_EVENTS.loginFailed);
     return { error: "Não foi possível entrar com os dados informados. Revise as informações ou recupere sua senha." };
   }
 
@@ -98,6 +103,8 @@ export async function loginAction(_prev: AuthActionState, formData: FormData): P
     .select("onboarding_status")
     .eq("user_id", user!.id)
     .single();
+
+  trackEvent(ANALYTICS_EVENTS.loginCompleted, { userId: user!.id });
 
   if (destination) redirect(destination);
   redirect(account?.onboarding_status === "completed" ? "/app/dashboard" : "/onboarding");

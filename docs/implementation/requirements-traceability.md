@@ -103,8 +103,10 @@ Status: `not_started` · `in_progress` · `done` · `blocked` (referencia `open-
 
 | Área | Doc/Seção | Componente | Status |
 |---|---|---|---|
-| Catálogo canônico de eventos | Analytics (completo) | `src/infrastructure/analytics/events.ts` | not_started |
-| Adapter de analytics | Arquitetura §4.9 | `src/infrastructure/analytics/` | not_started |
+| Catálogo canônico de eventos | Analytics (completo) | `src/infrastructure/analytics/events.ts` (todos os nomes do documento) | done |
+| Porta + adapter de analytics | Arquitetura §4.9 | `src/application/ports/analytics.ts`, `src/infrastructure/analytics/console-adapter.ts` (sem provedor real — open-decisions #23) | done |
+| Instrumentação backend (~22 eventos do funil signup→Core1→Core2→créditos→exclusão) | Analytics §17 ("emitidos preferencialmente pelo backend, após persistência") | `src/features/*/actions.ts` | verificado ao vivo (`login_completed`, `purchase_intent_confirmed` observados no log com envelope correto, `user_id` hasheado, sem PII); `tests/unit/analytics-payload.test.ts` (6 testes) | done |
+| Eventos de página/client-side (`landing_viewed`, `credits_viewed`, `paywall_viewed`, `onboarding_abandoned` e demais eventos derivados) | Analytics §5–§6 | catalogados em `events.ts`, não disparados | not_started |
 | Observabilidade técnica | Arquitetura §12, Segurança §14 | `src/infrastructure/monitoring/` | not_started |
 | Runbooks de incidente | Incidentes §15 | `docs/runbooks/*.md` | not_started |
 

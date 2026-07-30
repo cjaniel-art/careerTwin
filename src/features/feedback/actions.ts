@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
+import { trackEvent } from "@/infrastructure/analytics";
+import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
 
 const SPECIFICITY_VALUES = ["yes", "partially", "no"] as const;
 const APPLICATION_INTENT_VALUES = ["apply", "apply_after_adjustments", "not_apply", "undecided", "not_applicable"] as const;
@@ -57,6 +59,23 @@ export async function submitAnalysisFeedbackAction(formData: FormData): Promise<
   if (error) {
     console.error("submitAnalysisFeedbackAction: upsert failed:", error.message);
     return;
+  }
+
+  const hasApplicationIntent = typeof applicationIntent === "string" && applicationIntent.length > 0;
+  trackEvent(ANALYTICS_EVENTS.analysisFeedbackSubmitted, {
+    userId: user.id,
+    analysisId,
+    properties: {
+      usefulnessScore: usefulnessScore as 1 | 2 | 3 | 4 | 5,
+      specificity: specificity as "yes" | "partially" | "no",
+    },
+  });
+  if (hasApplicationIntent) {
+    trackEvent(ANALYTICS_EVENTS.applicationIntentSubmitted, {
+      userId: user.id,
+      analysisId,
+      properties: { applicationIntent: applicationIntent as "apply" | "apply_after_adjustments" | "not_apply" | "undecided" | "not_applicable" },
+    });
   }
 
   if (typeof redirectTo === "string") revalidatePath(redirectTo);

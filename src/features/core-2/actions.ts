@@ -15,6 +15,8 @@ import { determineApplicationRecommendation } from "@/domain/scores/recommendati
 import { ENGINE_VERSION, IAO_RUBRIC_VERSION, CORE_2_CONFIG_VERSION } from "@/config/engine/versions";
 import { submitOpportunitySchema } from "./schemas";
 import { isAccountDeletionPending } from "@/lib/account-status";
+import { trackEvent } from "@/infrastructure/analytics";
+import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
 
 export interface Core2ActionState {
   error?: string;
@@ -156,6 +158,8 @@ export async function confirmOpportunityAction(formData: FormData): Promise<void
     .update({ confirmation_status: "confirmed", confirmed_at: new Date().toISOString() })
     .eq("id", opportunity.current_version_id);
   await supabase.from("opportunities").update({ status: "confirmed" }).eq("id", opportunityId);
+
+  trackEvent(ANALYTICS_EVENTS.opportunityConfirmed, { userId: user.id });
 
   redirect(`/app/aderencia/vaga/${opportunityId}/analisar`);
 }
@@ -299,6 +303,8 @@ export async function startJobAnalysisAction(formData: FormData): Promise<void> 
       redirect(`/app/aderencia/vaga/${opportunityId}/revisao?erro=1`);
     }
     if (!reserved) redirect("/app/creditos?motivo=sem-credito");
+
+    trackEvent(ANALYTICS_EVENTS.jobAnalysisStarted, { userId: user.id, analysisId, analysisType: "job_analysis" });
   }
 
   redirect(`/app/aderencia/processando/${analysisId}`);
@@ -326,7 +332,7 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
 
   if (!requirements || requirements.length === 0) {
     await supabase.from("analyses").update({ status: "insufficient_data" }).eq("id", analysisId);
-    await releaseReservation(supabase, analysisId, "Vaga sem requisitos estruturados — dados insuficientes.");
+    await releaseReservation(supabase, analysisId, user.id, "insufficient_data", "Vaga sem requisitos estruturados — dados insuficientes.");
     return { ok: false };
   }
 
@@ -447,11 +453,25 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
       })
       .eq("id", analysisId);
 
-    await confirmReservation(supabase, analysisId);
+    trackEvent(ANALYTICS_EVENTS.jobAnalysisCompleted, {
+      userId: user.id,
+      analysisId,
+      analysisType: "job_analysis",
+      properties: { iaoBand: mapIaoBand(iao.band), confidenceLevel: confidence.level, requirementCount: requirements.length, appliedLimit: iao.appliedCaps.length > 0 },
+    });
+    trackEvent(ANALYTICS_EVENTS.jobRecommendationReceived, {
+      userId: user.id,
+      analysisId,
+      analysisType: "job_analysis",
+      properties: { recommendationType: recommendation },
+    });
+
+    await confirmReservation(supabase, analysisId, user.id);
     return { ok: true };
   } catch (err) {
     await supabase.from("analyses").update({ status: "failed_retryable" }).eq("id", analysisId);
-    await releaseReservation(supabase, analysisId, "Falha técnica — crédito restaurado.");
+    await releaseReservation(supabase, analysisId, user.id, "technical_failure", "Falha técnica — crédito restaurado.");
+    trackEvent(ANALYTICS_EVENTS.jobAnalysisFailed, { userId: user.id, analysisId, analysisType: "job_analysis" });
     console.error("runJobAnalysis failed:", err instanceof Error ? err.message : err);
     return { ok: false };
   }
@@ -461,17 +481,24 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
 async function confirmReservation(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   analysisId: string,
+  userId: string,
 ): Promise<void> {
   const { error } = await supabase.rpc("ct_confirm_credit_reservation", {
     p_analysis_id: analysisId,
     p_policy_version: CORE_2_CONFIG_VERSION,
   });
-  if (error) console.error("confirmReservation: ct_confirm_credit_reservation failed:", error.message);
+  if (error) {
+    console.error("confirmReservation: ct_confirm_credit_reservation failed:", error.message);
+    return;
+  }
+  trackEvent(ANALYTICS_EVENTS.creditConsumed, { userId, analysisId, properties: {} });
 }
 
 async function releaseReservation(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   analysisId: string,
+  userId: string,
+  restorationReason: "technical_failure" | "insufficient_data",
   reason: string,
 ): Promise<void> {
   const { error } = await supabase.rpc("ct_release_credit_reservation", {
@@ -479,7 +506,11 @@ async function releaseReservation(
     p_policy_version: CORE_2_CONFIG_VERSION,
     p_reason: reason,
   });
-  if (error) console.error("releaseReservation: ct_release_credit_reservation failed:", error.message);
+  if (error) {
+    console.error("releaseReservation: ct_release_credit_reservation failed:", error.message);
+    return;
+  }
+  trackEvent(ANALYTICS_EVENTS.creditRestored, { userId, analysisId, properties: { restorationReason } });
 }
 
 function mapIaoBand(band: string): "low_observable_fit" | "partial_fit" | "good_observable_fit" | "high_observable_fit" {

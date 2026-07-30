@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
+import { trackEvent } from "@/infrastructure/analytics";
+import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
 
 async function requireUser() {
   const supabase = await createSupabaseServerClient();
@@ -47,6 +49,11 @@ export async function requestAccountDeletionAction(): Promise<void> {
     .from("user_accounts")
     .update({ status: "deletion_pending", deletion_requested_at: new Date().toISOString() })
     .eq("user_id", user.id);
+
+  // Analytics §12: a minimal version of this event is allowed in product
+  // analytics; the operational record of the request itself lives in
+  // deletion_requests, which remains the source of truth (never analytics).
+  trackEvent(ANALYTICS_EVENTS.accountDeletionRequested, { userId: user.id });
 
   revalidatePath("/app/conta");
 }

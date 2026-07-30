@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { SIMULATED_OFFER } from "@/config/engine/offer";
+import { trackEvent } from "@/infrastructure/analytics";
+import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
 
 async function requireUser() {
   const supabase = await createSupabaseServerClient();
@@ -32,5 +34,16 @@ export async function confirmPurchaseIntentAction(): Promise<void> {
     validity_days_displayed: SIMULATED_OFFER.validityDaysDisplayed,
     status: "confirmed_intent",
   });
+
+  trackEvent(ANALYTICS_EVENTS.purchaseIntentConfirmed, {
+    userId: user.id,
+    properties: {
+      offerKey: SIMULATED_OFFER.offerKey,
+      priceCents: SIMULATED_OFFER.priceCents,
+      creditsDisplayed: SIMULATED_OFFER.creditsDisplayed,
+      validityDaysDisplayed: SIMULATED_OFFER.validityDaysDisplayed,
+    },
+  });
+
   revalidatePath("/app/creditos");
 }
