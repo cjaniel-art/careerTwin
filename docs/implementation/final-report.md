@@ -6,6 +6,8 @@
 
 Este documento consolida o estado final do trabalho. Os documentos de auditoria (`source-map.md`, `requirements-traceability.md`, `open-decisions.md`, `implementation-plan.md`) continuam sendo a referência detalhada, item a item; este relatório é a síntese executiva.
 
+> **Adenda pós-entrega:** ao responder à pergunta direta "você terminou todos os PRDs?", uma auditoria adicional (não parte da verificação de rotina desta sessão) encontrou e corrigiu um gap real que a versão original deste relatório não capturava: a extração de IA (P-001/P-002) nunca alimentava `experiences`/`evidences` — só a entrada manual do usuário populava o Thin Twin. Corrigido (`open-decisions.md #24`) e verificado ao vivo ponta a ponta. A seção 2 abaixo já reflete o estado corrigido; a ressalva sobre `profile_skills`/`profile_tools` (ainda bloqueado) está detalhada em `open-decisions.md #24`.
+
 ---
 
 ## 1. Resumo executivo
@@ -43,6 +45,7 @@ O caminho de "cargo-alvo" (Core 2 sem vaga específica) permanece **bloqueado po
 - **Processamento de documentos/análises**: síncrono dentro da própria requisição, não uma fila/worker real — `open-decisions.md #20`. O modelo de dados (`processing_jobs`) já está pronto para a troca por um worker real sem mudança de schema.
 - **Analytics**: instrumentação de backend cobre o funil principal; eventos de página/client-side (`landing_viewed`, `credits_viewed` etc.) estão catalogados e tipados, mas não disparados — nenhum SDK de terceiro foi adicionado ao navegador.
 - **Histórico**: lista funciona; tela de comparação lado a lado entre análises não foi implementada.
+- **Consolidação do Thin Twin (P-003)**: experiências e evidências extraídas de currículo/LinkedIn agora populam o perfil automaticamente (corrigido nesta sessão, `open-decisions.md #24`). Competências e ferramentas (`profile_skills`/`profile_tools`) continuam sem população automática — dependem do catálogo compartilhado `skills`/`tools`, que só permite leitura do cliente (mesmo padrão do item #1). A dimensão "Competências e ferramentas" do IPP fica em nível 0 até essa decisão de catálogo ser tomada.
 
 ---
 
@@ -112,6 +115,8 @@ Nenhuma dessas decisões foi tomada silenciosamente: cada uma está registrada c
 2. **Nenhum teste automatizado de integração/E2E** — toda a cobertura de fluxo completo depende de verificação manual repetida a cada mudança futura.
 3. **Processamento síncrono** não escala e não sobrevive a timeout de requisição para documentos grandes ou picos de carga.
 4. **Rate limit de e-mail do Supabase free tier** dificultou testes repetidos de cadastro nesta sessão — não é um risco de produção per se, mas indica que o ambiente de dev precisa de um provedor de e-mail configurado antes de testes de carga.
+5. **Catálogo de competências/ferramentas vazio** (`skills`/`tools`, sem caminho de escrita para o cliente) mantém a dimensão "Competências e ferramentas" do IPP sempre em nível 0, mesmo com extração de currículo/LinkedIn bem-sucedida — `open-decisions.md #24`. Isso deprime artificialmente o IPP de todo usuário até essa decisão de catálogo ser tomada.
+6. **Comentários de código que descrevem funcionalidade não implementada** (como o caso do P-003 corrigido nesta etapa) são um risco de processo, não só de produto: indicam que a documentação inline pode ficar dessincronizada da implementação real. Vale uma varredura adicional de comentários que afirmam "implementa X" antes de considerar o MVP pronto para revisão externa.
 
 ---
 

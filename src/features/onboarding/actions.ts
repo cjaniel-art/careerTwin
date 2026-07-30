@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { uploadDocument } from "@/infrastructure/storage/document-storage";
 import { getAiProvider } from "@/infrastructure/ai";
-import { profileExtractionSchema } from "@/config/schemas/profile-extraction";
+import { profileExtractionSchema, type ProfileExtraction } from "@/config/schemas/profile-extraction";
 import { PROMPT_CATALOG, delimitUntrustedDocument } from "@/config/prompts/catalog";
 import { ONBOARDING_CONFIG } from "@/config/engine/onboarding";
 import {
@@ -298,9 +298,11 @@ export async function retryDocumentProcessingAction(): Promise<void> {
 }
 
 /**
- * Consolidates both extracted documents into a draft Thin Twin version
- * (P-003). Called directly from the ReviewStep server component during
- * render (not a form action) — must NOT call revalidatePath/redirect, which
+ * Creates the draft Thin Twin version and consolidates both extracted
+ * documents into it (see consolidateExtractedExperiences below — a partial
+ * P-003: experiences/evidences only, no conflict resolution/normalization
+ * yet). Called directly from the ReviewStep server component during render
+ * (not a form action) — must NOT call revalidatePath/redirect, which
  * Next.js only allows from an actual Server Action or Route Handler.
  */
 export async function ensureProfileDraft(): Promise<void> {
@@ -335,13 +337,95 @@ export async function ensureProfileDraft(): Promise<void> {
     .select("id", { count: "exact", head: true })
     .eq("profile_id", profile.id);
 
-  await supabase.from("profile_versions").insert({
-    profile_id: profile.id,
-    version_number: (count ?? 0) + 1,
-    status: "draft",
-    source_type: "initial_onboarding",
-    change_reason: "Rascunho inicial gerado a partir de currículo e LinkedIn.",
-  });
+  const { data: newVersion } = await supabase
+    .from("profile_versions")
+    .insert({
+      profile_id: profile.id,
+      version_number: (count ?? 0) + 1,
+      status: "draft",
+      source_type: "initial_onboarding",
+      change_reason: "Rascunho inicial gerado a partir de currículo e LinkedIn.",
+    })
+    .select("id")
+    .single();
+  if (!newVersion) return;
+
+  await consolidateExtractedExperiences(supabase, user.id, newVersion.id);
+}
+
+/**
+ * P-003 (partial) — copies each successfully extracted document's
+ * experiences/results into `experiences`/`evidences` on the new draft
+ * version. Only the most recent ready extraction per document type
+ * (resume/linkedin) is used. `profile_skills`/`profile_tools` are NOT
+ * populated here: they reference the shared `skills`/`tools` catalog tables,
+ * which (like `role_references`, open-decisions.md #1) only allow curator/
+ * service-role writes — there is no client-safe way to create a new skill/
+ * tool entry on demand in this environment. Competencies/tools stay
+ * reviewer-added-only until that catalog exists.
+ */
+async function consolidateExtractedExperiences(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+  profileVersionId: string,
+): Promise<void> {
+  const { data: documents } = await supabase
+    .from("documents")
+    .select("id, document_type, created_at, document_extractions(validated_payload, status, completed_at)")
+    .eq("user_id", userId)
+    .in("document_type", ["resume", "linkedin"])
+    .eq("status", "ready")
+    .order("created_at", { ascending: false });
+  if (!documents) return;
+
+  const latestByType = new Map<string, { id: string; document_type: string; validated_payload: unknown }>();
+  for (const doc of documents) {
+    if (latestByType.has(doc.document_type)) continue;
+    const extractions = Array.isArray(doc.document_extractions) ? doc.document_extractions : [doc.document_extractions];
+    const extraction = extractions.find((e) => e && (e.status === "complete" || e.status === "partial") && e.validated_payload);
+    if (extraction) latestByType.set(doc.document_type, { id: doc.id, document_type: doc.document_type, validated_payload: extraction.validated_payload });
+  }
+
+  for (const doc of latestByType.values()) {
+    const payload = doc.validated_payload as Pick<ProfileExtraction, "experiences"> | null;
+    if (!payload?.experiences?.length) continue;
+
+    for (const exp of payload.experiences) {
+      const { data: insertedExperience } = await supabase
+        .from("experiences")
+        .insert({
+          profile_version_id: profileVersionId,
+          company_name: exp.company,
+          role_title: exp.role,
+          start_date: toSqlDate(exp.startDate),
+          end_date: toSqlDate(exp.endDate),
+          is_current: !exp.endDate,
+          description: [...exp.responsibilities, ...exp.projects].join(" ") || null,
+          confirmation_status: "extracted",
+        })
+        .select("id")
+        .single();
+      if (!insertedExperience) continue;
+
+      const results = exp.results.map((summary) => ({
+        profile_version_id: profileVersionId,
+        evidence_type: /\d/.test(summary) ? "quantitative_result" : "qualitative_result",
+        summary,
+        source_document_id: doc.id,
+        source_type: doc.document_type,
+        confirmation_status: "extracted",
+      }));
+      if (results.length > 0) await supabase.from("evidences").insert(results);
+    }
+  }
+}
+
+/** Extraction dates are "YYYY-MM" or "YYYY-MM-DD"; anything else is left null rather than risk an invalid date. */
+function toSqlDate(value: string | null): string | null {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  if (/^\d{4}-\d{2}$/.test(value)) return `${value}-01`;
+  return null;
 }
 
 /** RF-ONB-115/116 — the user can add information the extraction missed. */

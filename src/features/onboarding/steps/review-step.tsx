@@ -61,7 +61,7 @@ export async function ReviewStep({ userId }: { userId: string }) {
                       {exp.role_title} · {exp.company_name}
                     </p>
                     <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
-                      {exp.confirmation_status === "added" ? "adicionado por você" : exp.confirmation_status}
+                      {exp.confirmation_status === "added" ? "adicionado por você" : "identificado automaticamente"}
                     </span>
                   </div>
                   {exp.description ? (

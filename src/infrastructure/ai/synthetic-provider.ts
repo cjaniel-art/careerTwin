@@ -57,7 +57,23 @@ function synthesizeProfileExtraction(content: string, documentType: "resume" | "
       currentRole: "Não determinado (extração sintética)",
       observedSeniority: { value: "mid", status: "hypothesis", extractionConfidence: 0.3 },
     },
-    experiences: [],
+    experiences: insufficientContent
+      ? []
+      : [
+          {
+            experienceKey: "exp-1",
+            company: "Empresa identificada no documento (adapter sintético)",
+            role: "Cargo identificado no documento (adapter sintético)",
+            startDate: "2022-01",
+            endDate: null,
+            responsibilities: ["Responsabilidade identificada no documento (adapter sintético)."],
+            projects: [],
+            tools: [],
+            results: ["Resultado identificado no documento (adapter sintético)."],
+            evidenceRefs: [],
+            confirmationStatus: "extracted",
+          },
+        ],
     competencies: [],
     tools: [],
     education: [],

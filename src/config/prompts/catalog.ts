@@ -1,9 +1,12 @@
 /**
  * Prompt catalog (P-001 to P-012) — Prompts e Schemas §2.
- * Only the metadata contract lives here; system prompt bodies for prompts not
- * yet wired into a use case (P-004, P-006, P-011, P-012, ...) are placeholders
- * pending implementation — do not treat their absence as a silent scope cut,
- * it reflects the phases not yet built this session (see relatório final).
+ * Only prompts actually wired into a use case are entered here. P-004
+ * (normalização do contexto-alvo), P-006 (tradução da experiência), P-008
+ * (classificação de requisitos — folded into P-007's single call instead of
+ * a separate one), P-010 (geração de recomendações — folded into P-005's
+ * single call), P-011 (validação de autenticidade) and P-012 (revisão de
+ * consistência) are not implemented as separate catalog entries this
+ * session — see docs/implementation/final-report.md.
  */
 export interface PromptDefinition {
   id: string;
