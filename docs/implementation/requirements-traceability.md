@@ -29,17 +29,17 @@ Status: `not_started` · `in_progress` · `done` · `blocked` (referencia `open-
 
 | Área | Doc/Seção | Requisitos | Rota(s) | Tabela(s) | Teste | Evento(s) | Status |
 |---|---|---|---|---|---|---|---|
-| Identificação básica | PRD 01 §5, §11 | RF-ONB-011..020 | `/onboarding` (etapa 2) | `personal_data` | `tests/unit/personal-data.test.ts` | — | not_started |
-| Upload de currículo | PRD 01 §12 | RF-ONB-021..038 | `/onboarding` (etapa 3) | `documents`, `document_extractions` | `tests/integration/upload.test.ts` | `resume_uploaded`, `upload_failed` | not_started |
-| Upload de LinkedIn | PRD 01 §13 | RF-ONB-039..051 | `/onboarding` (etapa 4) | `documents` | `tests/integration/upload.test.ts` | `linkedin_uploaded` | not_started |
+| Identificação básica | PRD 01 §5, §11 | RF-ONB-011..020 | `/onboarding` (etapa 2) | `personal_data` | verificado ao vivo no navegador; sem teste automatizado | — | in_progress |
+| Upload de currículo | PRD 01 §12 | RF-ONB-021..038 | `/onboarding` (etapa 3) | `documents`, `document_extractions` | verificado ao vivo (texto colado); upload de arquivo real não testado; sem teste automatizado | `resume_uploaded`, `upload_failed` (não instrumentados) | in_progress |
+| Upload de LinkedIn | PRD 01 §13 | RF-ONB-039..051 | `/onboarding` (etapa 4) | `documents` | verificado ao vivo (texto colado); sem teste automatizado | `linkedin_uploaded` (não instrumentado) | in_progress |
 | Conteúdo mínimo | PRD 01 §14 | RF-ONB-052..054 | — | `documents.status = insufficient_content` | `tests/unit/content-validation.test.ts` | — | not_started |
 | Segurança de upload | PRD 01 §15, Segurança §11 | RF-ONB-055..064 | — | `documents` | `tests/integration/upload-security.test.ts` | — | not_started |
-| Pipeline de extração/OCR | PRD 01 §17–18 | RF-ONB-071..087 | worker | `document_extractions` | `tests/unit/extraction-pipeline.test.ts` | `twin_extraction_started/completed/failed` | not_started |
+| Pipeline de extração/OCR | PRD 01 §17–18 | RF-ONB-071..087 | processamento síncrono (sem worker/fila real — ver relatório final) | `document_extractions` | verificado ao vivo via adapter sintético; sem OCR real, sem teste automatizado | `twin_extraction_started/completed/failed` (não instrumentados) | in_progress |
 | Fila/idempotência/retomada | PRD 01 §19–20 | RF-ONB-088..100 | worker | `processing_jobs` | `tests/integration/jobs.test.ts` | — | not_started |
-| Revisão do perfil | PRD 01 §30–31 | RF-ONB-113..127 | `/onboarding` (etapa 6) | `experiences`, `profile_skills`, etc. | `tests/e2e/onboarding.spec.ts` | `twin_review_started`, `twin_field_corrected/added/removed`, `twin_conflict_resolved` | not_started |
-| Confirmação do Thin Twin | PRD 01 §32, Thin Twin §6/§11 | RF-ONB-128..133 | `/onboarding` (etapa 7) | `profile_versions` | `tests/unit/thin-twin-versioning.test.ts` | `twin_profile_confirmed`, `twin_version_created` | not_started |
-| Contexto-alvo | PRD 01 §34 | RF-ONB-140..149 | `/onboarding` (etapa 8) | `target_contexts`, `target_context_versions` | `tests/unit/target-context.test.ts` | `target_role_defined/suggested/selected` | not_started |
-| Conclusão | PRD 01 §36 | RF-ONB-150..155 | `/onboarding` (etapa 9) | `user_accounts.onboarding_status` | `tests/e2e/onboarding.spec.ts` | `onboarding_completed` | not_started |
+| Revisão do perfil | PRD 01 §30–31 | RF-ONB-113..127 | `/onboarding` (etapa 6) | `experiences`, `profile_skills`, etc. | verificado ao vivo (adicionar experiência manual); edição/remoção de itens extraídos não implementada; sem teste automatizado | `twin_review_started` etc. (não instrumentados) | in_progress |
+| Confirmação do Thin Twin | PRD 01 §32, Thin Twin §6/§11 | RF-ONB-128..133 | `/onboarding` (etapa 7) | `profile_versions` | verificado ao vivo: versão confirmada, imutável (testado que UPDATE é bloqueado); sem teste automatizado | `twin_profile_confirmed`, `twin_version_created` (não instrumentados) | in_progress |
+| Contexto-alvo | PRD 01 §34 | RF-ONB-140..149 | `/onboarding` (etapa 8) | `target_contexts`, `target_context_versions` | verificado ao vivo; sugestão automática de cargo não implementada; sem teste automatizado | `target_role_defined` etc. (não instrumentados) | in_progress |
+| Conclusão | PRD 01 §36 | RF-ONB-150..155 | `/onboarding` (etapa 9) | `user_accounts.onboarding_status` | verificado ao vivo: as 9 precondições são revalidadas no servidor antes de concluir; sem teste automatizado | `onboarding_completed` (não instrumentado) | in_progress |
 | Retenção de arquivos | PRD 01 §37 | RF-ONB-104, 156–158 | — | `documents.retention_deadline` | `tests/integration/retention.test.ts` | — | not_started |
 
 ## Core 1 — Análise de Perfil (PRD 02, Motor, Guardrails)
