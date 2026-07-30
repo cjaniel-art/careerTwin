@@ -27,6 +27,7 @@ const eslintConfig = [
       "playwright-report/**",
       "test-results/**",
       "supabase/.temp/**",
+      "next-env.d.ts",
     ],
   },
 ];
