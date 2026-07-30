@@ -8,22 +8,22 @@ Status: `not_started` · `in_progress` · `done` · `blocked` (referencia `open-
 
 | Área | Doc/Seção | Requisitos | Rota(s) | Tabela(s) | Regra de negócio | Teste | Evento(s) analytics | Status |
 |---|---|---|---|---|---|---|---|---|
-| Landing page | PRD 00 §Home/LP, Sitemap §1 | RF-SITE-001..020 | `/` | — | RN-SITE-001..009 | `tests/e2e/site.spec.ts` | `landing_viewed`, `landing_primary_cta_clicked`, `landing_secondary_cta_clicked` | in_progress |
-| Termos / Privacidade | PRD 00, Sitemap §1 | RF-SITE-013 | `/termos`, `/privacidade` | — | conteúdo provisório (open-decisions #11) | manual | — | not_started |
-| Cadastro | PRD 00 §Cadastro | RF-AUTH-001..010 | `/cadastro` | `auth.users`, `user_accounts`, `consent_records` | RN-AUTH-001..008 | `tests/e2e/auth.spec.ts` | `signup_started`, `signup_completed` | not_started |
-| Login/Sessão | PRD 00 §Login | RF-AUTH-011..022 | `/login` | `auth.users`, `user_accounts` | RN-AUTH-001..008 | `tests/e2e/auth.spec.ts` | `login_started`, `login_completed`, `login_failed` | not_started |
-| Recuperação de senha | PRD 00 §Recuperação | RF-AUTH-023..028 | `/recuperar-senha`, `/redefinir-senha` | `auth.users` | mensagem neutra obrigatória | `tests/unit/auth-messages.test.ts` | (aguardando registro no catálogo canônico) | not_started |
+| Landing page | PRD 00 §Home/LP, Sitemap §1 | RF-SITE-001..020 | `/` | — | RN-SITE-001..009 | manual (browser, ver relatório final) | `landing_viewed`, `landing_primary_cta_clicked`, `landing_secondary_cta_clicked` (não instrumentados ainda) | in_progress |
+| Termos / Privacidade | PRD 00, Sitemap §1 | RF-SITE-013 | `/termos`, `/privacidade` | — | conteúdo provisório (open-decisions #11) | manual | — | done (conteúdo provisório) |
+| Cadastro | PRD 00 §Cadastro | RF-AUTH-001..010 | `/cadastro` | `auth.users`, `user_accounts`, `consent_records` | RN-AUTH-001..008 | verificado ao vivo no navegador contra Supabase real (ver relatório final); sem teste automatizado ainda | `signup_started`, `signup_completed` (não instrumentados ainda) | in_progress |
+| Login/Sessão | PRD 00 §Login | RF-AUTH-011..022 | `/login` | `auth.users`, `user_accounts` | RN-AUTH-001..008 | verificado ao vivo no navegador; sem teste automatizado ainda | `login_started`, `login_completed`, `login_failed` (não instrumentados ainda) | in_progress |
+| Recuperação de senha | PRD 00 §Recuperação | RF-AUTH-023..028 | `/recuperar-senha`, `/redefinir-senha` | `auth.users` | mensagem neutra obrigatória | implementado, não testado ao vivo (requer e-mail real) | (aguardando registro no catálogo canônico) | in_progress |
 | Exclusão de conta | PRD 00 §Conta, Segurança §7 | RF-AUTH-029..034 | `/app/conta` | `deletion_requests` | metas 15/30 dias | `tests/integration/deletion.test.ts` | `account_deletion_requested` (versão mínima) | not_started |
-| Proteção de rotas / redirecionamento | PRD 00, Sitemap §7 | RF-AUTH-017..022 | middleware global | `user_accounts.onboarding_status` | backend nunca confia em `user_id` do cliente | `tests/integration/rls.test.ts` | — | not_started |
+| Proteção de rotas / redirecionamento | PRD 00, Sitemap §7 | RF-AUTH-017..022 | middleware global | `user_accounts.onboarding_status` | backend nunca confia em `user_id` do cliente | verificado ao vivo: `/onboarding` sem sessão redireciona para `/login?redirect=%2Fonboarding` | — | done |
 
 ## Banco de dados e segurança (Modelo de Dados, Segurança)
 
 | Área | Doc/Seção | Tabelas | Regra | Teste | Status |
 |---|---|---|---|---|---|
-| Schema completo | Modelo de Dados §4.1–4.17 | todas (ver `supabase/migrations/`) | convenções §1, integridade §6 | `tests/integration/schema.test.ts` | not_started |
-| RLS | Modelo de Dados §7, Segurança §9 | todas com `user_id` (direto ou por cadeia) | 7 testes mínimos por entidade (§7) | `tests/integration/rls.test.ts` | not_started |
-| Idempotência | Arquitetura §8, Modelo de Dados §6 | `analyses`, `credit_reservations`, `credit_ledger`, `processing_jobs` | chaves únicas `(user_id, idempotency_key)` | `tests/integration/idempotency.test.ts` | not_started |
-| Retenção/exclusão | Segurança §5–7 | `documents`, `deletion_requests` | jobs horários, alertas 18h/incidente 24h | `tests/integration/retention.test.ts` | not_started |
+| Schema completo | Modelo de Dados §4.1–4.17 | todas — 13 migrations em `supabase/migrations/` | convenções §1, integridade §6 | Aplicado e testado ao vivo em projeto Supabase real (`careertwin-dev`); sem suíte automatizada de schema | done |
+| RLS | Modelo de Dados §7, Segurança §9 | todas com `user_id` (direto ou por cadeia) | 7 testes mínimos por entidade (§7) | Testado ao vivo com SQL real (dono/outro usuário/anônimo/`user_id` malicioso/cadeia indireta/imutabilidade) — ver relatório final; sem suíte automatizada reexecutável | done (verificado manualmente; falta suíte automatizada) |
+| Idempotência | Arquitetura §8, Modelo de Dados §6 | `analyses`, `credit_reservations`, `credit_ledger`, `processing_jobs` | chaves únicas `(user_id, idempotency_key)` implementadas no schema | não testado (nenhum use-case de aplicação as exercita ainda) | in_progress |
+| Retenção/exclusão | Segurança §5–7 | `documents`, `deletion_requests` | colunas/índices parciais implementados no schema; nenhum job de exclusão automática implementado | not_started | not_started |
 
 ## Onboarding e Thin Twin (PRD 01, Thin Twin)
 
@@ -48,9 +48,9 @@ Status: `not_started` · `in_progress` · `done` · `blocked` (referencia `open-
 |---|---|---|---|---|---|---|---|---|
 | Pré-condições e gatilho | PRD 02 §7 | — | `/app/analise-perfil` | — | bloqueio → `insufficient_data` | `tests/unit/core1-preconditions.test.ts` | `profile_analysis_blocked` | not_started |
 | Congelamento de versões | PRD 02 §9, §12 | RF-C1-001..011 | — | `analyses` | chave de idempotência §12 | `tests/integration/core1-idempotency.test.ts` | `profile_analysis_started` | not_started |
-| Cálculo do IPP | Motor §5–7 | — | — | `src/domain/scores/ipp.ts` | pesos 15/20/20/15/10/10/10; `Math.round` | `tests/unit/ipp-engine.test.ts` (casos IPP-001..005) | — | not_started |
-| Confiança | Motor §13 | — | — | `src/domain/scores/confidence.ts` | pesos 30/30/25/15 | `tests/unit/confidence-engine.test.ts` | — | not_started |
-| Recomendações e priorização | PRD 02 §20–21 | RF-C1-029..041 | `/app/analise-perfil/[analysisId]` | `recommendations` | máx 8/3 destacadas; `priorityScore100` | `tests/unit/priority-engine.test.ts` | `recommendation_viewed/selected` | not_started |
+| Cálculo do IPP | Motor §5–7 | — | — | `src/domain/scores/ipp.ts` | pesos 15/20/20/15/10/10/10; `Math.round` | `tests/unit/ipp-engine.test.ts` (9 testes, passando) | — | done |
+| Confiança | Motor §13 | — | — | `src/domain/scores/confidence.ts` | pesos 30/30/25/15 | `tests/unit/confidence-engine.test.ts` (5 testes, passando) | — | done |
+| Recomendações e priorização | PRD 02 §20–21 | RF-C1-029..041 | `/app/analise-perfil/[analysisId]` | `recommendations` | máx 8/3 destacadas; `priorityScore100` | `tests/unit/priority-engine.test.ts` (motor de priorização testado, 4 testes); UI/persistência não implementadas | `recommendation_viewed/selected` | in_progress |
 | Tradução da experiência | PRD 02 §22 | RF-C1-042..050 | idem | — | validação de autenticidade obrigatória | `tests/unit/experience-translation.test.ts` (AUT-001..005) | `experience_suggestion_copied` | not_started |
 | Plano de evolução / ações | PRD 02 §23 | RF-C1-051..056 | `/app/acoes` | `actions` | máx 5 ações | `tests/e2e/actions.spec.ts` | `action_started/completed` | not_started |
 | Histórico/reanálise | PRD 02 §24–25 | RF-C1-057..068 | `/app/analise-perfil/comparar/[id]`, `/app/historico` | `analyses` | imutabilidade | `tests/integration/core1-reanalysis.test.ts` | `profile_reanalysis_started/completed` | not_started |
@@ -67,10 +67,10 @@ Status: `not_started` · `in_progress` · `done` · `blocked` (referencia `open-
 | Entrada/estruturação de vaga | PRD 03 §8–10 | RF-C2-001..004 | `/app/aderencia/vaga/nova` | `opportunities`, `opportunity_versions`, `requirements` | `blocking` (open-decisions #3) | `tests/unit/opportunity-validation.test.ts` | `opportunity_upload_started/completed`, `opportunity_validation_failed` | in_progress |
 | Classificação de criticidade | PRD 03 §11 | — | — | `requirements.criticality` | confiança < 0,75 não aciona limite | `tests/unit/criticality-classification.test.ts` | — | not_started |
 | Revisão/confirmação da vaga | PRD 03 §12 | RF-C2-005..012 | `/app/aderencia/vaga/[jobId]/revisao` | `opportunity_versions` | imutabilidade após confirmação | `tests/e2e/core2.spec.ts` | `opportunity_structuring_completed`, `opportunity_confirmed` | not_started |
-| Cálculo do IAO | PRD 03 §23–25, Motor | — | — | `src/domain/scores/iao.ts` | pesos por criticidade + fatores + caps 49/59/59 | `tests/unit/iao-engine.test.ts` (IAO-001..007) | — | not_started |
-| Confiança (Core 2) | Motor §13 | RF-C2-035..041 | — | `src/domain/scores/confidence.ts` (compartilhado) | mesma fórmula do Core 1 | `tests/unit/confidence-engine.test.ts` | — | not_started |
+| Cálculo do IAO | PRD 03 §23–25, Motor | — | — | `src/domain/scores/iao.ts` | pesos por criticidade + fatores + caps 49/59/59 | `tests/unit/iao-engine.test.ts` (11 testes, casos IAO-001..007, passando) | — | done |
+| Confiança (Core 2) | Motor §13 | RF-C2-035..041 | — | `src/domain/scores/confidence.ts` (compartilhado) | mesma fórmula do Core 1 | `tests/unit/confidence-engine.test.ts` | — | done |
 | Riscos e bloqueadores | PRD 03 §30 | — | resultado | `analysis_limits` | localização nunca usa `personal_data` (open-decisions #12) | `tests/unit/risk-detection.test.ts` | — | not_started |
-| Recomendação final | PRD 03 §31–32 | — | resultado | `fit_analysis_results.recommendation_type` | precedência determinística (8 níveis) | `tests/unit/recommendation-precedence.test.ts` | `job_recommendation_received` | not_started |
+| Recomendação final | PRD 03 §31–32 | — | resultado | `fit_analysis_results.recommendation_type` | precedência determinística (8 níveis) | `tests/unit/recommendation-precedence.test.ts` (13 testes, passando) — persistência/UI não implementadas | `job_recommendation_received` | in_progress |
 | Plano de ações (Core 2) | PRD 03 §35 | RF-C2-042..047 | `/app/acoes` | `actions` | máx 5 | `tests/e2e/actions.spec.ts` | `opportunity_action_started/completed` | not_started |
 | Histórico/reanálise | PRD 03 §36 | RF-C2-048..052 | `/app/aderencia/comparar/[id]` | `analyses` | comparável só se mesma vaga/referência | `tests/integration/core2-reanalysis.test.ts` | `fit_reanalysis_started/completed` | not_started |
 | Intenção de candidatura | PRD 03 §37 | RF-C2-053..057 | resultado | `analysis_feedback.application_intent` | não altera IAO | `tests/unit/application-intent.test.ts` | `application_intent_submitted` | not_started |
@@ -83,7 +83,7 @@ Status: `not_started` · `in_progress` · `done` · `blocked` (referencia `open-
 | Área | Doc/Seção | Componente | Teste | Status |
 |---|---|---|---|---|
 | Catálogo de prompts P-001..012 | Prompts e Schemas §2 | `src/config/prompts/` | `tests/unit/prompt-contract.test.ts` | not_started |
-| Schemas Zod (extração, Core 1, oportunidade, Core 2) | Prompts e Schemas §6–10 | `src/config/schemas/` | `tests/unit/schema-validation.test.ts` (SEC-003) | not_started |
+| Schemas Zod (extração, Core 1, oportunidade, Core 2) | Prompts e Schemas §6–10 | `src/config/schemas/` | `tests/unit/schema-validation.test.ts` (6 testes, passando) | done |
 | Pipeline de validação (10 etapas) | Prompts e Schemas §11 | `src/application/use-cases/validate-ai-output.ts` | `tests/unit/validation-pipeline.test.ts` | not_started |
 | Retentativa de reparo de schema | Prompts e Schemas §12 | `src/infrastructure/ai/` | `tests/unit/schema-repair.test.ts` | not_started |
 | Prompt injection | Guardrails §9, Prompts e Schemas §5 | delimitação de contexto | `tests/unit/prompt-injection.test.ts` (SEC-001..003) | not_started |
