@@ -199,3 +199,22 @@ Conforme autorizado explicitamente pelo prompt mestre desta sessão. Registrado 
 **Documentos afetados:** item #29.
 **Contexto:** a pedido do Product Owner ("deixe igual ao protótipo"), revisamos o item #29 lado a lado com screenshots do Figma (`get_screenshot` do node `75:498`). O Figma **não** usa um card com fundo (o que havíamos implementado com `bg-secondary/50 rounded-2xl`) — o ícone de citação e o texto ficam diretamente sobre o fundo branco da página, alinhados à esquerda, sem borda/preenchimento/sombra, e o ícone é visivelmente maior em proporção ao texto do que o que havíamos usado (72px).
 **Correção aplicada:** removido o wrapper de card (`bg-secondary/50`, `rounded-2xl`, `px-8/16 py-10`); o ícone e o texto agora ficam soltos no fundo branco da seção, com o ícone aumentado para 80px (mobile) / 96px (desktop), mais próximo da proporção do Figma (107px num canvas de 1440px). Verificado ao vivo lado a lado com o screenshot do Figma — visual agora consistente com o protótipo. Restante da página (header, hero, "O desafio", "Como funciona", Core 1/Core 2, CTA, footer) conferido nesta mesma revisão e já estava fiel ao protótipo (nenhuma outra mudança necessária).
+
+## 31. Layout mobile implementado a partir do frame "home mobile" do Figma (node `35:1203`) — `resolved_by_precedence`
+
+**Documentos afetados:** itens #26, #29, #30 (home redesenhada a partir de Figma).
+**Contexto:** o Product Owner adicionou ao arquivo Figma um frame específico de mobile (428×4771px, "home mobile") e pediu para conferir e aplicar. Revisado via `get_design_context`/`get_screenshot` nesse node — o mobile não é apenas o desktop encolhido, tem três diferenças estruturais reais:
+1. **Header mobile:** só mostra o botão "Entrar" — sem "Criar conta", sem menu de navegação (nenhum ícone de hambúrguer no frame).
+2. **Hero mobile:** sem a linha "Rápido • Seguro • Sem complicação"; botão "Comece agora" ocupa a largura total.
+3. **Blocos "O desafio" / "Análise de Perfil" / "Diagnóstico de Aderência":** no mobile a ordem muda para **texto-cabeçalho → foto → lista/itens** (a foto fica entre o texto e a lista, não antes de tudo).
+4. **"Como funciona":** os 4 cards viram um **carrossel horizontal com scroll-snap** e indicadores de bolinha (primeira bolinha laranja `#F84606`, demais cinza `#D6D6D6`) em vez de empilhar em coluna.
+
+**Bug encontrado durante essa revisão (não relacionado ao mobile):** no desktop, os blocos "Análise de Perfil" e "Diagnóstico de Aderência" estavam com foto e texto **invertidos** em relação ao Figma (Análise deveria ser texto-esquerda/foto-direita; Diagnóstico o oposto — o código tinha as duas trocadas). Corrigido junto com esta mudança.
+
+**Implementação:**
+- `landing-header.tsx`: botão "Criar conta" agora `hidden md:inline-flex` (some abaixo do breakpoint `md`).
+- Hero: linha de confiança `hidden md:flex`; botão `w-full md:w-auto`.
+- "O desafio", "Análise de Perfil", "Diagnóstico de Aderência": reestruturados com o padrão CSS `display:contents` (`contents md:flex md:flex-col`) + `order-1/2/3` nos filhos — no mobile o wrapper de texto "desaparece" do layout e cabeçalho/foto/lista viram irmãos diretos reordenáveis; no desktop (`md:`) o wrapper volta a ser uma coluna normal ao lado da foto, com `md:order-1`/`md:order-2` controlando qual lado cada um ocupa (corrigindo o bug acima).
+- "Como funciona": no mobile os cards viram um contêiner `overflow-x-auto` com `snap-x snap-mandatory` (cards a 85% da largura, `snap-center`) e uma barra de bolinhas abaixo (`sm:hidden`); a partir de `sm:` volta a ser a grade de 2/4 colunas já existente, sem overflow.
+**Simplificação assumida:** as bolinhas são estáticas (a primeira sempre laranja) — não há rastreamento via JS da posição de scroll para destacar a bolinha ativa dinamicamente. Implementar isso exigiria converter a seção em client component com `IntersectionObserver`/scroll listener; avaliado como fora de escopo para esta correção de fidelidade visual. O carrossel em si é funcional (scroll-snap nativo via CSS, testado ao vivo).
+**Verificado ao vivo:** desktop (1440px) e mobile (375px) via resize do navegador — header, hero, ordem foto/texto/lista nos 3 blocos, e o carrossel com scroll-snap (`scrollLeft` testado via JS) todos conferidos contra os screenshots do Figma. `npm run typecheck`, `npm run lint`, `npm run test` (62/62) e `npm run build` sem erros.

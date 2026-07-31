@@ -27,7 +27,7 @@ export function LandingHeader() {
           <Button asChild variant="tertiary" size="sm" className="text-white hover:text-primary">
             <Link href="/login">Entrar</Link>
           </Button>
-          <Button asChild size="sm">
+          <Button asChild size="sm" className="hidden md:inline-flex">
             <Link href="/cadastro">
               <Plus className="h-4 w-4" aria-hidden />
               Criar conta
