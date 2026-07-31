@@ -71,10 +71,11 @@ const WHAT_YOU_GET = [
 export default function HomePage() {
   return (
     <>
-      <LandingHeader />
       <main>
         {/* Hero — composições mobile e desktop são deliberadamente diferentes no Figma, não a mesma arte escalada */}
         <section className="relative overflow-hidden bg-foreground text-white">
+          {/* Header flutua transparente sobre o hero, sem fundo próprio */}
+          <LandingHeader />
           {/* Mobile: altura segue a proporção natural do asset dedicado; botão fica na faixa inferior, após a foto */}
           <div className="relative md:hidden">
             <Image
@@ -85,7 +86,7 @@ export default function HomePage() {
               priority
               className="block h-auto w-full"
             />
-            <div className="absolute inset-0 flex flex-col px-6 pb-6 pt-16">
+            <div className="absolute inset-0 flex flex-col px-6 pb-6 pt-[158px]">
               <div className="max-w-xl">
                 <h1 className="whitespace-nowrap text-[9vw] font-medium leading-[1.05] tracking-tight">
                   Evolua.
@@ -115,9 +116,9 @@ export default function HomePage() {
               fill
               priority
               sizes="100vw"
-              className="pointer-events-none absolute inset-0 object-cover"
+              className="pointer-events-none absolute inset-0 object-cover object-top"
             />
-            <div className="relative mx-auto max-w-content px-14 pb-32 pt-24">
+            <div className="relative mx-auto max-w-content px-14 pb-32 pt-[242px]">
               <div className="relative max-w-xl">
                 <h1 className="text-7xl font-medium leading-[1.05] tracking-tight">
                   Evolua.

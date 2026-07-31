@@ -11,7 +11,7 @@ const NAV_LINKS = [
 
 export function LandingHeader() {
   return (
-    <header className="bg-foreground px-6 py-10 text-white md:px-14">
+    <header className="absolute inset-x-0 top-0 z-20 px-6 py-10 text-white md:px-14">
       <div className="mx-auto flex max-w-content items-center gap-8 md:gap-10">
         <Link href="/" className="shrink-0">
           <Wordmark variant="light" className="h-[46px] w-[193px] md:h-[67px] md:w-[276px]" />
