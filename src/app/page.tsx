@@ -56,75 +56,80 @@ export default function HomePage() {
       <LandingHeader />
       <main>
         {/* Hero */}
-        <section className="relative overflow-hidden bg-foreground px-6 pb-24 pt-16 text-white md:px-14 md:pb-32 md:pt-24">
-          <Image
-            src="/landing/hero-shapes.svg"
-            alt=""
-            width={708}
-            height={683}
-            className="pointer-events-none absolute right-[-8%] top-0 hidden h-auto w-[46%] max-w-none opacity-90 lg:block"
-          />
-          <Image
-            src="/landing/hero-photo.png"
-            alt="Profissional em ambiente de trabalho"
-            width={600}
-            height={720}
-            className="pointer-events-none absolute right-[6%] top-16 hidden h-[85%] w-[34%] max-w-none rounded-2xl object-cover lg:block"
-            priority
-          />
-          <div className="relative max-w-xl">
-            <h1 className="text-5xl font-medium leading-[1.05] tracking-tight md:text-7xl">
-              Evolua.
-              <br />
-              Reposicione-se.
-              <br />
-              <span className="text-primary">Conquiste</span>
-            </h1>
-            <p className="mt-6 text-lg font-semibold tracking-tight text-white/90">
-              Clareza sobre seu perfil, direção para sua carreira e decisões melhores antes de se candidatar.
-            </p>
-            <Button asChild className="mt-8">
-              <Link href="/cadastro">
-                <ArrowRight className="h-4 w-4" aria-hidden />
-                Comece agora
-              </Link>
-            </Button>
-            <p className="mt-6 flex items-center gap-2 text-sm font-medium text-white/80">
-              <Lock className="h-5 w-5 shrink-0" aria-hidden />
-              Rápido <span className="text-primary">•</span> Seguro <span className="text-primary">•</span> Sem
-              complicação
-            </p>
+        <section className="overflow-hidden bg-foreground px-6 pb-24 pt-16 text-white md:px-14 md:pb-32 md:pt-24">
+          <div className="relative mx-auto max-w-content">
+            <Image
+              src="/landing/hero-shapes.svg"
+              alt=""
+              width={708}
+              height={683}
+              className="pointer-events-none absolute right-[-8%] top-0 hidden h-auto w-[46%] max-w-none opacity-90 lg:block"
+            />
+            <Image
+              src="/landing/hero-photo.png"
+              alt="Profissional em ambiente de trabalho"
+              width={600}
+              height={720}
+              className="pointer-events-none absolute right-[6%] top-16 hidden h-[85%] w-[34%] max-w-none rounded-2xl object-cover lg:block"
+              priority
+            />
+            <div className="relative max-w-xl">
+              <h1 className="text-5xl font-medium leading-[1.05] tracking-tight md:text-7xl">
+                Evolua.
+                <br />
+                Reposicione-se.
+                <br />
+                <span className="text-primary">Conquiste</span>
+              </h1>
+              <p className="mt-6 text-lg font-semibold tracking-tight text-white/90">
+                Clareza sobre seu perfil, direção para sua carreira e decisões melhores antes de se candidatar.
+              </p>
+              <Button asChild className="mt-8">
+                <Link href="/cadastro">
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                  Comece agora
+                </Link>
+              </Button>
+              <p className="mt-6 flex items-center gap-2 text-sm font-medium text-white/80">
+                <Lock className="h-5 w-5 shrink-0" aria-hidden />
+                Rápido <span className="text-primary">•</span> Seguro <span className="text-primary">•</span>{" "}
+                Sem complicação
+              </p>
+            </div>
           </div>
         </section>
 
         {/* Como funciona */}
         <section id="como-funciona" className="px-6 py-20 md:px-14">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <h2 className="text-4xl font-extrabold tracking-tight text-foreground md:text-5xl">
-              Como <span className="text-primary">funciona</span>
-            </h2>
-            <p className="text-lg font-semibold text-foreground">
-              Um processo simples para transformar clareza em ação.
-            </p>
-          </div>
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {HOW_IT_WORKS.map((step) => (
-              <div
-                key={step.title}
-                className="flex flex-col items-center gap-7 rounded-lg border border-border px-6 py-10 text-center"
-              >
-                <Image src={step.icon} alt="" width={104} height={104} />
-                <div className="space-y-2">
-                  <p className="text-xl font-semibold tracking-tight text-foreground">{step.title}</p>
-                  <p className="text-sm text-muted-foreground">{step.description}</p>
+          <div className="mx-auto max-w-content">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <h2 className="text-4xl font-extrabold tracking-tight text-foreground md:text-5xl">
+                Como <span className="text-primary">funciona</span>
+              </h2>
+              <p className="text-lg font-semibold text-foreground">
+                Um processo simples para transformar clareza em ação.
+              </p>
+            </div>
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {HOW_IT_WORKS.map((step) => (
+                <div
+                  key={step.title}
+                  className="flex flex-col items-center gap-7 rounded-lg border border-border px-6 py-10 text-center"
+                >
+                  <Image src={step.icon} alt="" width={104} height={104} />
+                  <div className="space-y-2">
+                    <p className="text-xl font-semibold tracking-tight text-foreground">{step.title}</p>
+                    <p className="text-sm text-muted-foreground">{step.description}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
 
         {/* Nossa solução — Core 1 e Core 2 */}
-        <section id="solucao" className="space-y-9 bg-secondary/50 px-6 py-22 md:px-14">
+        <section id="solucao" className="bg-secondary/50 px-6 py-22 md:px-14">
+          <div className="mx-auto max-w-content space-y-9">
           <div className="flex flex-col items-center gap-12 md:flex-row md:items-center">
             <div className="relative h-[280px] w-full shrink-0 overflow-hidden rounded-2xl md:h-[325px] md:w-[45%]">
               <Image
@@ -190,6 +195,7 @@ export default function HomePage() {
               </ul>
             </div>
           </div>
+          </div>
         </section>
 
         {/* Valores / autenticidade e confiança */}
@@ -231,7 +237,7 @@ export default function HomePage() {
 
         {/* CTA final */}
         <section className="px-6 pb-20 md:px-14">
-          <div className="flex flex-col items-center gap-8 rounded-2xl bg-foreground px-8 py-10 text-center text-white md:flex-row md:gap-16 md:text-left">
+          <div className="mx-auto flex max-w-content flex-col items-center gap-8 rounded-2xl bg-foreground px-8 py-10 text-center text-white md:flex-row md:gap-16 md:text-left">
             <Image src="/landing/cta-rocket-launch.svg" alt="" width={94} height={94} className="shrink-0" />
             <div className="flex-1 space-y-2">
               <p className="text-2xl font-semibold leading-tight tracking-tight md:text-3xl">
