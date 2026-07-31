@@ -110,42 +110,43 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* O desafio */}
-        <section className="px-6 py-20 md:px-14">
-          <div className="mx-auto max-w-content space-y-14">
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:gap-12">
-              <div className="order-2 relative h-[280px] w-full shrink-0 overflow-hidden rounded-2xl lg:order-1 lg:h-[420px] lg:w-[45%]">
-                <Image
-                  src="/landing/desafio-photo.png"
-                  alt="Profissional refletindo sobre sua trajetória"
-                  fill
-                  className="object-cover"
-                />
+        {/* O desafio — foto sangra até a borda da viewport no desktop, como no Figma */}
+        <section className="py-20">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
+            <div className="order-2 relative h-[280px] w-full overflow-hidden lg:order-1 lg:h-auto lg:w-1/2 lg:min-h-[420px] lg:rounded-r-[88px]">
+              <Image
+                src="/landing/desafio-photo.png"
+                alt="Profissional refletindo sobre sua trajetória"
+                fill
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                className="object-cover"
+              />
+            </div>
+            <div className="contents lg:order-2 lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:gap-5">
+              <div className="order-1 space-y-2 px-6 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
+                <p className="text-2xl font-semibold tracking-tight text-primary">O desafio</p>
+                <p className="text-3xl font-semibold tracking-tight text-foreground">
+                  Seu talento pode ser maior do que o seu perfil demonstra
+                </p>
+                <div className="h-[3px] w-[69px] bg-primary" />
+                <p className="text-base leading-7 text-[#2e2c2c]">
+                  Currículo, LinkedIn e objetivo profissional nem sempre contam a mesma história. Sem um
+                  diagnóstico claro, fica difícil entender o que está limitando seu posicionamento e o que
+                  melhorar primeiro.
+                </p>
               </div>
-              <div className="contents lg:order-2 lg:flex lg:flex-1 lg:flex-col lg:gap-5">
-                <div className="order-1 space-y-2">
-                  <p className="text-2xl font-semibold tracking-tight text-primary">O desafio</p>
-                  <p className="text-3xl font-semibold tracking-tight text-foreground">
-                    Seu talento pode ser maior do que o seu perfil demonstra
-                  </p>
-                  <div className="h-[3px] w-[69px] bg-primary" />
-                  <p className="text-base leading-7 text-[#2e2c2c]">
-                    Currículo, LinkedIn e objetivo profissional nem sempre contam a mesma história. Sem um
-                    diagnóstico claro, fica difícil entender o que está limitando seu posicionamento e o que
-                    melhorar primeiro.
-                  </p>
-                </div>
-                <div className="order-3 divide-y divide-border">
-                  {CHALLENGE_ITEMS.map((item) => (
-                    <div key={item.title} className="border-l-[3px] border-primary py-4 pl-6 first:pt-0">
-                      <p className="text-xl font-semibold tracking-tight text-foreground">{item.title}</p>
-                      <p className="mt-1 text-base leading-7 text-[#2e2c2c]">{item.description}</p>
-                    </div>
-                  ))}
-                </div>
+              <div className="order-3 divide-y divide-border px-6 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
+                {CHALLENGE_ITEMS.map((item) => (
+                  <div key={item.title} className="border-l-[3px] border-primary py-4 pl-6 first:pt-0">
+                    <p className="text-xl font-semibold tracking-tight text-foreground">{item.title}</p>
+                    <p className="mt-1 text-base leading-7 text-[#2e2c2c]">{item.description}</p>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="flex flex-col items-center gap-6 text-center md:flex-row md:items-center md:gap-8 md:text-left">
+          </div>
+          <div className="mt-14 px-6 md:px-14">
+            <div className="mx-auto flex max-w-content flex-col items-center gap-6 text-center md:flex-row md:items-center md:gap-8 md:text-left">
               <Image
                 src="/landing/icon-quote-right.svg"
                 alt=""
@@ -199,12 +200,11 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Nossa solução — Core 1 e Core 2 */}
-        <section id="solucao" className="bg-secondary/50 px-6 py-22 md:px-14">
-          <div className="mx-auto max-w-content space-y-9">
-          <div className="flex flex-col gap-8 md:flex-row md:items-center md:gap-12">
-            <div className="contents md:order-1 md:flex md:flex-1 md:flex-col md:gap-3">
-              <div className="order-1 space-y-3">
+        {/* Nossa solução — Core 1 e Core 2 — fotos sangram até a borda da viewport no desktop, como no Figma */}
+        <section id="solucao" className="space-y-9 bg-secondary/50 py-22">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
+            <div className="contents lg:order-1 lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:gap-3">
+              <div className="order-1 space-y-3 px-6 md:px-14 lg:px-0 lg:pl-14 lg:pr-16">
                 <p className="text-2xl font-semibold tracking-tight">
                   <span className="text-primary">Análise </span>de Perfil
                 </p>
@@ -217,7 +217,7 @@ export default function HomePage() {
                   fortalece seu posicionamento e o que ainda precisa ser melhor comunicado.
                 </p>
               </div>
-              <ul className="order-3 space-y-1 pt-2">
+              <ul className="order-3 space-y-1 px-6 pt-2 md:px-14 lg:px-0 lg:pl-14 lg:pr-16">
                 {PROFILE_ANALYSIS_ITEMS.map((item) => (
                   <li key={item} className="flex items-end gap-4">
                     <CheckCheck className="h-6 w-6 shrink-0 text-primary" aria-hidden />
@@ -226,29 +226,33 @@ export default function HomePage() {
                 ))}
               </ul>
             </div>
-            <div className="order-2 relative h-[280px] w-full shrink-0 overflow-hidden rounded-2xl md:order-2 md:h-[325px] md:w-[45%]">
+            <div className="order-2 relative h-[280px] w-full overflow-hidden lg:order-2 lg:h-auto lg:w-1/2 lg:min-h-[325px] lg:rounded-l-[88px]">
               <Image
                 src="/landing/feature-photo-1.png"
                 alt="Profissional analisando seu perfil"
                 fill
+                sizes="(min-width: 1024px) 50vw, 100vw"
                 className="object-cover"
               />
             </div>
           </div>
 
-          <hr className="border-border" />
+          <div className="px-6 md:px-14">
+            <hr className="mx-auto max-w-content border-border" />
+          </div>
 
-          <div className="flex flex-col gap-8 md:flex-row md:items-center md:gap-12">
-            <div className="order-2 relative h-[280px] w-full shrink-0 overflow-hidden rounded-2xl md:order-1 md:h-[333px] md:w-[46%]">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
+            <div className="order-2 relative h-[280px] w-full overflow-hidden lg:order-1 lg:h-auto lg:w-1/2 lg:min-h-[333px] lg:rounded-r-[88px]">
               <Image
                 src="/landing/feature-photo-2.png"
                 alt="Profissional avaliando uma oportunidade"
                 fill
+                sizes="(min-width: 1024px) 50vw, 100vw"
                 className="object-cover"
               />
             </div>
-            <div className="contents md:order-2 md:flex md:flex-1 md:flex-col md:gap-3">
-              <div className="order-1 space-y-3">
+            <div className="contents lg:order-2 lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:gap-3">
+              <div className="order-1 space-y-3 px-6 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
                 <p className="text-2xl font-semibold tracking-tight">
                   <span className="text-primary">Diagnóstico de </span>Aderência
                 </p>
@@ -261,7 +265,7 @@ export default function HomePage() {
                   pontos de atenção antes de decidir se candidatar.
                 </p>
               </div>
-              <ul className="order-3 space-y-1 pt-2">
+              <ul className="order-3 space-y-1 px-6 pt-2 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
                 {FIT_DIAGNOSIS_ITEMS.map((item) => (
                   <li key={item} className="flex items-end gap-4">
                     <CheckCheck className="h-6 w-6 shrink-0 text-primary" aria-hidden />
@@ -270,7 +274,6 @@ export default function HomePage() {
                 ))}
               </ul>
             </div>
-          </div>
           </div>
         </section>
 
