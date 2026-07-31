@@ -145,13 +145,13 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-center gap-6 rounded-2xl bg-secondary/50 px-8 py-10 text-center md:flex-row md:gap-10 md:px-16 md:text-left">
+            <div className="flex flex-col items-center gap-6 text-center md:flex-row md:items-center md:gap-8 md:text-left">
               <Image
                 src="/landing/icon-quote-right.svg"
                 alt=""
-                width={72}
-                height={72}
-                className="shrink-0"
+                width={96}
+                height={96}
+                className="h-20 w-20 shrink-0 md:h-24 md:w-24"
               />
               <p className="text-2xl font-semibold leading-snug tracking-tight text-foreground">
                 O problema nem sempre é falta de experiência. Muitas vezes, ela está mal organizada, pouco
