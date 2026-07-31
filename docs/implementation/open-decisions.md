@@ -56,7 +56,9 @@ Toda pendência abaixo é registrada, não resolvida silenciosamente. Nenhum ite
 
 **Documentos afetados:** Leitura do estilo visual, PRD 00 §5/RF-SITE-018/019.
 **Regra:** "devem ser utilizados exclusivamente os arquivos oficiais fornecidos" — proibido redesenhar, reconstruir ou simular via CSS/texto/ícone/IA.
-**Resolvido em 30/07/2026:** o Product Owner forneceu um arquivo Figma com a home redesenhada, contendo o símbolo gráfico da marca como elemento vetorial real (não print). Baixamos o asset exportado diretamente do Figma (`public/logo-icon.svg`, `#F84606`) — nunca redesenhado ou recriado por CSS/IA — e usamos no componente `Wordmark` em todo o app. O texto "CareerTwin" continua como texto real (Inter Semibold), não como imagem vetorizada de fonte: os arquivos exportados do Figma para o texto/tagline eram paths de fonte convertidos (pesados, não selecionáveis, ruins para acessibilidade), então optamos por recriar apenas o texto como HTML real, mantendo o símbolo gráfico fiel ao asset original.
+**Resolvido em 30/07/2026, em duas etapas:**
+1. Primeiro usamos o símbolo gráfico exportado do Figma (`#F84606`) como ícone, recriando "CareerTwin" como texto HTML real (Inter Semibold) — os paths de fonte vetorizados do Figma eram pesados e ruins para acessibilidade.
+2. O Product Owner então forneceu os dois arquivos SVG oficiais completos e finais (`public/logo-light.svg` — texto branco, para fundos escuros; `public/logo-dark.svg` — texto preto, para fundos claros), cada um já contendo símbolo + wordmark + tagline ("Evolua, Reposicione e Conquiste.") como um único asset. Passamos a usar esses arquivos diretamente via `Image` no componente `Wordmark` (prop `variant: "light" | "dark"`) — nenhum texto ou símbolo é mais recriado por HTML/CSS, o app usa exclusivamente os arquivos oficiais fornecidos, como a regra exige.
 
 ## 8. Verificação obrigatória de e-mail no cadastro — `provisional`
 
