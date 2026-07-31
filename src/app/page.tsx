@@ -73,47 +73,74 @@ export default function HomePage() {
     <>
       <LandingHeader />
       <main>
-        {/* Hero — background is the single composed asset from Figma (fundo + formas + foto já posicionados) */}
-        <section className="relative overflow-hidden bg-foreground px-6 pb-24 pt-16 text-white md:px-14 md:pb-32 md:pt-24">
-          <Image
-            src="/landing/hero-mobile.svg"
-            alt=""
-            width={428}
-            height={942}
-            priority
-            className="pointer-events-none absolute inset-x-0 top-0 h-auto w-full md:hidden"
-          />
-          <Image
-            src="/landing/hero.svg"
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="pointer-events-none absolute inset-0 hidden object-cover md:block"
-          />
-          <div className="relative mx-auto max-w-content">
-            <div className="relative max-w-xl">
-              <h1 className="text-5xl font-medium leading-[1.05] tracking-tight md:text-7xl">
-                Evolua.
-                <br />
-                Reposicione-se.
-                <br />
-                <span className="text-primary">Conquiste</span>
-              </h1>
-              <p className="mt-6 text-lg font-semibold tracking-tight text-white/90">
-                Clareza sobre seu perfil, direção para sua carreira e decisões melhores antes de se candidatar.
-              </p>
-              <Button asChild className="mt-8 w-full md:w-auto">
+        {/* Hero — composições mobile e desktop são deliberadamente diferentes no Figma, não a mesma arte escalada */}
+        <section className="relative overflow-hidden bg-foreground text-white">
+          {/* Mobile: altura segue a proporção natural do asset dedicado; botão fica na faixa inferior, após a foto */}
+          <div className="relative md:hidden">
+            <Image
+              src="/landing/hero-mobile.svg"
+              alt=""
+              width={428}
+              height={942}
+              priority
+              className="block h-auto w-full"
+            />
+            <div className="absolute inset-0 flex flex-col px-6 pb-6 pt-16">
+              <div className="max-w-xl">
+                <h1 className="whitespace-nowrap text-[9vw] font-medium leading-[1.05] tracking-tight">
+                  Evolua.
+                  <br />
+                  Reposicione-se.
+                  <br />
+                  <span className="text-primary">Conquiste</span>
+                </h1>
+                <p className="mt-6 text-lg font-semibold tracking-tight text-white/90">
+                  Clareza sobre seu perfil, direção para sua carreira e decisões melhores antes de se candidatar.
+                </p>
+              </div>
+              <Button asChild className="mt-auto w-full">
                 <Link href="/cadastro">
                   <ArrowRight className="h-4 w-4" aria-hidden />
                   Comece agora
                 </Link>
               </Button>
-              <p className="mt-6 hidden items-center gap-2 text-sm font-medium text-white/80 md:flex">
-                <Lock className="h-5 w-5 shrink-0" aria-hidden />
-                Rápido <span className="text-primary">•</span> Seguro <span className="text-primary">•</span>{" "}
-                Sem complicação
-              </p>
+            </div>
+          </div>
+
+          {/* Desktop */}
+          <div className="relative hidden md:block">
+            <Image
+              src="/landing/hero.svg"
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="pointer-events-none absolute inset-0 object-cover"
+            />
+            <div className="relative mx-auto max-w-content px-14 pb-32 pt-24">
+              <div className="relative max-w-xl">
+                <h1 className="text-7xl font-medium leading-[1.05] tracking-tight">
+                  Evolua.
+                  <br />
+                  Reposicione-se.
+                  <br />
+                  <span className="text-primary">Conquiste</span>
+                </h1>
+                <p className="mt-6 text-lg font-semibold tracking-tight text-white/90">
+                  Clareza sobre seu perfil, direção para sua carreira e decisões melhores antes de se candidatar.
+                </p>
+                <Button asChild className="mt-8">
+                  <Link href="/cadastro">
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                    Comece agora
+                  </Link>
+                </Button>
+                <p className="mt-6 flex items-center gap-2 text-sm font-medium text-white/80">
+                  <Lock className="h-5 w-5 shrink-0" aria-hidden />
+                  Rápido <span className="text-primary">•</span> Seguro <span className="text-primary">•</span>{" "}
+                  Sem complicação
+                </p>
+              </div>
             </div>
           </div>
         </section>
