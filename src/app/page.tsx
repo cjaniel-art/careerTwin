@@ -76,12 +76,20 @@ export default function HomePage() {
         {/* Hero — background is the single composed asset from Figma (fundo + formas + foto já posicionados) */}
         <section className="relative overflow-hidden bg-foreground px-6 pb-24 pt-16 text-white md:px-14 md:pb-32 md:pt-24">
           <Image
+            src="/landing/hero-mobile.svg"
+            alt=""
+            width={428}
+            height={942}
+            priority
+            className="pointer-events-none absolute inset-x-0 top-0 h-auto w-full md:hidden"
+          />
+          <Image
             src="/landing/hero.svg"
             alt=""
             fill
             priority
             sizes="100vw"
-            className="pointer-events-none absolute inset-0 object-cover"
+            className="pointer-events-none absolute inset-0 hidden object-cover md:block"
           />
           <div className="relative mx-auto max-w-content">
             <div className="relative max-w-xl">

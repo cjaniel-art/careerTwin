@@ -14,7 +14,7 @@ export function LandingHeader() {
     <header className="bg-foreground px-6 py-10 text-white md:px-14">
       <div className="mx-auto flex max-w-content items-center gap-8 md:gap-10">
         <Link href="/" className="shrink-0">
-          <Wordmark variant="light" className="h-[67px] w-[276px]" />
+          <Wordmark variant="light" className="h-[46px] w-[193px] md:h-[67px] md:w-[276px]" />
         </Link>
         <nav className="hidden flex-1 items-center justify-center gap-4 text-sm font-medium md:flex">
           {NAV_LINKS.map((link) => (
