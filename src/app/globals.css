@@ -4,9 +4,11 @@
 
 /**
  * CareerTwin design tokens (HSL triples, consumed via hsl(var(--token))).
- * Exact hex source of truth: docs/implementation/extracts/sitemap-auth-design-escopo.md
- *   Laranja CareerTwin #FF5A1F · Preto profundo #111111 · Branco #FFFFFF · Off-white #F5F5F4
- *   Cinza claro #E7E7E5 · Cinza médio #8A8A87 · Pêssego claro #FBE4D8 · Laranja escuro #D9440C
+ * --primary/--primary-dark/--ring updated per Product Owner decision (30/07/2026,
+ * see open-decisions.md #25) to match the new Figma reference (#F84606), superseding
+ * the original "Leitura do estilo visual" value (#FF5A1F). All other tokens unchanged:
+ *   Preto profundo #111111 · Branco #FFFFFF · Off-white #F5F5F4
+ *   Cinza claro #E7E7E5 · Cinza médio #8A8A87 · Pêssego claro #FBE4D8
  * --destructive uses a standard semantic red (not the brand orange) per the explicit rule
  * "o laranja da marca não deve representar erro" — exact hex left as an engineering choice,
  * see open-decisions.md (non_blocking).
@@ -19,8 +21,8 @@
     --card: 0 0% 100%;
     --card-foreground: 0 0% 7%;
 
-    --primary: 16 100% 56%;
-    --primary-dark: 16 90% 45%;
+    --primary: 16 95% 50%;
+    --primary-dark: 16 95% 39%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 60 9% 97%;

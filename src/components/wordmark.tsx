@@ -1,17 +1,20 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 /**
- * Temporary text wordmark — no official CareerTwin logo files exist in the
- * repository (see docs/implementation/open-decisions.md #7, `missing_asset`).
- * Per "Leitura do estilo visual" this is a placeholder only: plain text, no
- * icon/symbol simulation, no attempt to imitate the real mark. Replace with
- * the official SVG/PNG assets (via next/image, object-fit: contain) as soon
- * as they are provided.
+ * Official CareerTwin mark: the symbol is the real vector asset exported
+ * from the approved Figma file (public/logo-icon.svg) — never redrawn or
+ * simulated (see docs/implementation/open-decisions.md #7, resolved
+ * 30/07/2026). "CareerTwin" itself is real text (Inter Semibold), not a
+ * vectorized wordmark image, for accessibility/selectability/lighter weight.
  */
-export function Wordmark({ className }: { className?: string }) {
+export function Wordmark({ className, iconClassName }: { className?: string; iconClassName?: string }) {
   return (
-    <span className={cn("text-lg font-semibold tracking-tight text-foreground", className)}>
-      Career<span className="text-primary">Twin</span>
+    <span className={cn("inline-flex items-center gap-2", className)}>
+      <Image src="/logo-icon.svg" alt="" width={28} height={27} className={cn("shrink-0", iconClassName)} />
+      <span className="text-lg font-semibold tracking-tight">
+        Career<span className="text-primary">Twin</span>
+      </span>
     </span>
   );
 }

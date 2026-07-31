@@ -5,6 +5,8 @@ import tailwindcssAnimate from "tailwindcss-animate";
  * CareerTwin design tokens.
  * Source: docs/implementation/extracts/sitemap-auth-design-escopo.md
  * ("Design tokens e estilo visual", extracted from "Leitura do estilo visual").
+ * --primary updated 30/07/2026 per Product Owner decision to match the new Figma
+ * reference — see open-decisions.md #25 and src/app/globals.css.
  * Do not hardcode these hex values elsewhere — reference the tokens below.
  */
 const config: Config = {

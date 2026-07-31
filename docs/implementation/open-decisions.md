@@ -52,11 +52,11 @@ Toda pendência abaixo é registrada, não resolvida silenciosamente. Nenhum ite
 **Documentos afetados:** PRD 00 §20, Sitemap §18, Leitura do estilo visual.
 **Impacto:** nenhum — "Leitura do estilo visual" contém tokens de cor/tipografia/componentes suficientemente detalhados e é tratada como a fonte de tokens visuais vigente. Se um documento "Style Guide CareerTwin" separado existir e for adicionado ao repositório depois, os tokens devem ser reconciliados.
 
-## 7. Assets oficiais de logo — `missing_asset`
+## 7. Assets oficiais de logo — `resolved_by_precedence`
 
 **Documentos afetados:** Leitura do estilo visual, PRD 00 §5/RF-SITE-018/019.
 **Regra:** "devem ser utilizados exclusivamente os arquivos oficiais fornecidos" — proibido redesenhar, reconstruir ou simular via CSS/texto/ícone/IA.
-**Decisão de implementação adotada nesta sessão:** nenhum arquivo de logo foi encontrado no repositório. Usamos temporariamente um wordmark textual acessível ("CareerTwin" em Inter Semibold, cor `--foreground` ou `--primary` conforme contraste) no header/footer/landing, e **não** produzimos qualquer imitação gráfica do símbolo/logo. Substituir assim que os arquivos oficiais forem fornecidos.
+**Resolvido em 30/07/2026:** o Product Owner forneceu um arquivo Figma com a home redesenhada, contendo o símbolo gráfico da marca como elemento vetorial real (não print). Baixamos o asset exportado diretamente do Figma (`public/logo-icon.svg`, `#F84606`) — nunca redesenhado ou recriado por CSS/IA — e usamos no componente `Wordmark` em todo o app. O texto "CareerTwin" continua como texto real (Inter Semibold), não como imagem vetorizada de fonte: os arquivos exportados do Figma para o texto/tagline eram paths de fonte convertidos (pesados, não selecionáveis, ruins para acessibilidade), então optamos por recriar apenas o texto como HTML real, mantendo o símbolo gráfico fiel ao asset original.
 
 ## 8. Verificação obrigatória de e-mail no cadastro — `provisional`
 
@@ -152,5 +152,22 @@ Conforme autorizado explicitamente pelo prompt mestre desta sessão. Registrado 
 **Correção aplicada:** `synthetic-provider.ts` agora retorna uma experiência de exemplo (com `results`) quando o conteúdo é suficiente, e `consolidateExtractedExperiences()` (nova função em `src/features/onboarding/actions.ts`, chamada dentro de `ensureProfileDraft`) lê a extração mais recente e bem-sucedida de cada tipo de documento (currículo/LinkedIn) e popula `experiences`/`evidences` na versão draft. Verificado ao vivo ponta a ponta: currículo + LinkedIn colados → 2 experiências e 2 evidências aparecem automaticamente na revisão → Thin Twin confirmado → Core 1 calcula IPP a partir desses dados reais (não mais placeholders manuais).
 **O que continua bloqueado:** `profile_skills`/`profile_tools` (competências/ferramentas) referenciam as tabelas de catálogo compartilhado `skills`/`tools`, que só têm política de `SELECT` para o cliente — o mesmo padrão de "catálogo vazio, sem processo de curadoria" do item #1 (`role_references`). Popular esses dados a partir da extração exigiria uma função `SECURITY DEFINER` para find-or-create de skill/tool (análoga às RPCs de crédito do item #21), ou um catálogo pré-populado por um curador. Enquanto isso não existir, a dimensão "Competências e ferramentas" do IPP fica sempre em nível 0 para qualquer usuário, mesmo com extração bem-sucedida — isso é uma limitação de fidelidade real do Core 1, não apenas de uma funcionalidade periférica.
 **Ação recomendada:** decidir a estratégia de catálogo de skills/tools (find-or-create automático vs. curadoria manual vs. taxonomia externa) antes de produção — sem isso, a dimensão de competências do IPP nunca reflete o perfil real do usuário.
+
+## 25. Cor primária da marca atualizada (`#FF5A1F` → `#F84606`) — `resolved_by_precedence`
+
+**Documentos afetados:** Leitura do estilo visual (paleta cromática), `tailwind.config.ts`, `src/app/globals.css`.
+**Contexto:** ao implementar a home redesenhada a partir de um novo arquivo Figma fornecido pelo Product Owner (30/07/2026), o laranja usado nesse arquivo (`#F84606`) era ligeiramente diferente do laranja original da "Leitura do estilo visual" (`#FF5A1F`).
+**Decisão do Product Owner:** atualizar o token em todo o app para `#F84606`, não manter duas cores de marca diferentes entre a home e o restante das telas. Aplicado em `--primary`/`--primary-dark`/`--ring` (`src/app/globals.css`) — `--primary-dark` recalculado proporcionalmente (mesma queda de luminosidade do esquema anterior) para `#C23705`. Nenhum outro token da paleta foi alterado.
+**Verificado ao vivo:** login, dashboard e demais telas já construídas refletem o novo laranja automaticamente (usam o token, nunca hex hardcoded).
+
+## 26. Home redesenhada a partir de Figma — logo oficial adotado, seção de métricas/depoimento omitida
+
+**Documentos afetados:** PRD 00 (landing page), Leitura do estilo visual, Guardrails (não inventar métricas/depoimentos).
+**Contexto:** Product Owner forneceu um link do Figma com uma nova versão da home. Implementada via `get_design_context` (MCP Figma), com os assets de imagem/ícone baixados e commitados em `public/landing/` (as URLs do Figma expiram em ~7 dias).
+**Decisões tomadas com o Product Owner:**
+- O símbolo gráfico do header/footer do Figma foi adotado como o logo oficial (ver item #7, resolvido).
+- Uma seção do Figma ("Resultados que transformam carreiras": "4x mais chances de promoção", "70%", "85%", "2.500+ profissionais", e um depoimento fabricado de "Juliana Martins, Product Designer") foi **omitida** — confirmado pelo Product Owner como placeholder, e a própria seção já era uma imagem estática colada no Figma, não componentes editáveis. Manter essa seção violaria a regra "não inventar métricas, clientes, depoimentos ou resultados".
+- O texto dos 4 passos de "Como funciona" no Figma mencionava "cursos e mentorias" — funcionalidade que o produto não tem. Substituído pelo copy real do fluxo de onboarding (criar conta → enviar currículo/LinkedIn → revisar perfil → definir contexto-alvo), já validado no restante do app.
+- As seções "Autenticidade e confiança", "O que você recebe" e "Limitações do produto" (não presentes no Figma, mas já implementadas e obrigatórias pelos guardrails de produto) foram preservadas, adaptadas ao novo estilo visual.
 
 Nenhum item acima impede a implementação do restante do MVP. Todos os bloqueios são de escopo restrito (uma sub-funcionalidade específica retorna `insufficient_data` ou permanece com configuração provisória) e documentados em código com comentários e/ou constantes nomeadas apontando para este arquivo.
