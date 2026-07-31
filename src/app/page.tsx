@@ -55,24 +55,17 @@ export default function HomePage() {
     <>
       <LandingHeader />
       <main>
-        {/* Hero */}
-        <section className="overflow-hidden bg-foreground px-6 pb-24 pt-16 text-white md:px-14 md:pb-32 md:pt-24">
+        {/* Hero — background is the single composed asset from Figma (fundo + formas + foto já posicionados) */}
+        <section className="relative overflow-hidden bg-foreground px-6 pb-24 pt-16 text-white md:px-14 md:pb-32 md:pt-24">
+          <Image
+            src="/landing/hero.svg"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="pointer-events-none absolute inset-0 object-cover"
+          />
           <div className="relative mx-auto max-w-content">
-            <Image
-              src="/landing/hero-shapes.svg"
-              alt=""
-              width={708}
-              height={683}
-              className="pointer-events-none absolute right-[-8%] top-0 hidden h-auto w-[46%] max-w-none opacity-90 lg:block"
-            />
-            <Image
-              src="/landing/hero-photo.png"
-              alt="Profissional em ambiente de trabalho"
-              width={600}
-              height={720}
-              className="pointer-events-none absolute right-[6%] top-16 hidden h-[85%] w-[34%] max-w-none rounded-2xl object-cover lg:block"
-              priority
-            />
             <div className="relative max-w-xl">
               <h1 className="text-5xl font-medium leading-[1.05] tracking-tight md:text-7xl">
                 Evolua.
