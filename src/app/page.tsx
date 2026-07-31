@@ -28,6 +28,24 @@ const HOW_IT_WORKS = [
   },
 ];
 
+const CHALLENGE_ITEMS = [
+  {
+    title: "Seu perfil não mostra tudo o que você entrega",
+    description:
+      "Experiências valiosas podem perder força quando aparecem de forma genérica, sem contexto, impacto ou evidências.",
+  },
+  {
+    title: "Você tenta melhorar sem saber por onde começar",
+    description:
+      "Currículo, LinkedIn, competências e posicionamento exigem ajustes diferentes. Sem direção, é fácil investir tempo no que gera pouco resultado.",
+  },
+  {
+    title: "Cada candidatura parece uma aposta",
+    description:
+      "Sem entender a aderência entre seu perfil e a oportunidade, fica mais difícil saber onde você tem mais força e o que precisa ajustar.",
+  },
+];
+
 const PROFILE_ANALYSIS_ITEMS = [
   "identificar seus principais pontos fortes;",
   "encontrar experiências descritas de forma genérica;",
@@ -87,6 +105,57 @@ export default function HomePage() {
                 <Lock className="h-5 w-5 shrink-0" aria-hidden />
                 Rápido <span className="text-primary">•</span> Seguro <span className="text-primary">•</span>{" "}
                 Sem complicação
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* O desafio */}
+        <section className="px-6 py-20 md:px-14">
+          <div className="mx-auto max-w-content space-y-14">
+            <div className="flex flex-col items-center gap-12 lg:flex-row">
+              <div className="relative h-[280px] w-full shrink-0 overflow-hidden rounded-2xl lg:h-[420px] lg:w-[45%]">
+                <Image
+                  src="/landing/desafio-photo.png"
+                  alt="Profissional refletindo sobre sua trajetória"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="flex-1 space-y-5">
+                <div className="space-y-2">
+                  <p className="text-2xl font-semibold tracking-tight text-primary">O desafio</p>
+                  <p className="text-3xl font-semibold tracking-tight text-foreground">
+                    Seu talento pode ser maior do que o seu perfil demonstra
+                  </p>
+                  <div className="h-[3px] w-[69px] bg-primary" />
+                </div>
+                <p className="text-base leading-7 text-[#2e2c2c]">
+                  Currículo, LinkedIn e objetivo profissional nem sempre contam a mesma história. Sem um
+                  diagnóstico claro, fica difícil entender o que está limitando seu posicionamento e o que
+                  melhorar primeiro.
+                </p>
+                <div className="divide-y divide-border">
+                  {CHALLENGE_ITEMS.map((item) => (
+                    <div key={item.title} className="border-l-[3px] border-primary py-4 pl-6 first:pt-0">
+                      <p className="text-xl font-semibold tracking-tight text-foreground">{item.title}</p>
+                      <p className="mt-1 text-base leading-7 text-[#2e2c2c]">{item.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-6 rounded-2xl bg-secondary/50 px-8 py-10 text-center md:flex-row md:gap-10 md:px-16 md:text-left">
+              <Image
+                src="/landing/icon-quote-right.svg"
+                alt=""
+                width={72}
+                height={72}
+                className="shrink-0"
+              />
+              <p className="text-2xl font-semibold leading-snug tracking-tight text-foreground">
+                O problema nem sempre é falta de experiência. Muitas vezes, ela está mal organizada, pouco
+                evidenciada ou desconectada do seu objetivo profissional.
               </p>
             </div>
           </div>
