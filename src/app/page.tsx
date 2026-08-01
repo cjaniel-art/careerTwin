@@ -72,8 +72,8 @@ export default function HomePage() {
   return (
     <>
       <main>
-        {/* Hero — composições mobile e desktop são deliberadamente diferentes no Figma, não a mesma arte escalada */}
-        <section className="relative overflow-hidden bg-foreground text-white">
+        {/* Hero — foge do limite global de 1440px (único bloco full-bleed do site, por pedido explícito) */}
+        <section className="relative ml-[calc(50%-50vw)] w-screen overflow-hidden bg-foreground text-white">
           {/* Header flutua transparente sobre o hero, sem fundo próprio */}
           <LandingHeader />
           {/* Mobile: altura segue a proporção natural do asset dedicado; botão fica na faixa inferior, após a foto */}
