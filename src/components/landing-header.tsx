@@ -11,12 +11,12 @@ const NAV_LINKS = [
 
 export function LandingHeader() {
   return (
-    <header className="absolute inset-x-0 top-0 z-20 px-6 py-10 text-white md:px-14">
-      <div className="mx-auto flex max-w-content items-center gap-8 md:gap-10">
+    <header className="absolute inset-x-0 top-0 z-20 px-6 py-10 text-white xl:px-14">
+      <div className="mx-auto flex max-w-content items-center gap-8 xl:gap-10">
         <Link href="/" className="shrink-0">
-          <Wordmark variant="light" className="h-[46px] w-[193px] md:h-[67px] md:w-[276px]" />
+          <Wordmark variant="light" className="h-[46px] w-[193px] xl:h-[67px] xl:w-[276px]" />
         </Link>
-        <nav className="hidden flex-1 items-center justify-center gap-4 text-sm font-medium md:flex">
+        <nav className="hidden flex-1 items-center justify-center gap-4 text-sm font-medium xl:flex">
           {NAV_LINKS.map((link) => (
             <a key={link.href} href={link.href} className="rounded-md px-4 py-2 hover:text-primary">
               {link.label}
@@ -27,7 +27,7 @@ export function LandingHeader() {
           <Button asChild variant="tertiary" size="sm" className="text-white hover:text-primary">
             <Link href="/login">Entrar</Link>
           </Button>
-          <Button asChild size="sm" className="hidden md:inline-flex">
+          <Button asChild size="sm" className="hidden xl:inline-flex">
             <Link href="/cadastro">
               <Plus className="h-4 w-4" aria-hidden />
               Criar conta
