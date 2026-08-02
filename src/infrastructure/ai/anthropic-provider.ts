@@ -1,9 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import type { AiCompletionRequest, AiCompletionResult, AiProvider } from "@/application/ports/ai-provider";
 import { requireEnv } from "@/lib/env";
 import { completeWithSchemaRepair } from "./schema-repair";
 
 const DEFAULT_MODEL = "claude-sonnet-5";
+const EXTRACTION_TOOL_NAME = "emit_structured_output";
 
 /**
  * Real AI adapter. Requires AI_PROVIDER_API_KEY (see .env.example and
@@ -23,6 +25,11 @@ export class AnthropicAiProvider implements AiProvider {
   }
 
   async complete<T>(request: AiCompletionRequest<T>): Promise<AiCompletionResult<T>> {
+    // Forces the exact output shape via tool-use instead of only describing it in
+    // prose — the model previously had no machine-readable schema at all and
+    // reliably returned JSON missing most required fields.
+    const inputSchema = zodToJsonSchema(request.schema) as Anthropic.Tool.InputSchema;
+
     const { data, modelVersion, repairAttempts } = await completeWithSchemaRepair(
       request.promptId,
       async ({ systemPrompt, userContent, maxOutputTokens }) => {
@@ -32,11 +39,17 @@ export class AnthropicAiProvider implements AiProvider {
           max_tokens: maxOutputTokens ?? 4096,
           system: systemPrompt,
           messages: [{ role: "user", content: userContent }],
+          tools: [
+            {
+              name: EXTRACTION_TOOL_NAME,
+              description: "Emit the structured result. Must match the input schema exactly — every required field present.",
+              input_schema: inputSchema,
+            },
+          ],
+          tool_choice: { type: "tool", name: EXTRACTION_TOOL_NAME },
         });
-        const text = response.content
-          .filter((block): block is Anthropic.TextBlock => block.type === "text")
-          .map((block) => block.text)
-          .join("\n");
+        const toolUse = response.content.find((block): block is Anthropic.ToolUseBlock => block.type === "tool_use");
+        const text = toolUse ? JSON.stringify(toolUse.input) : "";
         return { text, modelVersion: response.model };
       },
       {
