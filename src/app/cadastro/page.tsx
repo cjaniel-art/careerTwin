@@ -1,24 +1,47 @@
 import Link from "next/link";
-import { AuthShell } from "@/components/auth-shell";
+import Image from "next/image";
 import { SignUpForm } from "@/features/auth/sign-up-form";
 
 export const metadata = { title: "Criar conta — CareerTwin" };
 
 export default function SignUpPage() {
   return (
-    <AuthShell
-      title="Criar conta"
-      description="Leva menos de um minuto. Você poderá enviar seu currículo e LinkedIn na próxima etapa."
-      footer={
-        <>
-          Já tem conta?{" "}
-          <Link href="/login" className="font-medium text-primary hover:underline">
-            Entrar
+    <main className="flex min-h-screen items-center justify-center bg-white px-6 py-12">
+      <div className="w-full max-w-[895px]">
+        <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm md:flex-row">
+          <div className="flex w-full max-w-[383px] flex-col items-center gap-6 p-8">
+            <div className="flex w-full flex-col items-center gap-2 px-6">
+              <Image src="/auth/logo-glyph.svg" alt="" width={49} height={48} className="mb-4 h-12 w-auto" />
+              <h1 className="text-center text-2xl font-semibold text-card-foreground">Crie sua conta</h1>
+              <p className="text-center text-sm text-muted-foreground">
+                Digite seu e-mail abaixo para criar sua conta
+              </p>
+            </div>
+            <SignUpForm />
+          </div>
+          <div className="hidden shrink-0 items-center justify-center self-stretch bg-muted p-8 md:flex">
+            <Image
+              src="/auth/cadastro-photo.png"
+              alt=""
+              width={448}
+              height={678}
+              priority
+              className="h-[678px] w-[448px] object-cover"
+            />
+          </div>
+        </div>
+
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          Ao clicar em Continuar, você concorda com nossos{" "}
+          <Link href="/termos" className="underline hover:no-underline">
+            Termos de Serviço
+          </Link>{" "}
+          e{" "}
+          <Link href="/privacidade" className="underline hover:no-underline">
+            Política de Privacidade.
           </Link>
-        </>
-      }
-    >
-      <SignUpForm />
-    </AuthShell>
+        </p>
+      </div>
+    </main>
   );
 }
