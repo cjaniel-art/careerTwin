@@ -1,10 +1,6 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { Wordmark } from "@/components/wordmark";
-import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { logoutAction } from "@/features/auth/actions";
 import { IAO_BAND_LABELS, MATCH_LABELS, RECOMMENDATION_LABELS } from "@/lib/result-labels";
 import { FeedbackForm } from "@/features/feedback/feedback-form";
 
@@ -49,17 +45,6 @@ export default async function JobAnalysisResultPage({
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
-      <div className="mb-8 flex items-center justify-between">
-        <Link href="/app/dashboard">
-          <Wordmark />
-        </Link>
-        <form action={logoutAction}>
-          <SubmitButton variant="tertiary" size="sm">
-            Sair
-          </SubmitButton>
-        </form>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle>Resumo executivo</CardTitle>

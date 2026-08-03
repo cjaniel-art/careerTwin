@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { Wordmark } from "@/components/wordmark";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { logoutAction } from "@/features/auth/actions";
 import { advanceActionStatusAction, convertRecommendationToActionAction } from "@/features/actions/actions";
 import { ACTIONS_CONFIG } from "@/config/engine/actions";
 
@@ -55,17 +52,6 @@ export default async function ActionsPage({
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
-      <div className="mb-8 flex items-center justify-between">
-        <Link href="/app/dashboard">
-          <Wordmark />
-        </Link>
-        <form action={logoutAction}>
-          <SubmitButton variant="tertiary" size="sm">
-            Sair
-          </SubmitButton>
-        </form>
-      </div>
-
       <h1 className="text-2xl font-semibold text-foreground">Plano de ações</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Até {ACTIONS_CONFIG.maximum} ações simultâneas. Selecionar, iniciar ou concluir uma ação não altera o

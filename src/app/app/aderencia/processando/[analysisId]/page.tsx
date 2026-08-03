@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { runJobAnalysis } from "@/features/core-2/actions";
 import { Card, CardContent } from "@/components/ui/card";
-import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Processando diagnóstico — CareerTwin" };
@@ -38,7 +37,6 @@ export default async function JobAnalysisProcessingPage({
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
-      <Wordmark />
       <Card className="max-w-md">
         <CardContent className="space-y-4 pt-6">
           <h1 className="text-lg font-semibold text-foreground">Não foi possível concluir a análise agora</h1>

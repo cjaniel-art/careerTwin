@@ -1,10 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { Wordmark } from "@/components/wordmark";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { logoutAction } from "@/features/auth/actions";
 import { confirmPurchaseIntentAction } from "@/features/credits/actions";
 import { SIMULATED_OFFER } from "@/config/engine/offer";
 
@@ -42,17 +39,6 @@ export default async function CreditsPage({
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
-      <div className="mb-8 flex items-center justify-between">
-        <Link href="/app/dashboard">
-          <Wordmark />
-        </Link>
-        <form action={logoutAction}>
-          <SubmitButton variant="tertiary" size="sm">
-            Sair
-          </SubmitButton>
-        </form>
-      </div>
-
       {motivo === "sem-credito" ? (
         <p className="mb-6 rounded-md bg-secondary p-3 text-sm text-foreground">
           Você não tem créditos disponíveis para uma nova análise de vaga. Seu histórico, ações e perfil

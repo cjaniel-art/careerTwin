@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -24,12 +23,6 @@ export default async function TargetRoleAnalysisPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
-      <div className="mb-8">
-        <Link href="/app/dashboard">
-          <Wordmark />
-        </Link>
-      </div>
-
       <Card>
         <CardContent className="space-y-4 pt-6">
           <h1 className="text-lg font-semibold text-foreground">Dados insuficientes</h1>

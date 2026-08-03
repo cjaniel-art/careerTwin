@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
-import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent } from "@/components/ui/card";
-import { logoutAction } from "@/features/auth/actions";
 import { IAO_BAND_LABELS, IPP_BAND_LABELS, RECOMMENDATION_LABELS } from "@/lib/result-labels";
 
 export const metadata = { title: "Histórico — CareerTwin" };
@@ -43,17 +40,6 @@ export default async function HistoryPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
-      <div className="mb-8 flex items-center justify-between">
-        <Link href="/app/dashboard">
-          <Wordmark />
-        </Link>
-        <form action={logoutAction}>
-          <SubmitButton variant="tertiary" size="sm">
-            Sair
-          </SubmitButton>
-        </form>
-      </div>
-
       <h1 className="text-2xl font-semibold text-foreground">Histórico de análises</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Todas as suas análises de perfil e diagnósticos de aderência, mais recentes primeiro. Análises

@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { Wordmark } from "@/components/wordmark";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { logoutAction } from "@/features/auth/actions";
 import { requestAccountDeletionAction } from "@/features/account/actions";
 
 export const metadata = { title: "Sua conta — CareerTwin" };
@@ -33,17 +30,6 @@ export default async function AccountPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
-      <div className="mb-8 flex items-center justify-between">
-        <Link href="/app/dashboard">
-          <Wordmark />
-        </Link>
-        <form action={logoutAction}>
-          <SubmitButton variant="tertiary" size="sm">
-            Sair
-          </SubmitButton>
-        </form>
-      </div>
-
       <h1 className="text-2xl font-semibold text-foreground">Sua conta</h1>
 
       <Card className="mt-6">
