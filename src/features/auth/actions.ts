@@ -110,6 +110,28 @@ export async function loginAction(_prev: AuthActionState, formData: FormData): P
   redirect(account?.onboarding_status === "completed" ? "/app/dashboard" : "/onboarding");
 }
 
+export async function signInWithGoogleAction(formData: FormData): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+
+  const redirectParam = formData.get("redirect");
+  const destination =
+    typeof redirectParam === "string" && isSafeInternalPath(redirectParam) ? redirectParam : null;
+
+  const callbackUrl = new URL("/auth/callback", process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+  if (destination) callbackUrl.searchParams.set("redirect", destination);
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: callbackUrl.toString() },
+  });
+
+  if (error || !data.url) {
+    redirect("/login?erro=google-oauth");
+  }
+
+  redirect(data.url);
+}
+
 export async function logoutAction(): Promise<void> {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();

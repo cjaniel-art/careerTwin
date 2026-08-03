@@ -23,6 +23,7 @@ const PUBLIC_ROUTE_PREFIXES = [
   "/cadastro",
   "/recuperar-senha",
   "/redefinir-senha",
+  "/auth/callback",
 ];
 
 function isPublicRoute(pathname: string): boolean {
