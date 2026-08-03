@@ -1,15 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Target, ClipboardCheck, History, ListChecks, CreditCard, UserCircle, Menu } from "lucide-react";
+import { LayoutDashboard, Target, ClipboardCheck, History, ListChecks, CreditCard, UserCircle } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
-import { Button } from "@/components/ui/button";
-import { SubmitButton } from "@/components/submit-button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { logoutAction } from "@/features/auth/actions";
-import { cn } from "@/lib/utils";
+import { NavUser } from "@/components/nav-user";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 
 const NAV_ITEMS = [
   { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -21,84 +28,47 @@ const NAV_ITEMS = [
   { href: "/app/conta", label: "Conta", icon: UserCircle },
 ];
 
-function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
-  return (
-    <nav className="flex flex-1 flex-col gap-1 p-3">
-      {NAV_ITEMS.map((item) => {
-        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              isActive
-                ? "bg-secondary text-foreground"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" aria-hidden />
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
-function SidebarFooter({ userEmail }: { userEmail: string }) {
-  return (
-    <div className="border-t border-border p-3">
-      <p className="mb-2 truncate px-1 text-xs text-muted-foreground">{userEmail}</p>
-      <form action={logoutAction}>
-        <SubmitButton variant="secondary" size="sm" className="w-full">
-          Sair
-        </SubmitButton>
-      </form>
-    </div>
-  );
-}
-
-export function AppSidebar({ userEmail }: { userEmail: string }) {
+export function AppSidebar({ userEmail, ...props }: { userEmail: string } & React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <>
-      <div className="flex h-14 items-center justify-between border-b border-border px-4 md:hidden">
-        <Link href="/app/dashboard">
-          <Wordmark className="h-6" />
-        </Link>
-        <Button variant="tertiary" size="sm" onClick={() => setMobileOpen(true)} aria-label="Abrir menu">
-          <Menu className="h-5 w-5" />
-        </Button>
-      </div>
-
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r border-border bg-card md:flex">
-        <div className="flex h-16 items-center px-6">
-          <Link href="/app/dashboard">
-            <Wordmark className="h-7" />
-          </Link>
-        </div>
-        <NavLinks pathname={pathname} />
-        <SidebarFooter userEmail={userEmail} />
-      </aside>
-
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="flex w-64 flex-col p-0">
-          <SheetHeader className="sr-only">
-            <SheetTitle>Menu</SheetTitle>
-            <SheetDescription>Navegação do CareerTwin</SheetDescription>
-          </SheetHeader>
-          <div className="flex h-16 items-center px-6">
-            <Wordmark className="h-7" />
-          </div>
-          <NavLinks pathname={pathname} onNavigate={() => setMobileOpen(false)} />
-          <SidebarFooter userEmail={userEmail} />
-        </SheetContent>
-      </Sheet>
-    </>
+    <Sidebar collapsible="offcanvas" {...props}>
+      <SidebarHeader className="border-b border-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild className="h-auto py-2">
+              <Link href="/app/dashboard">
+                <Wordmark className="h-6 w-auto" />
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarGroupLabel>Menu</SidebarGroupLabel>
+            <SidebarMenu>
+              {NAV_ITEMS.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <NavUser email={userEmail} />
+      </SidebarFooter>
+    </Sidebar>
   );
 }

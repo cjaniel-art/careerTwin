@@ -107,85 +107,90 @@ export default async function DashboardPage() {
   const tableRows = toRows(rawAnalyses);
 
   return (
-    <main className="mx-auto max-w-content px-6 py-12">
-      <h1 className="text-2xl font-semibold text-foreground">Olá, {user.email}</h1>
+    <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col gap-2">
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          <div className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 lg:px-6 xl:grid-cols-4">
+              <Card>
+                <CardHeader>
+                  <CardDescription>Créditos disponíveis</CardDescription>
+                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]:text-3xl">
+                    {creditAccount?.available_credits ?? 0}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    {creditAccount?.reserved_credits ? `${creditAccount.reserved_credits} reservado(s)` : "Para novas análises"}
+                  </p>
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href="/app/creditos">Ver</Link>
+                  </Button>
+                </CardContent>
+              </Card>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>Créditos disponíveis</CardDescription>
-            <CardTitle className="text-3xl">{creditAccount?.available_credits ?? 0}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-2">
-            <p className="text-sm text-muted-foreground">
-              {creditAccount?.reserved_credits ? `${creditAccount.reserved_credits} reservado(s)` : "Para novas análises"}
-            </p>
-            <Button asChild size="sm" variant="secondary">
-              <Link href="/app/creditos">Ver</Link>
-            </Button>
-          </CardContent>
-        </Card>
+              <Card>
+                <CardHeader>
+                  <CardDescription>Análise de Perfil</CardDescription>
+                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]:text-3xl">
+                    {lastProfileAnalysis?.status === "completed" ? profileResult?.ipp_display_score : "—"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between gap-2">
+                  {lastProfileAnalysis?.status === "completed" && profileResult ? (
+                    <Badge variant="secondary">{IPP_BAND_LABELS[profileResult.ipp_band]}</Badge>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Ainda não realizada</p>
+                  )}
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href={lastProfileAnalysis?.status === "completed" ? `/app/analise-perfil/${lastProfileAnalysis.id}` : "/app/analise-perfil"}>
+                      {lastProfileAnalysis?.status === "completed" ? "Ver" : "Fazer"}
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
 
-        <Card>
-          <CardHeader>
-            <CardDescription>Análise de Perfil</CardDescription>
-            <CardTitle className="text-3xl">
-              {lastProfileAnalysis?.status === "completed" ? profileResult?.ipp_display_score : "—"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-2">
-            {lastProfileAnalysis?.status === "completed" && profileResult ? (
-              <Badge variant="secondary">{IPP_BAND_LABELS[profileResult.ipp_band]}</Badge>
-            ) : (
-              <p className="text-sm text-muted-foreground">Ainda não realizada</p>
-            )}
-            <Button asChild size="sm" variant="secondary">
-              <Link href={lastProfileAnalysis?.status === "completed" ? `/app/analise-perfil/${lastProfileAnalysis.id}` : "/app/analise-perfil"}>
-                {lastProfileAnalysis?.status === "completed" ? "Ver" : "Fazer"}
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+              <Card>
+                <CardHeader>
+                  <CardDescription>Diagnóstico de Aderência</CardDescription>
+                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]:text-3xl">
+                    {lastJobAnalysis?.status === "completed" ? jobResult?.iao_display_score : "—"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between gap-2">
+                  {lastJobAnalysis?.status === "completed" && jobResult ? (
+                    <Badge variant="secondary">{IAO_BAND_LABELS[jobResult.iao_band]}</Badge>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Ainda não realizado</p>
+                  )}
+                  <Button asChild size="sm" variant="secondary">
+                    <Link href={lastJobAnalysis?.status === "completed" ? `/app/aderencia/${lastJobAnalysis.id}` : "/app/aderencia"}>
+                      {lastJobAnalysis?.status === "completed" ? "Ver" : "Fazer"}
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
 
-        <Card>
-          <CardHeader>
-            <CardDescription>Diagnóstico de Aderência</CardDescription>
-            <CardTitle className="text-3xl">
-              {lastJobAnalysis?.status === "completed" ? jobResult?.iao_display_score : "—"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-2">
-            {lastJobAnalysis?.status === "completed" && jobResult ? (
-              <Badge variant="secondary">{IAO_BAND_LABELS[jobResult.iao_band]}</Badge>
-            ) : (
-              <p className="text-sm text-muted-foreground">Ainda não realizado</p>
-            )}
-            <Button asChild size="sm" variant="secondary">
-              <Link href={lastJobAnalysis?.status === "completed" ? `/app/aderencia/${lastJobAnalysis.id}` : "/app/aderencia"}>
-                {lastJobAnalysis?.status === "completed" ? "Ver" : "Fazer"}
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+              <Card>
+                <CardHeader>
+                  <CardDescription>Análises concluídas</CardDescription>
+                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]:text-3xl">{completedCount ?? 0}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">No total, desde o início</p>
+                </CardContent>
+              </Card>
+            </div>
 
-        <Card>
-          <CardHeader>
-            <CardDescription>Análises concluídas</CardDescription>
-            <CardTitle className="text-3xl">{completedCount ?? 0}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">No total, desde o início</p>
-          </CardContent>
-        </Card>
+            <div className="px-4 lg:px-6">
+              <ChartAreaAnalyses data={chartData} />
+            </div>
+
+            <div className="px-4 lg:px-6">
+              <AnalysesDataTable data={tableRows} />
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div className="mt-6">
-        <ChartAreaAnalyses data={chartData} />
-      </div>
-
-      <div className="mt-6">
-        <AnalysesDataTable data={tableRows} />
-      </div>
-    </main>
   );
 }
+
