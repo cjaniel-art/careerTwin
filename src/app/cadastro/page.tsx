@@ -19,15 +19,8 @@ export default function SignUpPage() {
             </div>
             <SignUpForm />
           </div>
-          <div className="hidden shrink-0 items-center justify-center self-stretch bg-muted p-8 md:flex">
-            <Image
-              src="/auth/cadastro-photo.png"
-              alt=""
-              width={448}
-              height={678}
-              priority
-              className="h-[678px] w-[448px] object-cover"
-            />
+          <div className="relative hidden w-[512px] shrink-0 self-stretch md:block">
+            <Image src="/auth/cadastro-photo.png" alt="" fill priority sizes="512px" className="object-cover" />
           </div>
         </div>
 
