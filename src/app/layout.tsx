@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 
 const inter = Inter({
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" className={inter.variable}>
       <body className="overflow-x-hidden font-sans antialiased">
+        <NextTopLoader color="hsl(16, 95%, 50%)" height={3} showSpinner={false} />
         <div className="mx-auto max-w-content">{children}</div>
       </body>
     </html>
