@@ -4,25 +4,67 @@ import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-serve
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChartAreaAnalyses, type DailyAnalysesPoint } from "@/features/dashboard/chart-area-analyses";
+import { AnalysesDataTable, type AnalysisRow } from "@/features/dashboard/analyses-data-table";
 import { IAO_BAND_LABELS, IPP_BAND_LABELS } from "@/lib/result-labels";
 
 export const metadata = { title: "Dashboard — CareerTwin" };
 export const dynamic = "force-dynamic";
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Rascunho",
-  queued: "Na fila",
-  processing: "Em processamento",
-  preliminary: "Preliminar",
-  completed: "Concluída",
-  insufficient_data: "Dados insuficientes",
-  failed_retryable: "Falha — pode tentar novamente",
-  failed_final: "Falha",
-  cancelled: "Cancelada",
-};
+interface RawAnalysis {
+  id: string;
+  analysis_type: string;
+  status: string;
+  created_at: string;
+  profile_analysis_results: { ipp_display_score: number; ipp_band: string } | { ipp_display_score: number; ipp_band: string }[] | null;
+  fit_analysis_results: { iao_display_score: number; iao_band: string } | { iao_display_score: number; iao_band: string }[] | null;
+  opportunity_versions: { title: string; company: string | null } | { title: string; company: string | null }[] | null;
+}
 
-/** Reads real aggregated state (credits, last Core 1/Core 2 analyses, recent history) without recalculating anything client-side (Sitemap §4). */
+function first<T>(value: T | T[] | null): T | null {
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
+function buildDailySeries(analyses: RawAnalysis[], days: number): DailyAnalysesPoint[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const buckets = new Map<string, { perfil: number; aderencia: number }>();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    buckets.set(d.toISOString().slice(0, 10), { perfil: 0, aderencia: 0 });
+  }
+  for (const a of analyses) {
+    const key = a.created_at.slice(0, 10);
+    const bucket = buckets.get(key);
+    if (!bucket) continue;
+    if (a.analysis_type === "profile_analysis") bucket.perfil += 1;
+    else bucket.aderencia += 1;
+  }
+  return Array.from(buckets.entries()).map(([date, v]) => ({ date, ...v }));
+}
+
+function toRows(analyses: RawAnalysis[]): AnalysisRow[] {
+  return analyses.map((a) => {
+    const isProfile = a.analysis_type === "profile_analysis";
+    const profileResult = first(a.profile_analysis_results);
+    const fitResult = first(a.fit_analysis_results);
+    const opportunity = first(a.opportunity_versions);
+
+    return {
+      id: a.id,
+      type: isProfile ? "profile_analysis" : "job_analysis",
+      title: isProfile ? "Análise de Perfil" : opportunity?.title ? `Vaga: ${opportunity.title}` : "Diagnóstico de Aderência",
+      createdAt: a.created_at,
+      status: a.status,
+      score: a.status === "completed" ? (isProfile ? profileResult?.ipp_display_score : fitResult?.iao_display_score) ?? null : null,
+      band: a.status === "completed" ? (isProfile ? profileResult?.ipp_band : fitResult?.iao_band) ?? null : null,
+      href: a.status === "completed" ? (isProfile ? `/app/analise-perfil/${a.id}` : `/app/aderencia/${a.id}`) : null,
+    };
+  });
+}
+
+/** Reads real aggregated state (credits, last Core 1/Core 2 analyses, full history for chart/table) without recalculating anything client-side (Sitemap §4). */
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -30,7 +72,12 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/app/dashboard");
 
-  const [{ data: creditAccount }, { data: lastProfileAnalysis }, { data: lastJobAnalysis }, { count: completedCount }, { data: recentAnalyses }] =
+  const analysesSelect = `id, analysis_type, status, created_at,
+     profile_analysis_results(ipp_display_score, ipp_band),
+     fit_analysis_results(iao_display_score, iao_band),
+     opportunity_versions(title, company)`;
+
+  const [{ data: creditAccount }, { data: lastProfileAnalysis }, { data: lastJobAnalysis }, { count: completedCount }, { data: allAnalyses }] =
     await Promise.all([
       supabase.from("credit_accounts").select("available_credits, reserved_credits").eq("user_id", user.id).maybeSingle(),
       supabase
@@ -49,30 +96,15 @@ export default async function DashboardPage() {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
-      supabase
-        .from("analyses")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "completed"),
-      supabase
-        .from("analyses")
-        .select(
-          `id, analysis_type, status, created_at,
-           profile_analysis_results(ipp_display_score, ipp_band),
-           fit_analysis_results(iao_display_score, iao_band),
-           opportunity_versions(title, company)`,
-        )
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(5),
+      supabase.from("analyses").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "completed"),
+      supabase.from("analyses").select(analysesSelect).eq("user_id", user.id).order("created_at", { ascending: false }).limit(500),
     ]);
 
-  const profileResult = Array.isArray(lastProfileAnalysis?.profile_analysis_results)
-    ? lastProfileAnalysis.profile_analysis_results[0]
-    : lastProfileAnalysis?.profile_analysis_results;
-  const jobResult = Array.isArray(lastJobAnalysis?.fit_analysis_results)
-    ? lastJobAnalysis.fit_analysis_results[0]
-    : lastJobAnalysis?.fit_analysis_results;
+  const profileResult = first(lastProfileAnalysis?.profile_analysis_results ?? null);
+  const jobResult = first(lastJobAnalysis?.fit_analysis_results ?? null);
+  const rawAnalyses = (allAnalyses ?? []) as RawAnalysis[];
+  const chartData = buildDailySeries(rawAnalyses, 90);
+  const tableRows = toRows(rawAnalyses);
 
   return (
     <main className="mx-auto max-w-content px-6 py-12">
@@ -147,72 +179,13 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <Card className="mt-6">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <div>
-            <CardTitle className="text-base">Análises recentes</CardTitle>
-            <CardDescription>As últimas análises de perfil e diagnósticos de aderência</CardDescription>
-          </div>
-          <Button asChild size="sm" variant="secondary">
-            <Link href="/app/historico">Ver histórico completo</Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {recentAnalyses && recentAnalyses.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Resultado</TableHead>
-                  <TableHead className="text-right">Ação</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentAnalyses.map((a) => {
-                  const isProfile = a.analysis_type === "profile_analysis";
-                  const pResult = Array.isArray(a.profile_analysis_results) ? a.profile_analysis_results[0] : a.profile_analysis_results;
-                  const fResult = Array.isArray(a.fit_analysis_results) ? a.fit_analysis_results[0] : a.fit_analysis_results;
-                  const opportunity = Array.isArray(a.opportunity_versions) ? a.opportunity_versions[0] : a.opportunity_versions;
-                  const href = isProfile ? `/app/analise-perfil/${a.id}` : `/app/aderencia/${a.id}`;
-                  const title = isProfile
-                    ? "Análise de Perfil"
-                    : opportunity?.title
-                      ? `Vaga: ${opportunity.title}`
-                      : "Diagnóstico de Aderência";
+      <div className="mt-6">
+        <ChartAreaAnalyses data={chartData} />
+      </div>
 
-                  return (
-                    <TableRow key={a.id}>
-                      <TableCell className="font-medium text-foreground">{title}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(a.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={a.status === "completed" ? "success" : "outline"}>{STATUS_LABELS[a.status] ?? a.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {a.status === "completed" && isProfile && pResult ? `IPP ${pResult.ipp_display_score}` : null}
-                        {a.status === "completed" && !isProfile && fResult ? `IAO ${fResult.iao_display_score}` : null}
-                        {a.status !== "completed" ? "—" : null}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {a.status === "completed" ? (
-                          <Button asChild size="sm" variant="secondary">
-                            <Link href={href}>Ver resultado</Link>
-                          </Button>
-                        ) : null}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          ) : (
-            <p className="text-sm text-muted-foreground">Nenhuma análise ainda.</p>
-          )}
-        </CardContent>
-      </Card>
+      <div className="mt-6">
+        <AnalysesDataTable data={tableRows} />
+      </div>
     </main>
   );
 }
