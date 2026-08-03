@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-serve
 import { checkJobAnalysisPreconditions, startJobAnalysisAction } from "@/features/core-2/actions";
 import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
 
@@ -27,9 +28,9 @@ export default async function StartJobAnalysisPage({ params }: { params: Promise
           <Wordmark />
         </Link>
         <form action={logoutAction}>
-          <Button type="submit" variant="tertiary" size="sm">
+          <SubmitButton variant="tertiary" size="sm">
             Sair
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -68,7 +69,7 @@ export default async function StartJobAnalysisPage({ params }: { params: Promise
           ) : (
             <form action={startJobAnalysisAction}>
               <input type="hidden" name="opportunityId" value={opportunityId} />
-              <Button type="submit">Iniciar Diagnóstico de Aderência</Button>
+              <SubmitButton>Iniciar Diagnóstico de Aderência</SubmitButton>
             </form>
           )}
         </CardContent>

@@ -28,14 +28,26 @@ export function TargetContextStep() {
         <form action={formAction} className="space-y-4" noValidate>
           <div className="space-y-2">
             <Label htmlFor="targetArea">Área de interesse</Label>
-            <Input id="targetArea" name="targetArea" placeholder="Ex.: Produto, Tecnologia, Design" required />
+            <Input
+              id="targetArea"
+              name="targetArea"
+              placeholder="Ex.: Produto, Tecnologia, Design"
+              required
+              aria-invalid={Boolean(state.fieldErrors?.targetArea)}
+            />
             {state.fieldErrors?.targetArea ? (
               <p className="text-xs text-destructive">{state.fieldErrors.targetArea}</p>
             ) : null}
           </div>
           <div className="space-y-2">
             <Label htmlFor="targetRole">Cargo-alvo</Label>
-            <Input id="targetRole" name="targetRole" placeholder="Ex.: Product Manager" required />
+            <Input
+              id="targetRole"
+              name="targetRole"
+              placeholder="Ex.: Product Manager"
+              required
+              aria-invalid={Boolean(state.fieldErrors?.targetRole)}
+            />
             {state.fieldErrors?.targetRole ? (
               <p className="text-xs text-destructive">{state.fieldErrors.targetRole}</p>
             ) : null}
@@ -47,7 +59,8 @@ export function TargetContextStep() {
               name="desiredSeniority"
               required
               defaultValue=""
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-invalid={Boolean(state.fieldErrors?.desiredSeniority)}
+              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 aria-[invalid=true]:border-destructive aria-[invalid=true]:focus-visible:ring-destructive/40"
             >
               <option value="" disabled>
                 Selecione

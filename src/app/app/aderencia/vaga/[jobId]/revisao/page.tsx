@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { Wordmark } from "@/components/wordmark";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
 import { confirmOpportunityAction, markRequirementNotApplicableAction } from "@/features/core-2/actions";
@@ -54,9 +54,9 @@ export default async function ReviewOpportunityPage({ params }: { params: Promis
           <Wordmark />
         </Link>
         <form action={logoutAction}>
-          <Button type="submit" variant="tertiary" size="sm">
+          <SubmitButton variant="tertiary" size="sm">
             Sair
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -87,9 +87,9 @@ export default async function ReviewOpportunityPage({ params }: { params: Promis
                       <form action={markRequirementNotApplicableAction}>
                         <input type="hidden" name="requirementId" value={r.id} />
                         <input type="hidden" name="opportunityId" value={opportunityId} />
-                        <Button type="submit" size="sm" variant="tertiary">
+                        <SubmitButton size="sm" variant="tertiary">
                           Não aplicável
-                        </Button>
+                        </SubmitButton>
                       </form>
                     ) : null}
                   </div>
@@ -104,9 +104,9 @@ export default async function ReviewOpportunityPage({ params }: { params: Promis
 
           <form action={confirmOpportunityAction}>
             <input type="hidden" name="opportunityId" value={opportunityId} />
-            <Button type="submit" disabled={!requirements || requirements.length === 0}>
+            <SubmitButton disabled={!requirements || requirements.length === 0}>
               Confirmar vaga
-            </Button>
+            </SubmitButton>
           </form>
         </CardContent>
       </Card>

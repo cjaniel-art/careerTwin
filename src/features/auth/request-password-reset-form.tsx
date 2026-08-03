@@ -23,7 +23,14 @@ export function RequestPasswordResetForm() {
     <form action={formAction} className="space-y-4" noValidate>
       <div className="space-y-2">
         <Label htmlFor="email">E-mail</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          aria-invalid={Boolean(state.fieldErrors?.email)}
+        />
         {state.fieldErrors?.email ? (
           <p className="text-xs text-destructive">{state.fieldErrors.email}</p>
         ) : null}

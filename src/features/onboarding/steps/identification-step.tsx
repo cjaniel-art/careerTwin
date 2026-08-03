@@ -31,7 +31,13 @@ export function IdentificationStep() {
         <form action={formAction} className="space-y-4" noValidate>
           <div className="space-y-2">
             <Label htmlFor="fullName">Nome completo</Label>
-            <Input id="fullName" name="fullName" required autoComplete="name" />
+            <Input
+              id="fullName"
+              name="fullName"
+              required
+              autoComplete="name"
+              aria-invalid={Boolean(state.fieldErrors?.fullName)}
+            />
             {state.fieldErrors?.fullName ? (
               <p className="text-xs text-destructive">{state.fieldErrors.fullName}</p>
             ) : null}

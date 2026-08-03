@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-serve
 import { checkCore1Preconditions, startProfileAnalysisAction } from "@/features/core-1/actions";
 import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
 
@@ -26,9 +27,9 @@ export default async function ProfileAnalysisEntryPage() {
           <Wordmark />
         </Link>
         <form action={logoutAction}>
-          <Button type="submit" variant="tertiary" size="sm">
+          <SubmitButton variant="tertiary" size="sm">
             Sair
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -58,7 +59,7 @@ export default async function ProfileAnalysisEntryPage() {
             </div>
           ) : (
             <form action={startProfileAnalysisAction}>
-              <Button type="submit">Iniciar Análise de Perfil</Button>
+              <SubmitButton>Iniciar Análise de Perfil</SubmitButton>
             </form>
           )}
         </CardContent>

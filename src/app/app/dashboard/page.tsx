@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-serve
 import { logoutAction } from "@/features/auth/actions";
 import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = { title: "Dashboard — CareerTwin" };
@@ -42,9 +43,9 @@ export default async function DashboardPage() {
       <div className="mb-8 flex items-center justify-between">
         <Wordmark />
         <form action={logoutAction}>
-          <Button type="submit" variant="secondary" size="sm">
+          <SubmitButton variant="secondary" size="sm">
             Sair
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 

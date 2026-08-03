@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { retryDocumentProcessingAction } from "../actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 
 const STATUS_LABELS: Record<string, string> = {
   awaiting_upload: "Aguardando envio",
@@ -44,9 +44,7 @@ export function ProcessingStep({
 
         {resumeStatus === "failed_retryable" || linkedinStatus === "failed_retryable" ? (
           <form action={retryDocumentProcessingAction}>
-            <Button type="submit" variant="secondary">
-              Tentar novamente
-            </Button>
+            <SubmitButton variant="secondary">Tentar novamente</SubmitButton>
           </form>
         ) : null}
       </CardContent>

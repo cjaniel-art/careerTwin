@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { Wordmark } from "@/components/wordmark";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
 import { SubmitOpportunityForm } from "@/features/core-2/submit-opportunity-form";
@@ -24,9 +24,9 @@ export default async function NewJobOpportunityPage() {
           <Wordmark />
         </Link>
         <form action={logoutAction}>
-          <Button type="submit" variant="tertiary" size="sm">
+          <SubmitButton variant="tertiary" size="sm">
             Sair
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 

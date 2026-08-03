@@ -21,7 +21,15 @@ export function UpdatePasswordForm() {
 
       <div className="space-y-2">
         <Label htmlFor="password">Nova senha</Label>
-        <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} />
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          aria-invalid={Boolean(state.fieldErrors?.password)}
+        />
         {state.fieldErrors?.password ? (
           <p className="text-xs text-destructive">{state.fieldErrors.password}</p>
         ) : null}
@@ -36,6 +44,7 @@ export function UpdatePasswordForm() {
           autoComplete="new-password"
           required
           minLength={8}
+          aria-invalid={Boolean(state.fieldErrors?.confirmPassword)}
         />
         {state.fieldErrors?.confirmPassword ? (
           <p className="text-xs text-destructive">{state.fieldErrors.confirmPassword}</p>

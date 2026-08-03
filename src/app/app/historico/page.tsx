@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
 import { IAO_BAND_LABELS, IPP_BAND_LABELS, RECOMMENDATION_LABELS } from "@/lib/result-labels";
@@ -47,9 +48,9 @@ export default async function HistoryPage() {
           <Wordmark />
         </Link>
         <form action={logoutAction}>
-          <Button type="submit" variant="tertiary" size="sm">
+          <SubmitButton variant="tertiary" size="sm">
             Sair
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 

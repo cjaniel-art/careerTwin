@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { Wordmark } from "@/components/wordmark";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
 import { advanceActionStatusAction, convertRecommendationToActionAction } from "@/features/actions/actions";
@@ -60,9 +60,9 @@ export default async function ActionsPage({
           <Wordmark />
         </Link>
         <form action={logoutAction}>
-          <Button type="submit" variant="tertiary" size="sm">
+          <SubmitButton variant="tertiary" size="sm">
             Sair
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -99,9 +99,9 @@ export default async function ActionsPage({
                   {nextLabel ? (
                     <form action={advanceActionStatusAction} className="mt-2">
                       <input type="hidden" name="actionId" value={a.id} />
-                      <Button type="submit" size="sm" variant="secondary">
+                      <SubmitButton size="sm" variant="secondary">
                         {nextLabel}
-                      </Button>
+                      </SubmitButton>
                     </form>
                   ) : null}
                 </div>
@@ -126,9 +126,9 @@ export default async function ActionsPage({
                 <form action={convertRecommendationToActionAction} className="mt-2">
                   <input type="hidden" name="recommendationId" value={r.id} />
                   <input type="hidden" name="redirectTo" value="/app/acoes" />
-                  <Button type="submit" size="sm" disabled={atLimit}>
+                  <SubmitButton size="sm" disabled={atLimit}>
                     Converter em ação
-                  </Button>
+                  </SubmitButton>
                 </form>
               </div>
             ))}

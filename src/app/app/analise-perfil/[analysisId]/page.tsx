@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { Wordmark } from "@/components/wordmark";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
 import { CONFIDENCE_LABELS, DIMENSION_LABELS, IPP_BAND_LABELS } from "@/lib/result-labels";
@@ -59,9 +59,9 @@ export default async function ProfileAnalysisResultPage({
           <Wordmark />
         </Link>
         <form action={logoutAction}>
-          <Button type="submit" variant="tertiary" size="sm">
+          <SubmitButton variant="tertiary" size="sm">
             Sair
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -150,9 +150,9 @@ export default async function ProfileAnalysisResultPage({
                   <form action={convertRecommendationToActionAction} className="mt-2">
                     <input type="hidden" name="recommendationId" value={r.id} />
                     <input type="hidden" name="redirectTo" value={`/app/analise-perfil/${analysisId}`} />
-                    <Button type="submit" size="sm" variant="secondary">
+                    <SubmitButton size="sm" variant="secondary">
                       Converter em ação
-                    </Button>
+                    </SubmitButton>
                   </form>
                 ) : r.status === "converted_to_action" ? (
                   <p className="mt-2 text-xs text-muted-foreground">

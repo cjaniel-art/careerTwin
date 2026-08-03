@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { ensureProfileDraft, confirmProfileAction } from "../actions";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { AddExperienceForm } from "./add-experience-form";
 
 export async function ReviewStep({ userId }: { userId: string }) {
@@ -82,9 +82,7 @@ export async function ReviewStep({ userId }: { userId: string }) {
       <AddExperienceForm />
 
       <form action={confirmProfileAction}>
-        <Button type="submit" disabled={!experiences || experiences.length === 0}>
-          Confirmar perfil
-        </Button>
+        <SubmitButton disabled={!experiences || experiences.length === 0}>Confirmar perfil</SubmitButton>
       </form>
     </div>
   );

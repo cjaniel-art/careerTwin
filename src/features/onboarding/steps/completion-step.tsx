@@ -1,5 +1,5 @@
 import { completeOnboardingAction } from "../actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function CompletionStep() {
@@ -11,7 +11,7 @@ export function CompletionStep() {
           Agora você pode iniciar sua Análise de Perfil.
         </p>
         <form action={completeOnboardingAction}>
-          <Button type="submit">Ir para o painel</Button>
+          <SubmitButton>Ir para o painel</SubmitButton>
         </form>
       </CardContent>
     </Card>

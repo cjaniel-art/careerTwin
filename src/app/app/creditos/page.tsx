@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { Wordmark } from "@/components/wordmark";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
 import { confirmPurchaseIntentAction } from "@/features/credits/actions";
@@ -47,9 +47,9 @@ export default async function CreditsPage({
           <Wordmark />
         </Link>
         <form action={logoutAction}>
-          <Button type="submit" variant="tertiary" size="sm">
+          <SubmitButton variant="tertiary" size="sm">
             Sair
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -94,7 +94,7 @@ export default async function CreditsPage({
             </p>
           ) : (
             <form action={confirmPurchaseIntentAction}>
-              <Button type="submit">Registrar intenção de compra</Button>
+              <SubmitButton>Registrar intenção de compra</SubmitButton>
             </form>
           )}
         </CardContent>

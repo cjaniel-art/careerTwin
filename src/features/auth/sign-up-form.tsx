@@ -22,7 +22,14 @@ export function SignUpForm() {
 
       <div className="space-y-2">
         <Label htmlFor="email">E-mail</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          aria-invalid={Boolean(state.fieldErrors?.email)}
+        />
         {state.fieldErrors?.email ? (
           <p className="text-xs text-destructive">{state.fieldErrors.email}</p>
         ) : null}
@@ -30,7 +37,15 @@ export function SignUpForm() {
 
       <div className="space-y-2">
         <Label htmlFor="password">Senha</Label>
-        <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} />
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          aria-invalid={Boolean(state.fieldErrors?.password)}
+        />
         {state.fieldErrors?.password ? (
           <p className="text-xs text-destructive">{state.fieldErrors.password}</p>
         ) : null}

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { Wordmark } from "@/components/wordmark";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logoutAction } from "@/features/auth/actions";
 import { requestAccountDeletionAction } from "@/features/account/actions";
@@ -38,9 +38,9 @@ export default async function AccountPage() {
           <Wordmark />
         </Link>
         <form action={logoutAction}>
-          <Button type="submit" variant="tertiary" size="sm">
+          <SubmitButton variant="tertiary" size="sm">
             Sair
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -104,9 +104,9 @@ export default async function AccountPage() {
                 oportunidades, análises, recomendações, ações e feedbacks. Essa ação não pode ser desfeita.
               </p>
               <form action={requestAccountDeletionAction}>
-                <Button type="submit" variant="destructive" size="sm">
+                <SubmitButton variant="destructive" size="sm">
                   Solicitar exclusão da conta
-                </Button>
+                </SubmitButton>
               </form>
             </>
           )}

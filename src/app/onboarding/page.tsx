@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-serve
 import { getOnboardingState } from "@/features/onboarding/get-state";
 import { logoutAction } from "@/features/auth/actions";
 import { Wordmark } from "@/components/wordmark";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { OnboardingProgress } from "@/features/onboarding/onboarding-progress";
 import { WelcomeStep } from "@/features/onboarding/steps/welcome-step";
 import { IdentificationStep } from "@/features/onboarding/steps/identification-step";
@@ -30,9 +30,9 @@ export default async function OnboardingPage() {
       <div className="mb-8 flex items-center justify-between">
         <Wordmark />
         <form action={logoutAction}>
-          <Button type="submit" variant="tertiary" size="sm">
+          <SubmitButton variant="tertiary" size="sm">
             Sair
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 

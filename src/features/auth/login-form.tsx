@@ -34,7 +34,14 @@ export function LoginForm() {
 
       <div className="space-y-2">
         <Label htmlFor="email">E-mail</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          aria-invalid={Boolean(state.fieldErrors?.email)}
+        />
         {state.fieldErrors?.email ? (
           <p className="text-xs text-destructive">{state.fieldErrors.email}</p>
         ) : null}
@@ -47,7 +54,14 @@ export function LoginForm() {
             Esqueceu a senha?
           </Link>
         </div>
-        <Input id="password" name="password" type="password" autoComplete="current-password" required />
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          aria-invalid={Boolean(state.fieldErrors?.password)}
+        />
         {state.fieldErrors?.password ? (
           <p className="text-xs text-destructive">{state.fieldErrors.password}</p>
         ) : null}

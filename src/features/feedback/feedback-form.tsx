@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Label } from "@/components/ui/label";
 import { submitAnalysisFeedbackAction } from "./actions";
 
@@ -102,9 +102,7 @@ export function FeedbackForm({
         />
       </div>
 
-      <Button type="submit" size="sm">
-        Enviar feedback
-      </Button>
+      <SubmitButton size="sm">Enviar feedback</SubmitButton>
     </form>
   );
 }
