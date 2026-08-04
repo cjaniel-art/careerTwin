@@ -96,15 +96,15 @@ export default function HomePage() {
 
           {/* Desktop */}
           <div className="relative hidden min-h-[813px] md:block">
-            <Image
-              src="/landing/hero.svg"
-              alt=""
-              width={1440}
-              height={813}
-              priority
-              className="pointer-events-none absolute right-0 top-0"
-            />
             <div className="relative mx-auto max-w-content px-14 pb-32 pt-[242px]">
+              <Image
+                src="/landing/hero.svg"
+                alt=""
+                width={1440}
+                height={813}
+                priority
+                className="pointer-events-none absolute right-0 top-0"
+              />
               <div className="relative max-w-xl">
                 <h1 className="text-7xl font-medium leading-[normal] tracking-normal">
                   Evolua.
