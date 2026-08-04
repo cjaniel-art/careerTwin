@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { uploadDocument } from "@/infrastructure/storage/document-storage";
+import { extractDocumentText } from "@/infrastructure/storage/document-text-extraction";
 import { getAiProvider, EXTRACTION_MODEL } from "@/infrastructure/ai";
 import { profileExtractionSchema, type ProfileExtraction } from "@/config/schemas/profile-extraction";
 import { PROMPT_CATALOG, delimitUntrustedDocument } from "@/config/prompts/catalog";
@@ -180,7 +181,7 @@ async function processDocument(documentId: string, pastedText?: string): Promise
 
   const { data: document } = await supabase
     .from("documents")
-    .select("id, document_type, storage_path, content_hash")
+    .select("id, document_type, storage_path, content_hash, mime_type, original_filename")
     .eq("id", documentId)
     .single();
   if (!document) return;
@@ -210,7 +211,14 @@ async function processDocument(documentId: string, pastedText?: string): Promise
   let content = pastedText ?? "";
   if (!content && document.storage_path) {
     const { data: fileData } = await supabase.storage.from("temporary-documents").download(document.storage_path);
-    content = fileData ? await fileData.text() : "";
+    if (fileData) {
+      const buffer = Buffer.from(await fileData.arrayBuffer());
+      content = await extractDocumentText({
+        buffer,
+        mimeType: document.mime_type ?? "",
+        filename: document.original_filename,
+      });
+    }
   }
 
   const usefulChars = content.trim().length;
