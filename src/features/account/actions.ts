@@ -1,7 +1,6 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { trackEvent } from "@/infrastructure/analytics";
 import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
@@ -15,45 +14,26 @@ async function requireUser() {
   return { supabase, user };
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 /**
- * Segurança §7 (21 passos) — this implements steps 1-6 only: the user
- * explicitly confirms, the request is registered, and the account moves to
- * `deletion_pending` (blocking new analyses/uploads — see
- * src/lib/account-status.ts). Steps 7-21 (purging every table, removing the
- * auth account, expiring backups) require a worker process that does not
- * exist in this environment — same limitation as open-decisions.md #20.
- * Registered as open-decisions.md #22, not silently skipped.
+ * Immediate, full account deletion — the user types a confirmation word in
+ * the UI (DeleteAccountDialog) before this ever runs. Delegates the actual
+ * removal to ct_delete_own_account (SECURITY DEFINER), which deletes every
+ * row scoped to this user across all tables and finally auth.users itself —
+ * a later signup with the same e-mail starts onboarding from zero. See
+ * supabase/migrations/20260101000023_delete_own_account.sql for exactly what
+ * is removed and why each step is ordered the way it is.
  */
-export async function requestAccountDeletionAction(): Promise<void> {
+export async function deleteAccountAction(): Promise<void> {
   const { supabase, user } = await requireUser();
+  const userId = user.id;
 
-  const now = Date.now();
-  // deletion_requests_one_active_per_user (partial unique index) is the
-  // source of truth for "only one active request" — a conflict here just
-  // means one already exists, which is not an error from the user's
-  // perspective (the account is already deletion_pending either way).
-  const { error } = await supabase.from("deletion_requests").insert({
-    user_id: user.id,
-    status: "requested",
-    active_systems_deadline: new Date(now + 15 * DAY_MS).toISOString(),
-    backup_deadline: new Date(now + 30 * DAY_MS).toISOString(),
-  });
-  if (error && error.code !== "23505") {
-    console.error("requestAccountDeletionAction: insert failed:", error.message);
-    return;
+  const { error } = await supabase.rpc("ct_delete_own_account");
+  if (error) {
+    console.error("deleteAccountAction: ct_delete_own_account failed:", error.message);
+    redirect("/app/conta?erro=exclusao");
   }
 
-  await supabase
-    .from("user_accounts")
-    .update({ status: "deletion_pending", deletion_requested_at: new Date().toISOString() })
-    .eq("user_id", user.id);
-
-  // Analytics §12: a minimal version of this event is allowed in product
-  // analytics; the operational record of the request itself lives in
-  // deletion_requests, which remains the source of truth (never analytics).
-  trackEvent(ANALYTICS_EVENTS.accountDeletionRequested, { userId: user.id });
-
-  revalidatePath("/app/conta");
+  trackEvent(ANALYTICS_EVENTS.accountDeleted, { userId });
+  await supabase.auth.signOut();
+  redirect("/?conta-excluida=1");
 }
