@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CheckCheck, Lock, Plus } from "lucide-react";
+import { ArrowRight, ArrowRightCircle, CheckCheck, Lock, Plus } from "lucide-react";
 import { LandingHeader } from "@/components/landing-header";
 import { LandingFooter } from "@/components/landing-footer";
 import { Button } from "@/components/ui/button";
@@ -63,12 +63,12 @@ const FIT_DIAGNOSIS_ITEMS = [
 export default function HomePage() {
   return (
     <>
-      <main>
+      <main className="pb-[104px] md:pb-0">
         {/* Hero — foge do limite global de 1440px (único bloco full-bleed do site, por pedido explícito) */}
         <section className="relative ml-[calc(50%-50vw)] w-screen overflow-hidden bg-foreground text-white">
           {/* Header flutua transparente sobre o hero, sem fundo próprio */}
           <LandingHeader />
-          {/* Mobile: altura segue a proporção natural do asset dedicado; botão fica na faixa inferior, após a foto */}
+          {/* Mobile: altura segue a proporção natural do asset dedicado; botão "Começe agora" vira barra fixa (ver abaixo) */}
           <div className="relative md:hidden">
             <Image
               src="/landing/hero-mobile.svg"
@@ -78,7 +78,7 @@ export default function HomePage() {
               priority
               className="block h-auto w-full"
             />
-            <div className="absolute inset-0 flex flex-col px-6 pb-6 pt-[158px]">
+            <div className="absolute inset-0 px-6 pt-[158px]">
               <div className="max-w-xl">
                 <h1 className="whitespace-nowrap text-[11vw] font-medium leading-[normal] tracking-normal">
                   Evolua.
@@ -91,12 +91,6 @@ export default function HomePage() {
                   Clareza sobre seu perfil, direção para sua carreira e decisões melhores antes de se candidatar.
                 </p>
               </div>
-              <Button asChild className="mt-auto h-auto w-full rounded-md px-4 py-2 text-sm">
-                <Link href="/cadastro">
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                  Começe agora
-                </Link>
-              </Button>
             </div>
           </div>
 
@@ -331,6 +325,15 @@ export default function HomePage() {
           </div>
         </section>
       </main>
+      {/* Barra fixa do "Começe agora" no mobile — fica ancorada na tela, o conteúdo da página rola por baixo dela */}
+      <div className="fixed inset-x-0 bottom-0 z-50 bg-[#020000] p-6 md:hidden">
+        <Button asChild className="h-auto w-full rounded-md px-4 py-2 text-sm">
+          <Link href="/cadastro">
+            <ArrowRightCircle className="h-4 w-4" aria-hidden />
+            Começe agora
+          </Link>
+        </Button>
+      </div>
       <LandingFooter />
     </>
   );
