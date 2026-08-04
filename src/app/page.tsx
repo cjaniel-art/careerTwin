@@ -95,7 +95,7 @@ export default function HomePage() {
           </div>
 
           {/* Desktop */}
-          <div className="relative hidden min-h-[813px] md:block">
+          <div className="relative hidden min-h-[813px] bg-[#020000] md:block">
             <div className="relative mx-auto max-w-content px-14 pb-32 pt-[242px]">
               <Image
                 src="/landing/hero.svg"
