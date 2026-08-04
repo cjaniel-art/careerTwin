@@ -34,10 +34,7 @@ export function SignUpForm() {
             required
             aria-invalid={Boolean(state.fieldErrors?.email)}
           />
-          <p className="text-sm text-muted-foreground">
-            Usaremos este e-mail para entrar em contato com você. Não compartilharemos seu e-mail com mais
-            ninguém.
-          </p>
+          <p className="text-sm text-muted-foreground">Usaremos este e-mail para entrar em contato com você.</p>
           {state.fieldErrors?.email ? (
             <p className="text-xs text-destructive">{state.fieldErrors.email}</p>
           ) : null}
