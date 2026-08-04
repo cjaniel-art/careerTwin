@@ -13,7 +13,7 @@ export function LandingFooter() {
           <Link href="/privacidade" className="rounded-md px-4 py-2 hover:text-primary">
             Política de Privacidade
           </Link>
-          <Link href="/login" className="rounded-md px-4 py-2 hover:text-primary">
+          <Link href="/login" className="hidden rounded-md px-4 py-2 hover:text-primary md:inline-block">
             Entrar
           </Link>
         </nav>

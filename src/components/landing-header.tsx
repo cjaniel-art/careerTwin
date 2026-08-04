@@ -6,13 +6,12 @@ import { Button } from "@/components/ui/button";
 const NAV_LINKS = [
   { href: "#como-funciona", label: "Como funciona" },
   { href: "#solucao", label: "Nossa solução" },
-  { href: "#valores", label: "Valores" },
 ];
 
 export function LandingHeader() {
   return (
     <header className="absolute inset-x-0 top-0 z-20 px-6 py-10 text-white xl:px-14">
-      <div className="mx-auto flex max-w-content items-center gap-8 xl:gap-10">
+      <div className="mx-auto flex max-w-content items-center gap-8 xl:gap-[77px]">
         <Link href="/" className="shrink-0">
           <Wordmark variant="light" className="h-[46px] w-[193px] xl:h-[67px] xl:w-[276px]" />
         </Link>
@@ -23,11 +22,11 @@ export function LandingHeader() {
             </a>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-4">
-          <Button asChild variant="tertiary" size="sm" className="text-white hover:text-primary">
+        <div className="ml-auto flex items-center gap-4 xl:gap-[22px]">
+          <Button asChild variant="tertiary" className="h-auto rounded-md px-4 py-2 text-sm text-white hover:text-primary">
             <Link href="/login">Entrar</Link>
           </Button>
-          <Button asChild size="sm" className="hidden xl:inline-flex">
+          <Button asChild className="hidden h-auto rounded-md px-4 py-2 text-sm xl:inline-flex">
             <Link href="/cadastro">
               <Plus className="h-4 w-4" aria-hidden />
               Criar conta

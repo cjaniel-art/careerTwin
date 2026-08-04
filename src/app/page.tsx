@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CheckCheck, CheckCircle2, Lock } from "lucide-react";
+import { ArrowRight, CheckCheck, Lock, Plus } from "lucide-react";
 import { LandingHeader } from "@/components/landing-header";
 import { LandingFooter } from "@/components/landing-footer";
 import { Button } from "@/components/ui/button";
@@ -8,23 +8,23 @@ import { Button } from "@/components/ui/button";
 const HOW_IT_WORKS = [
   {
     icon: "/landing/icon-mode-portrait.svg",
-    title: "1. Crie sua conta",
-    description: "Cadastro rápido, sem burocracia, para começar a organizar sua trajetória profissional.",
+    title: "1. Entenda sua rota",
+    description: "Avalie seu momento atual e receba uma análise personalizada sobre seus objetivos.",
   },
   {
     icon: "/landing/icon-rocket-launch.svg",
-    title: "2. Envie currículo e LinkedIn",
-    description: "Envie os arquivos ou cole o conteúdo — você pode complementar manualmente o que quiser.",
+    title: "2. Defina seu norte",
+    description: "Monte um plano de carreira sob medida com metas claras e trilhas recomendadas.",
   },
   {
     icon: "/landing/icon-sparkles.svg",
-    title: "3. Revise e confirme seu perfil",
-    description: "Você revisa o que foi identificado e confirma antes de qualquer análise ser gerada.",
+    title: "3. Adquira o conhecimento",
+    description: "Acesse conteúdos, cursos e mentorias práticos para desenvolver habilidades que geram valor.",
   },
   {
     icon: "/landing/icon-trophy.svg",
-    title: "4. Defina seu contexto-alvo",
-    description: "Diga qual área e cargo você busca para receber diagnósticos direcionados ao seu objetivo.",
+    title: "4. Conquiste seu lugar",
+    description: "Avalie seu momento atual e receba uma análise personalizada sobre seus objetivos.",
   },
 ];
 
@@ -60,14 +60,6 @@ const FIT_DIAGNOSIS_ITEMS = [
   "priorizar oportunidades com mais clareza.",
 ];
 
-const WHAT_YOU_GET = [
-  "Diagnósticos explicáveis, com evidências",
-  "Recomendações priorizadas",
-  "Identificação clara de lacunas",
-  "Plano de ações",
-  "Histórico e reanálises",
-];
-
 export default function HomePage() {
   return (
     <>
@@ -88,21 +80,21 @@ export default function HomePage() {
             />
             <div className="absolute inset-0 flex flex-col px-6 pb-6 pt-[158px]">
               <div className="max-w-xl">
-                <h1 className="whitespace-nowrap text-[9vw] font-medium leading-[1.05] tracking-tight">
+                <h1 className="whitespace-nowrap text-[11vw] font-medium leading-[normal] tracking-normal">
                   Evolua.
                   <br />
                   Reposicione-se.
                   <br />
                   <span className="text-primary">Conquiste</span>
                 </h1>
-                <p className="mt-6 text-lg font-semibold tracking-tight text-white/90">
+                <p className="mt-[3.7vw] text-xl font-semibold leading-7 tracking-[-0.1px] text-white">
                   Clareza sobre seu perfil, direção para sua carreira e decisões melhores antes de se candidatar.
                 </p>
               </div>
-              <Button asChild className="mt-auto w-full">
+              <Button asChild className="mt-auto h-auto w-full rounded-md px-4 py-2 text-sm">
                 <Link href="/cadastro">
                   <ArrowRight className="h-4 w-4" aria-hidden />
-                  Comece agora
+                  Começe agora
                 </Link>
               </Button>
             </div>
@@ -120,23 +112,23 @@ export default function HomePage() {
             />
             <div className="relative mx-auto max-w-content px-14 pb-32 pt-[242px]">
               <div className="relative max-w-xl">
-                <h1 className="text-7xl font-medium leading-[1.05] tracking-tight">
+                <h1 className="text-7xl font-medium leading-[normal] tracking-normal">
                   Evolua.
                   <br />
                   Reposicione-se.
                   <br />
                   <span className="text-primary">Conquiste</span>
                 </h1>
-                <p className="mt-6 text-lg font-semibold tracking-tight text-white/90">
+                <p className="mt-6 text-xl font-semibold leading-7 tracking-[-0.1px] text-white">
                   Clareza sobre seu perfil, direção para sua carreira e decisões melhores antes de se candidatar.
                 </p>
-                <Button asChild className="mt-8">
+                <Button asChild className="mt-[27px] h-auto rounded-md px-4 py-2 text-sm">
                   <Link href="/cadastro">
                     <ArrowRight className="h-4 w-4" aria-hidden />
-                    Comece agora
+                    Começe agora
                   </Link>
                 </Button>
-                <p className="mt-6 flex items-center gap-2 text-sm font-medium text-white/80">
+                <p className="mt-[27px] flex items-center gap-2 text-sm font-medium text-white/80">
                   <Lock className="h-5 w-5 shrink-0" aria-hidden />
                   Rápido <span className="text-primary">•</span> Seguro <span className="text-primary">•</span>{" "}
                   Sem complicação
@@ -147,8 +139,8 @@ export default function HomePage() {
         </section>
 
         {/* O desafio — foto sangra até a borda da viewport no desktop, como no Figma */}
-        <section className="py-20">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
+        <section className="pt-20 pb-16">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch lg:gap-6">
             <div className="order-2 relative h-[280px] w-full overflow-hidden lg:order-1 lg:h-auto lg:w-1/2 lg:min-h-[420px] lg:rounded-r-[88px]">
               <Image
                 src="/landing/desafio-photo.png"
@@ -158,31 +150,34 @@ export default function HomePage() {
                 className="object-cover"
               />
             </div>
-            <div className="contents lg:order-2 lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:gap-5">
-              <div className="order-1 space-y-2 px-6 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
+            <div className="contents lg:order-2 lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:gap-[36px]">
+              <div className="order-1 px-6 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
                 <p className="text-2xl font-semibold tracking-tight text-primary">O desafio</p>
                 <p className="text-3xl font-semibold tracking-tight text-foreground">
                   Seu talento pode ser maior do que o seu perfil demonstra
                 </p>
-                <div className="h-[3px] w-[69px] bg-primary" />
-                <p className="text-base leading-7 text-[#2e2c2c]">
+                <div className="mt-[13px] h-[3px] w-[69px] bg-primary" />
+                <p className="mt-[13px] text-base leading-7 text-[#2e2c2c]">
                   Currículo, LinkedIn e objetivo profissional nem sempre contam a mesma história. Sem um
                   diagnóstico claro, fica difícil entender o que está limitando seu posicionamento e o que
                   melhorar primeiro.
                 </p>
               </div>
-              <div className="order-3 divide-y divide-border px-6 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
-                {CHALLENGE_ITEMS.map((item) => (
-                  <div key={item.title} className="border-l-[3px] border-primary py-4 pl-6 first:pt-0">
-                    <p className="text-xl font-semibold tracking-tight text-foreground">{item.title}</p>
-                    <p className="mt-1 text-base leading-7 text-[#2e2c2c]">{item.description}</p>
+              <div className="order-3 flex flex-col gap-[14px] px-6 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
+                {CHALLENGE_ITEMS.map((item, index) => (
+                  <div key={item.title} className="contents">
+                    {index > 0 ? <div className="h-px w-full bg-border" /> : null}
+                    <div className="border-l-[3px] border-primary pl-6">
+                      <p className="text-xl font-semibold tracking-tight text-foreground">{item.title}</p>
+                      <p className="mt-1 text-base leading-7 text-[#2e2c2c]">{item.description}</p>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-          <div className="mt-14 px-6 md:px-14">
-            <div className="mx-auto flex max-w-content flex-col items-center gap-6 text-center md:flex-row md:items-center md:gap-8 md:text-left">
+          <div className="mt-[34px] px-6 md:px-14">
+            <div className="mx-auto flex max-w-content flex-col items-center gap-[30px] text-center md:flex-row md:items-center md:text-left">
               <Image
                 src="/landing/icon-quote-right.svg"
                 alt=""
@@ -198,26 +193,30 @@ export default function HomePage() {
           </div>
         </section>
 
+        <div className="px-6 md:px-14">
+          <hr className="mx-auto max-w-content border-border" />
+        </div>
+
         {/* Como funciona */}
-        <section id="como-funciona" className="px-6 py-20 md:px-14">
+        <section id="como-funciona" className="px-6 py-16 md:px-14">
           <div className="mx-auto max-w-content">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <h2 className="text-4xl font-extrabold tracking-tight text-foreground md:text-5xl">
+            <div className="flex flex-col items-center gap-[11px] text-center">
+              <h2 className="text-3xl font-semibold tracking-tight text-foreground">
                 Como <span className="text-primary">funciona</span>
               </h2>
               <p className="text-lg font-semibold text-foreground">
                 Um processo simples para transformar clareza em ação.
               </p>
             </div>
-            <div className="mt-10">
-              <div className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+            <div className="mt-6">
+              <div className="-mx-6 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
                 {HOW_IT_WORKS.map((step) => (
                   <div
                     key={step.title}
-                    className="flex w-[85%] shrink-0 snap-center flex-col items-center gap-7 rounded-lg border border-border px-6 py-10 text-center sm:w-auto sm:shrink"
+                    className="flex w-[85%] shrink-0 snap-center flex-col items-center gap-7 rounded-lg border border-border px-6 py-14 text-center sm:w-auto sm:shrink"
                   >
                     <Image src={step.icon} alt="" width={104} height={104} />
-                    <div className="space-y-2">
+                    <div className="space-y-[11px]">
                       <p className="text-xl font-semibold tracking-tight text-foreground">{step.title}</p>
                       <p className="text-sm text-muted-foreground">{step.description}</p>
                     </div>
@@ -236,24 +235,28 @@ export default function HomePage() {
           </div>
         </section>
 
+        <div className="px-6 md:px-14">
+          <hr className="mx-auto max-w-content border-border" />
+        </div>
+
         {/* Nossa solução — Core 1 e Core 2 — fotos sangram até a borda da viewport no desktop, como no Figma */}
-        <section id="solucao" className="space-y-9 bg-secondary/50 py-22">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
-            <div className="contents lg:order-1 lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:gap-3">
-              <div className="order-1 space-y-3 px-6 md:px-14 lg:px-0 lg:pl-14 lg:pr-16">
+        <section id="solucao" className="space-y-9 pb-20 pt-16">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch lg:gap-6">
+            <div className="contents lg:order-1 lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:gap-[13px]">
+              <div className="order-1 px-6 md:px-14 lg:px-0 lg:pl-14 lg:pr-16">
                 <p className="text-2xl font-semibold tracking-tight">
                   <span className="text-primary">Análise </span>de Perfil
                 </p>
                 <p className="text-3xl font-semibold tracking-tight text-foreground">
                   Descubra como seu perfil está sendo apresentado
                 </p>
-                <div className="h-[3px] w-[69px] bg-primary" />
-                <p className="max-w-xl text-base leading-7 text-[#2e2c2c]">
+                <div className="mt-[13px] h-[3px] w-[69px] bg-primary" />
+                <p className="mt-[13px] max-w-xl text-base leading-7 text-[#2e2c2c]">
                   O CareerTwin analisa seu currículo, LinkedIn e objetivo profissional para mostrar o que
                   fortalece seu posicionamento e o que ainda precisa ser melhor comunicado.
                 </p>
               </div>
-              <ul className="order-3 space-y-1 px-6 pt-2 md:px-14 lg:px-0 lg:pl-14 lg:pr-16">
+              <ul className="order-3 space-y-1 px-6 md:px-14 lg:px-0 lg:pl-14 lg:pr-16">
                 {PROFILE_ANALYSIS_ITEMS.map((item) => (
                   <li key={item} className="flex items-end gap-4">
                     <CheckCheck className="h-6 w-6 shrink-0 text-primary" aria-hidden />
@@ -273,10 +276,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="px-6 md:px-14">
-            <hr className="mx-auto max-w-content border-border" />
-          </div>
-
           <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
             <div className="order-2 relative h-[280px] w-full overflow-hidden lg:order-1 lg:h-auto lg:w-1/2 lg:min-h-[333px] lg:rounded-r-[88px]">
               <Image
@@ -288,20 +287,20 @@ export default function HomePage() {
               />
             </div>
             <div className="contents lg:order-2 lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:gap-3">
-              <div className="order-1 space-y-3 px-6 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
-                <p className="text-2xl font-semibold tracking-tight">
-                  <span className="text-primary">Diagnóstico de </span>Aderência
+              <div className="order-1 px-6 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
+                <p className="text-2xl font-semibold tracking-tight text-foreground">
+                  Diagnóstico de <span className="text-primary">Aderência</span>
                 </p>
                 <p className="text-3xl font-semibold tracking-tight text-foreground">
                   Entenda o quanto uma oportunidade combina com seu perfil
                 </p>
-                <div className="h-[3px] w-[69px] bg-primary" />
-                <p className="max-w-xl text-base leading-7 text-[#2e2c2c]">
+                <div className="mt-3 h-[3px] w-[69px] bg-primary" />
+                <p className="mt-3 max-w-xl text-base leading-7 text-[#2e2c2c]">
                   Compare sua trajetória com um cargo ou uma vaga específica e veja correspondências, lacunas e
                   pontos de atenção antes de decidir se candidatar.
                 </p>
               </div>
-              <ul className="order-3 space-y-1 px-6 pt-2 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
+              <ul className="order-3 space-y-1 px-6 md:px-14 lg:px-0 lg:pl-16 lg:pr-14">
                 {FIT_DIAGNOSIS_ITEMS.map((item) => (
                   <li key={item} className="flex items-end gap-4">
                     <CheckCheck className="h-6 w-6 shrink-0 text-primary" aria-hidden />
@@ -313,57 +312,20 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Valores / autenticidade e confiança */}
-        <section id="valores" className="px-6 py-20 md:px-14">
-          <div className="mx-auto max-w-3xl space-y-14">
-            <div className="text-center">
-              <h2 className="text-3xl font-semibold tracking-tight text-foreground">Autenticidade e confiança</h2>
-              <p className="mt-4 text-muted-foreground">
-                O CareerTwin não inventa experiências e não promete contratação. A proposta é ajudar você a
-                comunicar melhor sua trajetória real e tomar decisões mais estratégicas.
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-center text-3xl font-semibold tracking-tight text-foreground">
-                O que você recebe
-              </h2>
-              <ul className="mx-auto mt-6 grid max-w-xl gap-3 sm:grid-cols-2">
-                {WHAT_YOU_GET.map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-sm text-foreground">
-                    <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" aria-hidden />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="rounded-lg border border-border bg-secondary/50 p-6 text-center">
-              <h2 className="text-lg font-semibold text-foreground">Limitações do produto</h2>
-              <p className="mt-3 text-sm text-muted-foreground">
-                O CareerTwin não garante entrevista nem contratação, não representa a decisão de recrutadores,
-                não apresenta seus resultados como probabilidade de aprovação, não realiza candidatura
-                automática e não funciona como job board ou ATS. A jornada acompanha você até a preparação e
-                decisão de candidatura.
-              </p>
-            </div>
-          </div>
-        </section>
-
         {/* CTA final */}
         <section className="px-6 pb-20 md:px-14">
-          <div className="mx-auto flex max-w-content flex-col items-center gap-8 rounded-2xl bg-foreground px-8 py-10 text-center text-white md:flex-row md:gap-16 md:text-left">
+          <div className="mx-auto flex max-w-content flex-col items-center gap-[30px] rounded-2xl bg-foreground px-8 py-8 text-center text-white md:flex-row md:px-12 md:text-left">
             <Image src="/landing/cta-rocket-launch.svg" alt="" width={94} height={94} className="shrink-0" />
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-[11px]">
               <p className="text-2xl font-semibold leading-tight tracking-tight md:text-3xl">
                 Pronto para evoluir
                 <br className="hidden md:block" /> com mais clareza?
               </p>
               <p className="text-lg">Crie sua conta gratuita e comece sua primeira análise.</p>
             </div>
-            <Button asChild className="w-full shrink-0 md:w-auto">
+            <Button asChild className="h-auto w-full shrink-0 rounded-md px-4 py-2 text-sm md:w-auto">
               <Link href="/cadastro">
-                <ArrowRight className="h-4 w-4" aria-hidden />
+                <Plus className="h-4 w-4" aria-hidden />
                 Criar conta gratuita
               </Link>
             </Button>
