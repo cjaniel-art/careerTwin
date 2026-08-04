@@ -9,7 +9,7 @@ import { opportunityStructureSchema } from "@/config/schemas/opportunity";
 import { core2OutputSchema } from "@/config/schemas/core2";
 import { PROMPT_CATALOG } from "@/config/prompts/catalog";
 import { CORE_2_CONFIG, GAP_TYPE_FROM_AI_SCHEMA } from "@/config/engine/core2";
-import { calculateIao, type RequirementForScoring } from "@/domain/scores/iao";
+import { calculateIao, InsufficientScoringDataError, type RequirementForScoring } from "@/domain/scores/iao";
 import { calculateConfidence } from "@/domain/scores/confidence";
 import { determineApplicationRecommendation } from "@/domain/scores/recommendation";
 import { ENGINE_VERSION, IAO_RUBRIC_VERSION, CORE_2_CONFIG_VERSION } from "@/config/engine/versions";
@@ -469,14 +469,17 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
     await confirmReservation(supabase, analysisId, user.id);
     return { ok: true };
   } catch (err) {
-    // TEMP DEBUG (remove once the Core 2 schema-validation failure is root-caused):
-    // persists the raw failure into the otherwise-unused `warnings` column for a
-    // failed row, since server console.error output isn't reachable from here.
-    const debugDetail =
-      err instanceof Error
-        ? [err.message, err.cause instanceof Error ? err.cause.message : JSON.stringify(err.cause)].filter(Boolean)
-        : [JSON.stringify(err)];
-    await supabase.from("analyses").update({ status: "failed_retryable", warnings: debugDetail }).eq("id", analysisId);
+    if (err instanceof InsufficientScoringDataError) {
+      // Every requirement was either marked not-applicable or assessed at zero
+      // confidence (very sparse profile) — there's nothing to score. This is
+      // recoverable by completing the profile, not by retrying, so it gets the
+      // same status/messaging as the "job has no requirements" case above.
+      await supabase.from("analyses").update({ status: "insufficient_data" }).eq("id", analysisId);
+      await releaseReservation(supabase, analysisId, user.id, "insufficient_data", "Dados insuficientes para gerar um diagnóstico confiável.");
+      trackEvent(ANALYTICS_EVENTS.jobAnalysisFailed, { userId: user.id, analysisId, analysisType: "job_analysis" });
+      return { ok: false };
+    }
+    await supabase.from("analyses").update({ status: "failed_retryable" }).eq("id", analysisId);
     await releaseReservation(supabase, analysisId, user.id, "technical_failure", "Falha técnica — crédito restaurado.");
     trackEvent(ANALYTICS_EVENTS.jobAnalysisFailed, { userId: user.id, analysisId, analysisType: "job_analysis" });
     console.error("runJobAnalysis failed:", err instanceof Error ? err.message : err);

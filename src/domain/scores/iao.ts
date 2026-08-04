@@ -14,6 +14,21 @@ import { CORE_2_CONFIG, type MatchStatus, type RequirementCriticality } from "@/
 export type IaoBand = "low_observable_fit" | "partial_fit" | "good_observable_fit" | "high_observable_fit";
 export type AppliedCap = "blocking_requirement" | "multiple_critical_mandatory_gaps" | "seniority_mismatch";
 
+/**
+ * Thrown when every requirement is either excluded (not_applicable) or has a
+ * zero weighted contribution (e.g. every requirement assessed at 0 confidence
+ * for a very sparse profile) — there's nothing to divide by. This is expected,
+ * user-recoverable "not enough signal" data, not a technical failure: callers
+ * should map it to the same `insufficient_data` outcome used when a job has no
+ * requirements at all, not to a generic retryable error.
+ */
+export class InsufficientScoringDataError extends Error {
+  constructor() {
+    super("calculateIao: no applicable requirements to score (denominator is zero)");
+    this.name = "InsufficientScoringDataError";
+  }
+}
+
 export interface RequirementForScoring {
   requirementId: string;
   criticality: RequirementCriticality;
@@ -92,7 +107,7 @@ export function calculateIao(input: IaoCalculationInput): IaoResult {
   });
 
   if (denominator === 0) {
-    throw new Error("calculateIao: no applicable requirements to score (denominator is zero)");
+    throw new InsufficientScoringDataError();
   }
 
   const rawScore = Math.round((100 * numerator) / denominator);
