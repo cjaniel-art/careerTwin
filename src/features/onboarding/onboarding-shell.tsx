@@ -5,7 +5,7 @@ import { Wordmark } from "@/components/wordmark";
 /** Two-column onboarding shell (photo panel + content) shared by every onboarding screen, per the Figma reference frames. */
 export function OnboardingShell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen bg-white">
+    <main className="flex min-h-screen flex-col bg-white lg:h-[813px] lg:min-h-0 lg:flex-row">
       <div className="relative hidden w-[573px] shrink-0 overflow-hidden bg-black lg:block">
         <Image
           src="/onboarding-photo.png"
