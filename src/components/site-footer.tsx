@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
+import { TermsSheetTrigger, PrivacySheetTrigger } from "@/components/legal-sheet-triggers";
 
 export function SiteFooter() {
   return (
@@ -13,12 +14,8 @@ export function SiteFooter() {
           </p>
         </div>
         <div className="flex gap-6">
-          <Link href="/termos" className="hover:text-foreground">
-            Termos de Uso
-          </Link>
-          <Link href="/privacidade" className="hover:text-foreground">
-            Política de Privacidade
-          </Link>
+          <TermsSheetTrigger className="hover:text-foreground" />
+          <PrivacySheetTrigger className="hover:text-foreground" />
           <Link href="/login" className="hover:text-foreground">
             Entrar
           </Link>

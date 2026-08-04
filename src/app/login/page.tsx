@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
 import { LoginForm } from "@/features/auth/login-form";
@@ -37,17 +36,6 @@ export default function LoginPage() {
             />
           </div>
         </div>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Ao clicar em Continuar, você concorda com nossos{" "}
-          <Link href="/termos" className="underline hover:no-underline">
-            Termos de Serviço
-          </Link>{" "}
-          e{" "}
-          <Link href="/privacidade" className="underline hover:no-underline">
-            Política de Privacidade.
-          </Link>
-        </p>
       </div>
     </main>
   );

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import Image from "next/image";
 import { SignUpForm } from "@/features/auth/sign-up-form";
+import { LegalLinks } from "@/features/auth/legal-links";
 
 export const metadata = { title: "Criar conta — CareerTwin" };
 
@@ -24,16 +24,7 @@ export default function SignUpPage() {
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Ao clicar em Continuar, você concorda com nossos{" "}
-          <Link href="/termos" className="underline hover:no-underline">
-            Termos de Serviço
-          </Link>{" "}
-          e{" "}
-          <Link href="/privacidade" className="underline hover:no-underline">
-            Política de Privacidade.
-          </Link>
-        </p>
+        <LegalLinks />
       </div>
     </main>
   );
