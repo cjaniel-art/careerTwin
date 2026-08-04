@@ -490,7 +490,13 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
       trackEvent(ANALYTICS_EVENTS.jobAnalysisFailed, { userId: user.id, analysisId, analysisType: "job_analysis" });
       return { ok: false };
     }
-    await supabase.from("analyses").update({ status: "failed_retryable" }).eq("id", analysisId);
+    // TEMP DEBUG (remove once root-caused): persist the raw failure into the
+    // otherwise-unused `warnings` column since server console.error isn't reachable here.
+    const debugDetail =
+      err instanceof Error
+        ? [err.message, err.cause instanceof Error ? err.cause.message : JSON.stringify(err.cause)].filter(Boolean)
+        : [JSON.stringify(err)];
+    await supabase.from("analyses").update({ status: "failed_retryable", warnings: debugDetail }).eq("id", analysisId);
     await releaseReservation(supabase, analysisId, user.id, "technical_failure", "Falha técnica — crédito restaurado.");
     trackEvent(ANALYTICS_EVENTS.jobAnalysisFailed, { userId: user.id, analysisId, analysisType: "job_analysis" });
     console.error("runJobAnalysis failed:", err instanceof Error ? err.message : err);
