@@ -469,7 +469,14 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
     await confirmReservation(supabase, analysisId, user.id);
     return { ok: true };
   } catch (err) {
-    await supabase.from("analyses").update({ status: "failed_retryable" }).eq("id", analysisId);
+    // TEMP DEBUG (remove once the Core 2 schema-validation failure is root-caused):
+    // persists the raw failure into the otherwise-unused `warnings` column for a
+    // failed row, since server console.error output isn't reachable from here.
+    const debugDetail =
+      err instanceof Error
+        ? [err.message, err.cause instanceof Error ? err.cause.message : JSON.stringify(err.cause)].filter(Boolean)
+        : [JSON.stringify(err)];
+    await supabase.from("analyses").update({ status: "failed_retryable", warnings: debugDetail }).eq("id", analysisId);
     await releaseReservation(supabase, analysisId, user.id, "technical_failure", "Falha técnica — crédito restaurado.");
     trackEvent(ANALYTICS_EVENTS.jobAnalysisFailed, { userId: user.id, analysisId, analysisType: "job_analysis" });
     console.error("runJobAnalysis failed:", err instanceof Error ? err.message : err);
