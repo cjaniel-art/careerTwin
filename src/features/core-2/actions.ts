@@ -361,6 +361,11 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
         languages: profileContext.languages,
       }),
       schema: core2OutputSchema,
+      // Default (4096) truncates mid-JSON once requirementAssessments actually
+      // carries per-requirement reasoning + cited evidence for every requirement
+      // — a truncated response fails schema.parse identically on every retry.
+      // Scales with requirement count since that array dominates output size.
+      maxOutputTokens: Math.min(16000, 6000 + requirementsContext.length * 700),
     });
 
     const assessmentByRequirement = new Map(result.data.requirementAssessments.map((a) => [a.requirementId, a]));

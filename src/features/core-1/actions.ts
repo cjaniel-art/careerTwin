@@ -194,6 +194,10 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
         languages: profileContext.languages,
       }),
       schema: core1OutputSchema,
+      // Default (4096) truncates mid-JSON once the profile has real content to
+      // reason about across 7 dimensions + up to 5 recommendations — a
+      // truncated response fails schema.parse identically on every retry.
+      maxOutputTokens: 8000,
     });
 
     const assessments: DimensionAssessment[] = result.data.dimensionAssessments.map((d) => ({
