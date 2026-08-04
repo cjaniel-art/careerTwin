@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, FileText, Briefcase, DollarSign, UserCircle } from "lucide-react";
-import { Wordmark } from "@/components/wordmark";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -31,7 +30,7 @@ function SidebarLogo() {
   if (state === "collapsed") {
     return <Image src="/auth/logo-glyph.svg" alt="CareerTwin" width={40} height={40} className="h-10 w-10" />;
   }
-  return <Wordmark variant="light" className="h-9 w-auto" />;
+  return <Image src="/logo-admin.svg" alt="CareerTwin" width={183} height={44} className="h-9 w-auto" />;
 }
 
 export function AppSidebar({ userEmail, ...props }: { userEmail: string } & React.ComponentProps<typeof Sidebar>) {
