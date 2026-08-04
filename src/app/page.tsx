@@ -63,9 +63,9 @@ const FIT_DIAGNOSIS_ITEMS = [
 export default function HomePage() {
   return (
     <>
-      <main className="pb-[104px] md:pb-0">
+      <main className="pb-[52px] md:pb-0">
         {/* Hero — foge do limite global de 1440px (único bloco full-bleed do site, por pedido explícito) */}
-        <section className="relative ml-[calc(50%-50vw)] w-screen overflow-hidden bg-foreground text-white">
+        <section className="relative ml-[calc(50%-50vw)] w-screen overflow-hidden bg-[#1E1E1E] text-white">
           {/* Header flutua transparente sobre o hero, sem fundo próprio */}
           <LandingHeader />
           {/* Mobile: altura segue a proporção natural do asset dedicado; botão "Começe agora" vira barra fixa (ver abaixo) */}
@@ -95,7 +95,7 @@ export default function HomePage() {
           </div>
 
           {/* Desktop */}
-          <div className="relative hidden md:block">
+          <div className="relative hidden min-h-[813px] md:block">
             <Image
               src="/landing/hero.svg"
               alt=""
