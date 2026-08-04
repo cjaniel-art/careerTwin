@@ -10,6 +10,7 @@ import { core2OutputSchema } from "@/config/schemas/core2";
 import { PROMPT_CATALOG } from "@/config/prompts/catalog";
 import { CORE_2_CONFIG, GAP_TYPE_FROM_AI_SCHEMA } from "@/config/engine/core2";
 import { calculateIao, InsufficientScoringDataError, type RequirementForScoring } from "@/domain/scores/iao";
+import { fetchProfileContext, fetchRequirementsContext } from "@/features/analysis/profile-context";
 import { calculateConfidence } from "@/domain/scores/confidence";
 import { determineApplicationRecommendation } from "@/domain/scores/recommendation";
 import { ENGINE_VERSION, IAO_RUBRIC_VERSION, CORE_2_CONFIG_VERSION } from "@/config/engine/versions";
@@ -321,13 +322,12 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
     .single();
   if (!analysis || analysis.status !== "processing") return { ok: analysis?.status === "completed" };
 
-  const [{ count: experienceCount }, { count: evidenceCount }, { data: requirements }] = await Promise.all([
-    supabase.from("experiences").select("id", { count: "exact", head: true }).eq("profile_version_id", analysis.profile_version_id),
-    supabase.from("evidences").select("id", { count: "exact", head: true }).eq("profile_version_id", analysis.profile_version_id),
+  const [{ data: requirements }, { data: opportunityVersion }] = await Promise.all([
     supabase
       .from("requirements")
       .select("id, category, criticality, is_critical, applicability, extraction_confidence")
       .eq("opportunity_version_id", analysis.opportunity_version_id),
+    supabase.from("opportunity_versions").select("title, company").eq("id", analysis.opportunity_version_id).maybeSingle(),
   ]);
 
   if (!requirements || requirements.length === 0) {
@@ -335,6 +335,11 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
     await releaseReservation(supabase, analysisId, user.id, "insufficient_data", "Vaga sem requisitos estruturados — dados insuficientes.");
     return { ok: false };
   }
+
+  const [profileContext, requirementsContext] = await Promise.all([
+    fetchProfileContext(supabase, analysis.profile_version_id),
+    fetchRequirementsContext(supabase, analysis.opportunity_version_id),
+  ]);
 
   try {
     const provider = getAiProvider();
@@ -344,10 +349,16 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
       promptVersion: prompt.version,
       systemPrompt: buildDiagnosisSystemPrompt(),
       userContent: JSON.stringify({
-        experienceCount: experienceCount ?? 0,
-        evidenceCount: evidenceCount ?? 0,
-        requirementIds: requirements.map((r) => r.id),
-        hasBlocking: requirements.some((r) => r.criticality === "blocking"),
+        opportunity: { title: opportunityVersion?.title ?? null, company: opportunityVersion?.company ?? null },
+        requirements: requirementsContext,
+        experiences: profileContext.experiences,
+        projects: profileContext.projects,
+        skills: profileContext.skills,
+        tools: profileContext.tools,
+        evidences: profileContext.evidences,
+        education: profileContext.education,
+        certifications: profileContext.certifications,
+        languages: profileContext.languages,
       }),
       schema: core2OutputSchema,
     });
@@ -375,12 +386,12 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
 
     const iao = calculateIao({ requirements: scoringInputs, strongSeniorityMismatch });
 
-    const hasExperience = (experienceCount ?? 0) > 0;
+    const hasExperience = profileContext.experiences.length > 0;
     const confidence = calculateConfidence(
       {
         inputCompleteness: hasExperience ? 0.8 : 0.3,
         userConfirmation: 1.0,
-        evidenceTraceability: (evidenceCount ?? 0) > 0 ? 0.7 : 0.3,
+        evidenceTraceability: profileContext.evidences.length > 0 ? 0.7 : 0.3,
         sourceConsistency: 0.85,
       },
       {
@@ -549,9 +560,12 @@ function buildStructuringSystemPrompt(): string {
 function buildDiagnosisSystemPrompt(): string {
   return [
     "Você é o motor de Diagnóstico de Aderência (Core 2) do CareerTwin.",
-    "Para cada requisito, atribua um estado de correspondência permitido com base apenas no perfil confirmado.",
+    "A mensagem do usuário contém o texto real de cada requisito da vaga (requirements) e o conteúdo real e completo do perfil confirmado (experiências, projetos, competências, ferramentas, evidências, formação, certificações, idiomas) — baseie toda a avaliação exclusivamente nesse conteúdo.",
+    "Para cada requisito em requirements, use o campo id como requirementId na sua resposta e atribua um estado de correspondência permitido comparando o texto do requisito ao conteúdo do perfil.",
     "Você NUNCA calcula o IAO final, a confiança final, os limites de segurança nem a recomendação final — isso é feito pelo backend.",
     "Nunca invente experiências, competências ou resultados não presentes no perfil confirmado.",
+    'Em profileEvidence, use sourceId = o id real do item citado (experience/evidence/skill/tool) exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com um trecho real do conteúdo — nunca invente ids ou trechos.',
+    "assessmentConfidence deve refletir sua confiança real na avaliação daquele requisito específico, com base no quanto o perfil fornecido permite avaliá-lo — não deve ser 0 apenas porque o perfil é enxuto; se não houver base alguma para avaliar, use matchStatus \"unknown\" com uma confiança condizente, não confiança zero indiscriminadamente.",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
     "Os campos abaixo aceitam SOMENTE os valores literais listados — use exatamente esses tokens (em inglês/português conforme mostrado), nunca sinônimos, traduções ou variações:",
     'requirementAssessments[].matchStatus: "confirmed_match" | "partial_match" | "communication_gap" | "evidence_gap" | "unknown" | "not_observed" | "confirmed_mismatch".',

@@ -18,6 +18,7 @@ import {
 import { isAccountDeletionPending } from "@/lib/account-status";
 import { trackEvent } from "@/infrastructure/analytics";
 import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
+import { fetchProfileContext, fetchTargetContext } from "@/features/analysis/profile-context";
 
 async function requireUser() {
   const supabase = await createSupabaseServerClient();
@@ -167,25 +168,12 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
     .single();
   if (!analysis || analysis.status !== "processing") return { ok: analysis?.status === "completed" };
 
-  const [{ count: experienceCount }, { count: evidenceCount }, { count: skillCount }, { count: toolCount }] =
-    await Promise.all([
-      supabase
-        .from("experiences")
-        .select("id", { count: "exact", head: true })
-        .eq("profile_version_id", analysis.profile_version_id),
-      supabase
-        .from("evidences")
-        .select("id", { count: "exact", head: true })
-        .eq("profile_version_id", analysis.profile_version_id),
-      supabase
-        .from("profile_skills")
-        .select("id", { count: "exact", head: true })
-        .eq("profile_version_id", analysis.profile_version_id),
-      supabase
-        .from("profile_tools")
-        .select("id", { count: "exact", head: true })
-        .eq("profile_version_id", analysis.profile_version_id),
-    ]);
+  const [profileContext, targetContext] = await Promise.all([
+    fetchProfileContext(supabase, analysis.profile_version_id),
+    fetchTargetContext(supabase, analysis.target_context_version_id),
+  ]);
+  const experienceCount = profileContext.experiences.length;
+  const evidenceCount = profileContext.evidences.length;
 
   try {
     const provider = getAiProvider();
@@ -195,10 +183,15 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
       promptVersion: prompt.version,
       systemPrompt: buildCore1SystemPrompt(),
       userContent: JSON.stringify({
-        experienceCount: experienceCount ?? 0,
-        evidenceCount: evidenceCount ?? 0,
-        skillCount: skillCount ?? 0,
-        toolCount: toolCount ?? 0,
+        targetContext,
+        experiences: profileContext.experiences,
+        projects: profileContext.projects,
+        skills: profileContext.skills,
+        tools: profileContext.tools,
+        evidences: profileContext.evidences,
+        education: profileContext.education,
+        certifications: profileContext.certifications,
+        languages: profileContext.languages,
       }),
       schema: core1OutputSchema,
     });
@@ -210,8 +203,8 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
     }));
     const ipp = calculateIpp(assessments);
 
-    const hasExperience = (experienceCount ?? 0) > 0;
-    const hasEvidence = (evidenceCount ?? 0) > 0;
+    const hasExperience = experienceCount > 0;
+    const hasEvidence = evidenceCount > 0;
     const confidence = calculateConfidence(
       {
         inputCompleteness: hasExperience ? 0.8 : 0.3,
@@ -348,9 +341,12 @@ function mapRecommendationCategory(category: string): "competency" | "communicat
 function buildCore1SystemPrompt(): string {
   return [
     "Você é o motor de Análise de Perfil (Core 1) do CareerTwin.",
-    "Classifique cada uma das sete dimensões do IPP em um nível de rubrica de 0 a 4, com justificativa.",
+    "A mensagem do usuário contém o conteúdo real e completo do perfil confirmado (experiências, projetos, competências, ferramentas, evidências, formação, certificações, idiomas) e o contexto-alvo — baseie toda a análise exclusivamente nesse conteúdo, nunca em suposições.",
+    "Classifique cada uma das sete dimensões do IPP em um nível de rubrica de 0 a 4, com justificativa concreta referenciando o conteúdo fornecido.",
     "Você NUNCA calcula o IPP final, a confiança final, nem a prioridade das recomendações — isso é feito pelo backend.",
     "Nunca invente experiências, resultados, métricas ou competências não presentes no perfil confirmado.",
+    'Em evidenceRefs, use sourceId = o id real do item citado (experience/evidence/skill/tool) exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com um trecho real do conteúdo — nunca invente ids ou trechos.',
+    "Se o perfil fornecido estiver vazio ou quase vazio em uma dimensão, reflita isso honestamente com rubricLevel baixo, em vez de gerar texto genérico como se houvesse conteúdo.",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
   ].join(" ");
 }
