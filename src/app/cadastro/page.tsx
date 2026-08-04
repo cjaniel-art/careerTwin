@@ -9,7 +9,7 @@ export default function SignUpPage() {
     <main className="flex min-h-screen items-center justify-center bg-white px-6 py-12">
       <div className="w-full max-w-[956px]">
         <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm md:h-[716px] md:flex-row">
-          <div className="flex w-full max-w-[484px] flex-col items-center gap-6 p-8 md:w-[484px]">
+          <div className="mx-auto flex w-full max-w-[484px] flex-col items-center gap-6 p-8 md:w-[484px]">
             <div className="flex w-full flex-col items-center gap-2 px-6">
               <Image src="/auth/logo-glyph.svg" alt="" width={49} height={48} className="mb-4 h-12 w-auto" />
               <h1 className="text-center text-2xl font-semibold text-card-foreground">Crie sua conta</h1>
