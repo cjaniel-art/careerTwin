@@ -87,7 +87,7 @@ export default function HomePage() {
                   <br />
                   <span className="text-primary">Conquiste</span>
                 </h1>
-                <p className="mt-[3.7vw] text-xl font-semibold leading-7 tracking-[-0.1px] text-white">
+                <p className="mt-[3.7vw] text-[3.1vw] font-semibold leading-[4.3vw] tracking-[-0.0657px] text-white">
                   Clareza sobre seu perfil, direção para sua carreira e decisões melhores antes de se candidatar.
                 </p>
               </div>
@@ -105,10 +105,10 @@ export default function HomePage() {
             <Image
               src="/landing/hero.svg"
               alt=""
-              fill
+              width={1440}
+              height={813}
               priority
-              sizes="100vw"
-              className="pointer-events-none absolute inset-0 object-cover object-top"
+              className="pointer-events-none absolute right-0 top-0"
             />
             <div className="relative mx-auto max-w-content px-14 pb-32 pt-[242px]">
               <div className="relative max-w-xl">
@@ -129,7 +129,7 @@ export default function HomePage() {
                   </Link>
                 </Button>
                 <p className="mt-[27px] flex items-center gap-2 text-sm font-medium text-white/80">
-                  <Lock className="h-5 w-5 shrink-0" aria-hidden />
+                  <Lock className="h-5 w-5 shrink-0 text-primary" aria-hidden />
                   Rápido <span className="text-primary">•</span> Seguro <span className="text-primary">•</span>{" "}
                   Sem complicação
                 </p>
@@ -176,7 +176,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <div className="mt-[34px] px-6 md:px-14">
+          <div className="mt-[34px] px-6 md:px-[176px]">
             <div className="mx-auto flex max-w-content flex-col items-center gap-[30px] text-center md:flex-row md:items-center md:text-left">
               <Image
                 src="/landing/icon-quote-right.svg"
@@ -318,8 +318,7 @@ export default function HomePage() {
             <Image src="/landing/cta-rocket-launch.svg" alt="" width={94} height={94} className="shrink-0" />
             <div className="flex-1 space-y-[11px]">
               <p className="text-2xl font-semibold leading-tight tracking-tight md:text-3xl">
-                Pronto para evoluir
-                <br className="hidden md:block" /> com mais clareza?
+                Pronto para evoluir com mais clareza?
               </p>
               <p className="text-lg">Crie sua conta gratuita e comece sua primeira análise.</p>
             </div>
