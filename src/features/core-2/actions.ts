@@ -543,5 +543,12 @@ function buildDiagnosisSystemPrompt(): string {
     "Você NUNCA calcula o IAO final, a confiança final, os limites de segurança nem a recomendação final — isso é feito pelo backend.",
     "Nunca invente experiências, competências ou resultados não presentes no perfil confirmado.",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
+    "Os campos abaixo aceitam SOMENTE os valores literais listados — use exatamente esses tokens (em inglês/português conforme mostrado), nunca sinônimos, traduções ou variações:",
+    'requirementAssessments[].matchStatus: "confirmed_match" | "partial_match" | "communication_gap" | "evidence_gap" | "unknown" | "not_observed" | "confirmed_mismatch".',
+    'requirementAssessments[].gapType (quando aplicável): "competencia" | "experiencia" | "formacao_certificacao" | "comunicacao" | "evidencia" | "posicionamento" | "desconhecida".',
+    'seniorityAssessment.expected e seniorityAssessment.observed: "intern" | "junior" | "mid" | "senior" (observed também aceita "insufficient_data").',
+    'risks[].type: "blocking_requirement" | "mandatory_gap" | "seniority_mismatch" | "location_mismatch" | "work_authorization" | "language_requirement" | "certification_requirement" | "insufficient_evidence" | "ambiguous_requirement" | "data_quality" | "target_misalignment".',
+    'risks[].severity: "low" | "medium" | "high" | "critical".',
+    'recommendationCandidate.scope: "application" | "target_role".',
   ].join(" ");
 }
