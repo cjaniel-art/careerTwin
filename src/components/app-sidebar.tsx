@@ -30,20 +30,31 @@ function SidebarLogo() {
   if (state === "collapsed") {
     return <Image src="/auth/logo-glyph.svg" alt="CareerTwin" width={40} height={40} className="h-10 w-10" />;
   }
-  return <Image src="/logo-admin.svg" alt="CareerTwin" width={183} height={44} className="h-9 w-auto" />;
+  return (
+    <div className="relative h-11 w-[183px] shrink-0">
+      <Image src="/sidebar/logo-icon.svg" alt="" width={46} height={44} className="absolute left-0 top-0 h-11 w-[46px]" />
+      <Image
+        src="/sidebar/logo-wordmark.svg"
+        alt="CareerTwin"
+        width={129}
+        height={19}
+        className="absolute left-[53px] top-3 h-[19px] w-[129px]"
+      />
+    </div>
+  );
 }
 
 export function AppSidebar({ userEmail, ...props }: { userEmail: string } & React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon" className="border-none bg-[#020000] text-white" {...props}>
-      <SidebarHeader className="items-center px-3 py-4">
+    <Sidebar collapsible="icon" className="border-r border-[#dadce0] bg-white" {...props}>
+      <SidebarHeader className="items-center px-[18px] py-4">
         <Link href="/app/dashboard">
           <SidebarLogo />
         </Link>
       </SidebarHeader>
-      <SidebarContent className="gap-1 px-2 pt-2">
+      <SidebarContent className="gap-1 px-0 pt-2">
         <SidebarMenu>
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -54,8 +65,8 @@ export function AppSidebar({ userEmail, ...props }: { userEmail: string } & Reac
                   isActive={isActive}
                   tooltip={item.label}
                   className={cn(
-                    "h-12 rounded-none px-[29px] text-white hover:bg-white/5 hover:text-white active:bg-white/5 active:text-white",
-                    "group-data-[collapsible=icon]:px-[29px]",
+                    "h-12 rounded-none pl-[29px] pr-[18px] text-[#8d8d8d]",
+                    "group-data-[collapsible=icon]:pl-[29px] group-data-[collapsible=icon]:pr-[18px]",
                     isActive && "border-r-4 border-primary bg-transparent text-primary hover:bg-transparent hover:text-primary",
                   )}
                 >
@@ -69,7 +80,7 @@ export function AppSidebar({ userEmail, ...props }: { userEmail: string } & Reac
           })}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="border-t border-white/10 p-0">
+      <SidebarFooter className="p-0">
         <NavUser email={userEmail} />
       </SidebarFooter>
     </Sidebar>
