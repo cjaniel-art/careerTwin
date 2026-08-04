@@ -307,7 +307,7 @@ export default function HomePage() {
         </section>
 
         {/* CTA final */}
-        <section className="px-6 pb-20 md:px-14">
+        <section className="px-6 md:px-14">
           <div className="mx-auto flex max-w-content flex-col items-center gap-[30px] rounded-2xl bg-foreground px-8 py-8 text-center text-white md:flex-row md:px-12 md:text-left">
             <Image src="/landing/cta-rocket-launch.svg" alt="" width={94} height={94} className="shrink-0" />
             <div className="flex-1 space-y-[11px]">
