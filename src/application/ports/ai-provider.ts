@@ -18,6 +18,14 @@ export interface AiCompletionRequest<T> {
   /** Low temperature by default — this is extraction/classification, not creative writing. */
   temperature?: number;
   maxOutputTokens?: number;
+  /**
+   * Overrides the provider's default model for this call only. Use for
+   * lower-reasoning, mechanical tasks (document extraction, opportunity
+   * structuring) where a cheaper/faster model is adequate — leave unset for
+   * the analytical engines (Core 1/Core 2) that need the default model's
+   * judgment quality.
+   */
+  model?: string;
 }
 
 export interface AiCompletionResult<T> {

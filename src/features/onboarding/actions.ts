@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { uploadDocument } from "@/infrastructure/storage/document-storage";
-import { getAiProvider } from "@/infrastructure/ai";
+import { getAiProvider, EXTRACTION_MODEL } from "@/infrastructure/ai";
 import { profileExtractionSchema, type ProfileExtraction } from "@/config/schemas/profile-extraction";
 import { PROMPT_CATALOG, delimitUntrustedDocument } from "@/config/prompts/catalog";
 import { ONBOARDING_CONFIG } from "@/config/engine/onboarding";
@@ -230,6 +230,7 @@ async function processDocument(documentId: string, pastedText?: string): Promise
       systemPrompt: buildExtractionSystemPrompt(document.document_type),
       userContent: delimitUntrustedDocument(document.document_type, content),
       schema: profileExtractionSchema,
+      model: EXTRACTION_MODEL,
     });
 
     await supabase.from("document_extractions").insert({

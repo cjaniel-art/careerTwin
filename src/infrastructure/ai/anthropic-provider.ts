@@ -35,7 +35,7 @@ export class AnthropicAiProvider implements AiProvider {
       async ({ systemPrompt, userContent, maxOutputTokens }) => {
         // `temperature` is deprecated/rejected by the Claude 5 family models used here — omitted rather than sent.
         const response = await this.client.messages.create({
-          model: this.modelVersion,
+          model: request.model ?? this.modelVersion,
           max_tokens: maxOutputTokens ?? 4096,
           system: systemPrompt,
           messages: [{ role: "user", content: userContent }],
