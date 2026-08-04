@@ -32,22 +32,40 @@ export class AnthropicAiProvider implements AiProvider {
 
     const { data, modelVersion, repairAttempts } = await completeWithSchemaRepair(
       request.promptId,
-      async ({ systemPrompt, userContent, maxOutputTokens }) => {
+      async ({ systemPrompt, userContent, repairNote, maxOutputTokens }) => {
         // `temperature` is deprecated/rejected by the Claude 5 family models used here — omitted rather than sent.
-        const response = await this.client.messages.create({
+        //
+        // `cache_control` marks prompt-caching breakpoints (tool schema, system prompt,
+        // and the (large, per-analysis-stable) userContent) — schema-repair retries
+        // resend all three unchanged except for a small trailing repairNote block, so
+        // this turns 2-3 near-duplicate full-price calls per analysis into 1 full-price
+        // call + cheap cache reads. Cast at the call site: this SDK's stable (non-beta)
+        // types predate cache_control, but the field is a long-GA, additive Messages API
+        // param the runtime API accepts regardless of what these types declare.
+        const params = {
           model: request.model ?? this.modelVersion,
           max_tokens: maxOutputTokens ?? 4096,
-          system: systemPrompt,
-          messages: [{ role: "user", content: userContent }],
+          system: [{ type: "text" as const, text: systemPrompt, cache_control: { type: "ephemeral" as const } }],
+          messages: [
+            {
+              role: "user" as const,
+              content: [
+                { type: "text" as const, text: userContent, cache_control: { type: "ephemeral" as const } },
+                ...(repairNote ? [{ type: "text" as const, text: repairNote }] : []),
+              ],
+            },
+          ],
           tools: [
             {
               name: EXTRACTION_TOOL_NAME,
               description: "Emit the structured result. Must match the input schema exactly — every required field present.",
               input_schema: inputSchema,
+              cache_control: { type: "ephemeral" as const },
             },
           ],
           tool_choice: { type: "tool", name: EXTRACTION_TOOL_NAME },
-        });
+        };
+        const response = await this.client.messages.create(params as unknown as Anthropic.MessageCreateParamsNonStreaming);
         const toolUse = response.content.find((block): block is Anthropic.ToolUseBlock => block.type === "tool_use");
         const text = toolUse ? JSON.stringify(toolUse.input) : "";
         return { text, modelVersion: response.model };

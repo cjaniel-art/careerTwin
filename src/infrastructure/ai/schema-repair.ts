@@ -11,7 +11,15 @@ import { AiOutputValidationError } from "@/application/ports/ai-provider";
  *              partially-corrupted JSON, never fabricate missing fields.
  */
 export interface RawCompletionFn {
-  (args: { systemPrompt: string; userContent: string; temperature?: number; maxOutputTokens?: number }): Promise<{
+  (args: {
+    systemPrompt: string;
+    userContent: string;
+    /** Appended as a separate trailing block, never concatenated into systemPrompt/userContent
+     *  — keeps both 100% identical across repair attempts so prompt caching can hit. */
+    repairNote?: string;
+    temperature?: number;
+    maxOutputTokens?: number;
+  }): Promise<{
     text: string;
     modelVersion: string;
   }>;
@@ -43,7 +51,7 @@ export async function completeWithSchemaRepair<T>(
 
     const result = await generate({
       ...args,
-      systemPrompt: args.systemPrompt + repairNote,
+      repairNote: repairNote || undefined,
     });
     modelVersion = result.modelVersion;
 
