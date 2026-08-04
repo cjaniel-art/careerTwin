@@ -7,8 +7,23 @@ export const personalDataSchema = z.object({
   state: z.string().trim().optional(),
 });
 
+export const TARGET_AREA_OPTIONS = [
+  { value: "produto", label: "Produto" },
+  { value: "tecnologia", label: "Tecnologia" },
+  { value: "design", label: "Design" },
+] as const;
+
+export const SENIORITY_OPTIONS = [
+  { value: "intern", label: "Estágio" },
+  { value: "junior", label: "Júnior" },
+  { value: "mid", label: "Pleno" },
+  { value: "senior", label: "Sênior" },
+] as const;
+
 export const targetContextSchema = z.object({
-  targetArea: z.string().trim().min(1, "Informe a área de interesse."),
+  targetArea: z.enum(["produto", "tecnologia", "design"], {
+    errorMap: () => ({ message: "Selecione a área de interesse." }),
+  }),
   targetRole: z.string().trim().min(1, "Informe o cargo-alvo."),
   desiredSeniority: z.enum(["intern", "junior", "mid", "senior"], {
     errorMap: () => ({ message: "Selecione a senioridade desejada." }),

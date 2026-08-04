@@ -62,7 +62,7 @@ export async function savePersonalDataAction(
   if (error) return { error: "Não foi possível salvar seus dados agora. Tente novamente." };
 
   revalidatePath("/onboarding");
-  return {};
+  redirect("/onboarding");
 }
 
 /** RF-ONB-021..038 / RF-ONB-039..051 — résumé and LinkedIn upload share one path. */
@@ -165,7 +165,7 @@ export async function uploadDocumentAction(
   await processDocument(documentId, hasFile ? undefined : (pastedText as string));
 
   revalidatePath("/onboarding");
-  return {};
+  redirect("/onboarding");
 }
 
 /**
@@ -578,7 +578,7 @@ export async function saveTargetContextAction(
   }
 
   revalidatePath("/onboarding");
-  return {};
+  redirect("/onboarding");
 }
 
 /** RF-ONB-150..155 — the 9 preconditions are re-checked server-side, not trusted from the client. */
