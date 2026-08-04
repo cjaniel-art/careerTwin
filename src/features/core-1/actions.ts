@@ -207,9 +207,16 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
       }),
       schema: core1OutputSchema,
       // Default (4096) truncates mid-JSON once the profile has real content to
-      // reason about across 7 dimensions + up to 5 recommendations — a
-      // truncated response fails schema.parse identically on every retry.
-      maxOutputTokens: 8000,
+      // reason about across 7 dimensions + up to 5 recommendations, each now
+      // required to cite real evidenceRefs — a truncated response fails
+      // schema.parse identically on every retry (confirmed on Core 2 with the
+      // same fix: see runJobAnalysis's maxOutputTokens). Scales with profile
+      // size for the same reason Core 2 scales with requirement count.
+      maxOutputTokens: Math.min(
+        24000,
+        8000 +
+          (profileContext.experiences.length + profileContext.evidences.length + profileContext.projects.length) * 400,
+      ),
     });
 
     const assessments: DimensionAssessment[] = result.data.dimensionAssessments.map((d) => ({
@@ -320,7 +327,13 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
 
     return { ok: true };
   } catch (err) {
-    await supabase.from("analyses").update({ status: "failed_retryable" }).eq("id", analysisId);
+    // TEMP DEBUG (remove once root-caused): persist the raw failure into the
+    // otherwise-unused `warnings` column since server console.error isn't reachable here.
+    const debugDetail =
+      err instanceof Error
+        ? [err.message, err.cause instanceof Error ? err.cause.message : JSON.stringify(err.cause)].filter(Boolean)
+        : [JSON.stringify(err)];
+    await supabase.from("analyses").update({ status: "failed_retryable", warnings: debugDetail }).eq("id", analysisId);
     trackEvent(ANALYTICS_EVENTS.profileAnalysisFailed, { userId: user.id, analysisId, analysisType: "profile_analysis" });
     console.error("runProfileAnalysis failed:", err instanceof Error ? err.message : err);
     return { ok: false };
