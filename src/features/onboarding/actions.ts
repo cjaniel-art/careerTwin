@@ -588,6 +588,13 @@ export async function completeOnboardingAction(): Promise<void> {
 
   await supabase.from("user_accounts").update({ onboarding_status: "completed" }).eq("user_id", user.id);
   trackEvent(ANALYTICS_EVENTS.onboardingCompleted, { userId: user.id });
-  // PRD 01 §9 passo 23 / Sitemap: destino recomendado após o onboarding é o Core 1.
-  redirect("/app/analise-perfil");
+
+  // Runs the first Análise de Perfil inline so it's already ready when the
+  // user lands on the result page — best-effort: on failure they land on
+  // the plain entry page instead and can retry from there like any other
+  // analysis.
+  const { runInitialProfileAnalysis } = await import("@/features/core-1/actions");
+  const result = await runInitialProfileAnalysis();
+
+  redirect(result.ok && result.analysisId ? `/app/analise-perfil/${result.analysisId}` : "/app/analise-perfil");
 }

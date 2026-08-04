@@ -99,12 +99,15 @@ export async function checkCore1Preconditions(): Promise<Core1Preconditions> {
  * notes on the lack of a real queue/worker in this environment), persists
  * the backend-computed IPP/confidence/priority, and redirects to the result.
  */
-export async function startProfileAnalysisAction(): Promise<void> {
+type EnsuredAnalysisRow =
+  | { ok: true; analysisId: string; alreadyCompleted: boolean }
+  | { ok: false; reason: "preconditions" | "db_error" };
+
+/** Shared by startProfileAnalysisAction and runInitialProfileAnalysis — creates/reuses the analyses row without deciding what happens next. */
+async function ensureProfileAnalysisRow(): Promise<EnsuredAnalysisRow> {
   const { supabase, user } = await requireUser();
   const preconditions = await checkCore1Preconditions();
-  if (!preconditions.ok) {
-    redirect("/app/analise-perfil?insuficiente=1");
-  }
+  if (!preconditions.ok) return { ok: false, reason: "preconditions" };
 
   const idempotencyKey = [
     "profile_analysis",
@@ -123,7 +126,7 @@ export async function startProfileAnalysisAction(): Promise<void> {
     .maybeSingle();
 
   if (existing?.status === "completed") {
-    redirect(`/app/analise-perfil/${existing.id}`);
+    return { ok: true, analysisId: existing.id, alreadyCompleted: true };
   }
 
   const analysisId = existing?.id ?? randomUUID();
@@ -138,7 +141,7 @@ export async function startProfileAnalysisAction(): Promise<void> {
         .from("analyses")
         .update({ status: "processing", started_at: new Date().toISOString(), completed_at: null })
         .eq("id", analysisId);
-      if (updateError) redirect("/app/analise-perfil?erro=1");
+      if (updateError) return { ok: false, reason: "db_error" };
     } else {
       const { error: insertError } = await supabase.from("analyses").insert({
         id: analysisId,
@@ -154,14 +157,23 @@ export async function startProfileAnalysisAction(): Promise<void> {
         configuration_version: CORE_1_CONFIG_VERSION,
         started_at: new Date().toISOString(),
       });
-      if (insertError) {
-        redirect("/app/analise-perfil?erro=1");
-      }
+      if (insertError) return { ok: false, reason: "db_error" };
     }
     trackEvent(ANALYTICS_EVENTS.profileAnalysisStarted, { userId: user.id, analysisId, analysisType: "profile_analysis" });
   }
 
-  redirect(`/app/analise-perfil/processando/${analysisId}`);
+  return { ok: true, analysisId, alreadyCompleted: false };
+}
+
+export async function startProfileAnalysisAction(): Promise<void> {
+  const row = await ensureProfileAnalysisRow();
+  if (!row.ok) {
+    redirect(row.reason === "preconditions" ? "/app/analise-perfil?insuficiente=1" : "/app/analise-perfil?erro=1");
+  }
+  if (row.alreadyCompleted) {
+    redirect(`/app/analise-perfil/${row.analysisId}`);
+  }
+  redirect(`/app/analise-perfil/processando/${row.analysisId}`);
 }
 
 /**
@@ -338,6 +350,22 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
     console.error("runProfileAnalysis failed:", err instanceof Error ? err.message : err);
     return { ok: false };
   }
+}
+
+/**
+ * Creates and runs the first Análise de Perfil inline, right after
+ * onboarding finishes — so it's already ready by the time the user lands on
+ * /app/analise-perfil, no separate processing page or manual "Iniciar
+ * análise" click. Best-effort: on failure the caller falls back to the
+ * plain entry page, where the user can retry like any other failed
+ * analysis.
+ */
+export async function runInitialProfileAnalysis(): Promise<{ ok: boolean; analysisId?: string }> {
+  const row = await ensureProfileAnalysisRow();
+  if (!row.ok) return { ok: false };
+  if (row.alreadyCompleted) return { ok: true, analysisId: row.analysisId };
+  const result = await runProfileAnalysis(row.analysisId);
+  return { ok: result.ok, analysisId: row.analysisId };
 }
 
 /** Schema already validated these as integers 1..5 at runtime (core1.ts). */
