@@ -90,7 +90,7 @@ export function LoginForm() {
 
       <form action={signInWithGoogleAction}>
         <input type="hidden" name="redirect" value={redirectTo} />
-        <SubmitButton variant="secondary" className="w-full" aria-label="Continuar com Google">
+        <SubmitButton variant="secondary" className="w-full" aria-label="Continuar com Google" hideChildrenWhilePending>
           <Image src="/auth/google-icon.svg" alt="" width={16} height={16} />
         </SubmitButton>
       </form>

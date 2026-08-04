@@ -5,12 +5,17 @@ import { Loader2 } from "lucide-react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 
 /** Drop-in <Button type="submit"> for plain server-action forms — shows a spinner and disables itself while the form is pending. */
-export function SubmitButton({ children, disabled, ...props }: ButtonProps) {
+export function SubmitButton({
+  children,
+  disabled,
+  hideChildrenWhilePending,
+  ...props
+}: ButtonProps & { hideChildrenWhilePending?: boolean }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending || disabled} {...props}>
       {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-      {children}
+      {pending && hideChildrenWhilePending ? null : children}
     </Button>
   );
 }
