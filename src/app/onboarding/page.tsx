@@ -6,7 +6,6 @@ import { ONBOARDING_STEP_IDS, stepPath, type OnboardingStepId } from "@/features
 import { IdentificationStep } from "@/features/onboarding/steps/identification-step";
 import { DocumentUploadStep } from "@/features/onboarding/steps/document-upload-step";
 import { ProcessingStep } from "@/features/onboarding/steps/processing-step";
-import { ReviewStep } from "@/features/onboarding/steps/review-step";
 import { TargetContextStep } from "@/features/onboarding/steps/target-context-step";
 import { CompletionStep } from "@/features/onboarding/steps/completion-step";
 
@@ -83,7 +82,6 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
       {state.step === "resume_upload" ? renderNumberedStep("resume", state) : null}
       {state.step === "linkedin_upload" ? renderNumberedStep("linkedin", state) : null}
       {state.step === "processing" ? <ProcessingStep resumeStatus={state.resumeStatus} linkedinStatus={state.linkedinStatus} /> : null}
-      {state.step === "review" ? <ReviewStep userId={user.id} /> : null}
       {state.step === "target_context" ? renderNumberedStep("target-context", state) : null}
       {state.step === "completed" ? <CompletionStep /> : null}
     </OnboardingShell>

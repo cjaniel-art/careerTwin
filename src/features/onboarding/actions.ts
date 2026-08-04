@@ -11,11 +11,7 @@ import { getAiProvider, EXTRACTION_MODEL } from "@/infrastructure/ai";
 import { profileExtractionSchema, type ProfileExtraction } from "@/config/schemas/profile-extraction";
 import { PROMPT_CATALOG, delimitUntrustedDocument } from "@/config/prompts/catalog";
 import { ONBOARDING_CONFIG } from "@/config/engine/onboarding";
-import {
-  manualExperienceSchema,
-  personalDataSchema,
-  targetContextSchema,
-} from "./schemas";
+import { personalDataSchema, targetContextSchema } from "./schemas";
 import { isAccountDeletionPending } from "@/lib/account-status";
 import { trackEvent } from "@/infrastructure/analytics";
 import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
@@ -225,6 +221,7 @@ async function processDocument(documentId: string, pastedText?: string): Promise
   if (usefulChars < ONBOARDING_CONFIG.content.minimumUsefulCharacters) {
     await supabase.from("documents").update({ status: "insufficient_content" }).eq("id", documentId);
     if (job) await supabase.from("processing_jobs").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", job.id);
+    await maybeAutoConfirmProfile(supabase, user.id);
     return;
   }
 
@@ -260,6 +257,8 @@ async function processDocument(documentId: string, pastedText?: string): Promise
     if (job) {
       await supabase.from("processing_jobs").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", job.id);
     }
+
+    await maybeAutoConfirmProfile(supabase, user.id);
   } catch (err) {
     await supabase.from("documents").update({ status: "failed_retryable" }).eq("id", documentId);
     if (job) {
@@ -275,6 +274,34 @@ async function processDocument(documentId: string, pastedText?: string): Promise
     }
     throw err;
   }
+}
+
+/**
+ * There is no "Revise seu perfil" step anymore — once both résumé and
+ * LinkedIn have reached a terminal ready state (ready or
+ * insufficient_content), the draft Thin Twin version is created and
+ * confirmed automatically, right here, instead of waiting on a user click.
+ * Called from both processDocument exit points, so it fires regardless of
+ * which of the two documents finishes last.
+ */
+async function maybeAutoConfirmProfile(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, userId: string): Promise<void> {
+  const { data: documents } = await supabase
+    .from("documents")
+    .select("document_type, status")
+    .eq("user_id", userId)
+    .in("document_type", ["resume", "linkedin"])
+    .neq("status", "deleted");
+
+  const isTerminalReady = (status: string | undefined) => status === "ready" || status === "insufficient_content";
+  const resumeStatus = documents?.find((d) => d.document_type === "resume")?.status;
+  const linkedinStatus = documents?.find((d) => d.document_type === "linkedin")?.status;
+  if (!isTerminalReady(resumeStatus) || !isTerminalReady(linkedinStatus)) return;
+
+  const { data: profile } = await supabase.from("professional_profiles").select("status").eq("user_id", userId).maybeSingle();
+  if (profile?.status === "confirmed") return;
+
+  await ensureProfileDraft();
+  await confirmProfileAction();
 }
 
 function buildExtractionSystemPrompt(documentType: string): string {
@@ -310,9 +337,9 @@ export async function retryDocumentProcessingAction(): Promise<void> {
  * Creates the draft Thin Twin version and consolidates both extracted
  * documents into it (see consolidateExtractedExperiences below — a partial
  * P-003: experiences/evidences only, no conflict resolution/normalization
- * yet). Called directly from the ReviewStep server component during render
- * (not a form action) — must NOT call revalidatePath/redirect, which
- * Next.js only allows from an actual Server Action or Route Handler.
+ * yet). Called from maybeAutoConfirmProfile — must NOT call
+ * revalidatePath/redirect itself, since it also runs as a plain async
+ * helper (not a Server Action) when invoked from there.
  */
 export async function ensureProfileDraft(): Promise<void> {
   const { supabase, user } = await requireUser();
@@ -437,48 +464,7 @@ function toSqlDate(value: string | null): string | null {
   return null;
 }
 
-/** RF-ONB-115/116 — the user can add information the extraction missed. */
-export async function addExperienceAction(
-  _prev: OnboardingActionState,
-  formData: FormData,
-): Promise<OnboardingActionState> {
-  const parsed = manualExperienceSchema.safeParse({
-    companyName: formData.get("companyName"),
-    roleTitle: formData.get("roleTitle"),
-    description: formData.get("description") || undefined,
-  });
-  if (!parsed.success) {
-    return { error: "Preencha empresa e cargo para adicionar a experiência." };
-  }
-
-  const { supabase, user } = await requireUser();
-  const { data: profile } = await supabase
-    .from("professional_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-  const { data: draftVersion } = await supabase
-    .from("profile_versions")
-    .select("id")
-    .eq("profile_id", profile!.id)
-    .eq("status", "draft")
-    .single();
-  if (!draftVersion) return { error: "Não há uma versão em rascunho para editar." };
-
-  await supabase.from("experiences").insert({
-    profile_version_id: draftVersion.id,
-    company_name: parsed.data.companyName,
-    role_title: parsed.data.roleTitle,
-    description: parsed.data.description ?? null,
-    confirmation_status: "added",
-    inference_status: "fact",
-  });
-
-  revalidatePath("/onboarding");
-  return {};
-}
-
-/** RF-ONB-128..133 — confirmation creates the immutable Thin Twin version. */
+/** RF-ONB-128..133 — confirmation creates the immutable Thin Twin version. Called automatically by maybeAutoConfirmProfile, no user action needed. */
 export async function confirmProfileAction(): Promise<void> {
   const { supabase, user } = await requireUser();
   const { data: profile } = await supabase

@@ -30,11 +30,5 @@ export const targetContextSchema = z.object({
   }),
 });
 
-export const manualExperienceSchema = z.object({
-  companyName: z.string().trim().min(1, "Informe a empresa ou contexto."),
-  roleTitle: z.string().trim().min(1, "Informe o cargo ou função."),
-  description: z.string().trim().optional(),
-});
-
 export const ALLOWED_DOCUMENT_EXTENSIONS = ONBOARDING_CONFIG.documents.allowedExtensions;
 export const MAX_FILE_SIZE_BYTES = ONBOARDING_CONFIG.documents.maxFileSizeMb * 1024 * 1024;

@@ -11,7 +11,6 @@ export type OnboardingStep =
   | "resume_upload"
   | "linkedin_upload"
   | "processing"
-  | "review"
   | "target_context"
   | "completed";
 
@@ -36,7 +35,6 @@ export interface OnboardingState {
   linkedinDocument: DocumentSummary | null;
   profileId: string | null;
   profileVersionId: string | null;
-  profileConfirmed: boolean;
   targetContextConfirmed: boolean;
   targetContext: { targetArea: string; targetRole: string; desiredSeniority: string } | null;
 }
@@ -54,7 +52,7 @@ export async function getOnboardingState(supabase: SupabaseClient, userId: strin
         .order("created_at", { ascending: false }),
       supabase
         .from("professional_profiles")
-        .select("id, current_version_id, status")
+        .select("id, current_version_id")
         .eq("user_id", userId)
         .maybeSingle(),
       supabase.from("target_contexts").select("id, current_version_id, status").eq("user_id", userId).maybeSingle(),
@@ -74,7 +72,6 @@ export async function getOnboardingState(supabase: SupabaseClient, userId: strin
   const personalDataSaved = !!personalData;
   const resumeReady = resume?.status === "ready" || resume?.status === "insufficient_content";
   const linkedinReady = linkedin?.status === "ready" || linkedin?.status === "insufficient_content";
-  const profileConfirmed = profile?.status === "confirmed";
   const targetContextConfirmed = targetContext?.status === "confirmed";
 
   let step: OnboardingStep;
@@ -82,7 +79,6 @@ export async function getOnboardingState(supabase: SupabaseClient, userId: strin
   else if (!resume) step = "resume_upload";
   else if (!linkedin) step = "linkedin_upload";
   else if (!resumeReady || !linkedinReady) step = "processing";
-  else if (!profileConfirmed) step = "review";
   else if (!targetContextConfirmed) step = "target_context";
   else step = "completed";
 
@@ -93,7 +89,7 @@ export async function getOnboardingState(supabase: SupabaseClient, userId: strin
         ? "resume"
         : step === "target_context" || step === "completed"
           ? "target-context"
-          : "linkedin"; // linkedin_upload, processing, review: LinkedIn is the furthest *numbered* step reached — review/processing are transitional screens, not a 5th step.
+          : "linkedin"; // linkedin_upload, processing: LinkedIn is the furthest *numbered* step reached — processing is a transitional screen, not a 5th step.
 
   const completedNumberedSteps: OnboardingStepId[] = (
     ["personal-data", "resume", "linkedin", "target-context"] as OnboardingStepId[]
@@ -118,7 +114,6 @@ export async function getOnboardingState(supabase: SupabaseClient, userId: strin
     linkedinDocument: linkedin ? { id: linkedin.id, status: linkedin.status, originalFilename: linkedin.original_filename } : null,
     profileId: profile?.id ?? null,
     profileVersionId: profile?.current_version_id ?? null,
-    profileConfirmed,
     targetContextConfirmed,
     targetContext: targetContextVersion
       ? {
