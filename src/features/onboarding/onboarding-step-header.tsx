@@ -4,17 +4,15 @@ import { ArrowLeft, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ONBOARDING_STEP_IDS, STEP_META, STEP_PROGRESS_PERCENT, type OnboardingStepId } from "./step-config";
 
-/**
- * The official logo-dark.svg asset (never redrawn, see components/wordmark.tsx) bakes the
- * "Evolua, Reposicione e Conquiste" tagline into the same flattened artwork below the wordmark —
- * the Figma mobile header only shows the icon + "CareerTwin" text, so this crops to just that top
- * portion (0–32.65 of the 56-tall viewBox) instead of rendering the tagline.
- */
 function MobileWordmark() {
   return (
-    <div className="h-7 overflow-hidden">
-      <Image src="/logo-dark.svg" alt="CareerTwin" width={232} height={56} className="h-12 w-auto max-w-none" />
-    </div>
+    <Image
+      src="/logo-onboarding-mobile.svg"
+      alt="CareerTwin"
+      width={210.8}
+      height={51}
+      style={{ width: "210.8px", height: "51px" }}
+    />
   );
 }
 
@@ -42,7 +40,7 @@ function StepsRow({ activeStep, completedSteps }: { activeStep: OnboardingStepId
             <div className="flex flex-col items-center gap-[3px]">
               <div
                 className={cn(
-                  "flex size-8 items-center justify-center rounded-full text-base",
+                  "flex size-8 items-center justify-center rounded-full font-nunito text-base",
                   isDone && "bg-success text-success-foreground",
                   isActive && "bg-primary text-primary-foreground",
                   !isDone && !isActive && "border border-[#bdbdbd] text-[#bdbdbd]",
@@ -52,7 +50,7 @@ function StepsRow({ activeStep, completedSteps }: { activeStep: OnboardingStepId
               </div>
               <span
                 className={cn(
-                  "whitespace-nowrap text-sm",
+                  "whitespace-nowrap font-nunito text-sm",
                   isDone && "text-success",
                   isActive && "text-primary",
                   !isDone && !isActive && "text-[#abb6bf]",
