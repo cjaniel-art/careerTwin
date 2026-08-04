@@ -32,7 +32,7 @@ export default async function TargetRoleAnalysisPage() {
             <code>docs/implementation/open-decisions.md #1</code>.
           </p>
           <Button asChild variant="secondary">
-            <Link href="/app/aderencia/vaga/nova">Analisar uma vaga específica</Link>
+            <Link href="/app/aderencia">Analisar uma vaga específica</Link>
           </Button>
         </CardContent>
       </Card>

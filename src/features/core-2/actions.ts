@@ -34,15 +34,25 @@ async function requireUser() {
 
 const SENIORITY_ORDER = ["intern", "junior", "mid", "senior"] as const;
 
-/** RF-C2-001..004 / §8–§10 — submit + structure a job posting in one step. */
-export async function submitOpportunityAction(
-  _prev: Core2ActionState,
+export interface CreateJobAnalysisState {
+  error?: string;
+  analysisId?: string;
+}
+
+/**
+ * Single-step "Criar análise" flow (Sheet — Figma nodes 156:6207/164:10787):
+ * structures the pasted job text, auto-confirms it (no separate requirement-
+ * review screen — every extracted requirement stays "applicable" by default),
+ * reserves a credit, and runs the diagnosis synchronously, all in one call.
+ * Replaces the old submit → revisão → confirmar → analisar page chain.
+ */
+export async function createAndRunJobAnalysisAction(
+  _prev: CreateJobAnalysisState,
   formData: FormData,
-): Promise<Core2ActionState> {
+): Promise<CreateJobAnalysisState> {
   const parsed = submitOpportunitySchema.safeParse({
     title: formData.get("title") || undefined,
     company: formData.get("company") || undefined,
-    referenceUrl: formData.get("referenceUrl") || undefined,
   });
   if (!parsed.success) return { error: "Dados inválidos." };
 
@@ -82,7 +92,7 @@ export async function submitOpportunityAction(
     });
     structured = result.data;
   } catch (err) {
-    console.error("submitOpportunityAction: structuring failed:", err instanceof Error ? err.message : err);
+    console.error("createAndRunJobAnalysisAction: structuring failed:", err instanceof Error ? err.message : err);
     return { error: "Não foi possível estruturar a vaga agora. Tente novamente." };
   }
 
@@ -94,10 +104,11 @@ export async function submitOpportunityAction(
       title: parsed.data.title || structured.title || null,
       company: parsed.data.company || structured.company || null,
       source_type: "pasted_text",
-      reference_url: parsed.data.referenceUrl || null,
       content_hash: contentHash,
       structured_snapshot: structured,
-      confirmation_status: "draft",
+      // Auto-confirmed — no separate review screen in this flow (see docstring above).
+      confirmation_status: "confirmed",
+      confirmed_at: new Date().toISOString(),
     })
     .select("id")
     .single();
@@ -105,7 +116,7 @@ export async function submitOpportunityAction(
 
   await supabase
     .from("opportunities")
-    .update({ current_version_id: version.id })
+    .update({ current_version_id: version.id, status: "confirmed" })
     .eq("id", opportunity.id);
 
   if (structured.requirements.length > 0) {
@@ -123,47 +134,67 @@ export async function submitOpportunityAction(
       })),
     );
     if (requirementsError) {
-      console.error("submitOpportunityAction: requirements insert failed:", requirementsError.message);
+      console.error("createAndRunJobAnalysisAction: requirements insert failed:", requirementsError.message);
     }
   }
 
-  redirect(`/app/aderencia/vaga/${opportunity.id}/revisao`);
-}
-
-/** RF-C2-009 — mark a requirement not applicable before confirming. */
-export async function markRequirementNotApplicableAction(formData: FormData): Promise<void> {
-  const requirementId = formData.get("requirementId");
-  const opportunityId = formData.get("opportunityId");
-  if (typeof requirementId !== "string" || typeof opportunityId !== "string") return;
-
-  const { supabase } = await requireUser();
-  await supabase.from("requirements").update({ applicability: "not_applicable", user_confirmed: true }).eq("id", requirementId);
-  revalidatePath(`/app/aderencia/vaga/${opportunityId}/revisao`);
-}
-
-/** RF-C2-011/012 — confirmation creates the immutable opportunity version. */
-export async function confirmOpportunityAction(formData: FormData): Promise<void> {
-  const opportunityId = formData.get("opportunityId");
-  if (typeof opportunityId !== "string") return;
-  const { supabase, user } = await requireUser();
-
-  const { data: opportunity } = await supabase
-    .from("opportunities")
-    .select("id, current_version_id")
-    .eq("id", opportunityId)
-    .eq("user_id", user.id)
-    .single();
-  if (!opportunity?.current_version_id) return;
-
-  await supabase
-    .from("opportunity_versions")
-    .update({ confirmation_status: "confirmed", confirmed_at: new Date().toISOString() })
-    .eq("id", opportunity.current_version_id);
-  await supabase.from("opportunities").update({ status: "confirmed" }).eq("id", opportunityId);
-
   trackEvent(ANALYTICS_EVENTS.opportunityConfirmed, { userId: user.id });
 
-  redirect(`/app/aderencia/vaga/${opportunityId}/analisar`);
+  const preconditions = await checkJobAnalysisPreconditions(opportunity.id);
+  if (!preconditions.ok) {
+    return { error: `Não foi possível iniciar a análise: ${preconditions.missing.join(", ")}.` };
+  }
+  if (preconditions.existingAnalysisId) {
+    return { analysisId: preconditions.existingAnalysisId };
+  }
+  if (!preconditions.hasCredits) {
+    return { error: "Você não possui créditos disponíveis para esta análise." };
+  }
+
+  const idempotencyKey = buildJobAnalysisIdempotencyKey(preconditions.profileVersionId!, preconditions.opportunityVersionId!);
+  const analysisId = randomUUID();
+
+  const { error: insertAnalysisError } = await supabase.from("analyses").insert({
+    id: analysisId,
+    user_id: user.id,
+    analysis_type: "job_analysis",
+    profile_version_id: preconditions.profileVersionId,
+    target_context_version_id: (
+      await supabase.from("target_contexts").select("current_version_id").eq("user_id", user.id).single()
+    ).data?.current_version_id,
+    opportunity_version_id: preconditions.opportunityVersionId,
+    status: "processing",
+    idempotency_key: idempotencyKey,
+    input_hash: createHash("sha256").update(idempotencyKey).digest("hex"),
+    rubric_version: IAO_RUBRIC_VERSION,
+    engine_version: ENGINE_VERSION,
+    configuration_version: CORE_2_CONFIG_VERSION,
+    started_at: new Date().toISOString(),
+  });
+  if (insertAnalysisError) return { error: "Não foi possível iniciar a análise agora. Tente novamente." };
+
+  // Reserve the credit via the SECURITY DEFINER RPC — never write
+  // credit_accounts/credit_reservations directly from the client session
+  // (see supabase/migrations/20260101000021_credit_rpc_functions.sql).
+  const { data: reserved, error: reserveError } = await supabase.rpc("ct_reserve_credit", {
+    p_analysis_id: analysisId,
+    p_policy_version: CORE_2_CONFIG_VERSION,
+  });
+  if (reserveError) {
+    console.error("createAndRunJobAnalysisAction: ct_reserve_credit failed:", reserveError.message);
+    return { error: "Não foi possível reservar um crédito agora. Tente novamente." };
+  }
+  if (!reserved) return { error: "Você não possui créditos disponíveis para esta análise." };
+
+  trackEvent(ANALYTICS_EVENTS.jobAnalysisStarted, { userId: user.id, analysisId, analysisType: "job_analysis" });
+
+  const result = await runJobAnalysis(analysisId);
+  if (!result.ok) {
+    return { error: "Não foi possível concluir a análise agora. Tente novamente." };
+  }
+
+  revalidatePath("/app/aderencia");
+  return { analysisId };
 }
 
 export interface Core2Preconditions {
@@ -245,85 +276,17 @@ function buildJobAnalysisIdempotencyKey(profileVersionId: string, opportunityVer
   ].join(":");
 }
 
-/** Reserves a credit, freezes versions, and starts the job analysis. */
-export async function startJobAnalysisAction(formData: FormData): Promise<void> {
-  const opportunityId = formData.get("opportunityId");
-  if (typeof opportunityId !== "string") redirect("/app/aderencia");
-
+export async function deleteJobAnalysisAction(formData: FormData): Promise<void> {
+  const analysisId = formData.get("analysisId");
+  if (typeof analysisId !== "string") return;
   const { supabase, user } = await requireUser();
-  const preconditions = await checkJobAnalysisPreconditions(opportunityId);
-  if (!preconditions.ok) redirect(`/app/aderencia/vaga/${opportunityId}/revisao?insuficiente=1`);
-
-  // A cache hit on an already-completed analysis must never require credits —
-  // no new work or consumption happens, so the paywall check is skipped here
-  // and only applies to genuinely new analyses below (found via live testing:
-  // revisiting a completed job analysis was incorrectly redirected to the
-  // credits page once the balance hit 0).
-  if (preconditions.existingAnalysisId) redirect(`/app/aderencia/${preconditions.existingAnalysisId}`);
-  if (!preconditions.hasCredits) redirect("/app/creditos?motivo=sem-credito");
-
-  const idempotencyKey = buildJobAnalysisIdempotencyKey(preconditions.profileVersionId!, preconditions.opportunityVersionId!);
-
-  const { data: existing } = await supabase
+  await supabase
     .from("analyses")
-    .select("id, status")
+    .delete()
+    .eq("id", analysisId)
     .eq("user_id", user.id)
-    .eq("idempotency_key", idempotencyKey)
-    .maybeSingle();
-
-  const analysisId = existing?.id ?? randomUUID();
-  // A prior technical failure already released its reservation (see the catch
-  // block in runJobAnalysis below) — retrying must start a fresh attempt, not
-  // silently redirect to a page that will just re-render the same failure
-  // forever (the "insufficient_data" case is intentionally excluded: retrying
-  // without completing the profile/job data would fail identically).
-  const isRetry = existing?.status === "failed_retryable";
-
-  if (!existing || isRetry) {
-    if (isRetry) {
-      const { error: updateError } = await supabase
-        .from("analyses")
-        .update({ status: "processing", started_at: new Date().toISOString(), completed_at: null })
-        .eq("id", analysisId);
-      if (updateError) redirect(`/app/aderencia/vaga/${opportunityId}/revisao?erro=1`);
-    } else {
-      const { error: insertError } = await supabase.from("analyses").insert({
-        id: analysisId,
-        user_id: user.id,
-        analysis_type: "job_analysis",
-        profile_version_id: preconditions.profileVersionId,
-        target_context_version_id: (
-          await supabase.from("target_contexts").select("current_version_id").eq("user_id", user.id).single()
-        ).data?.current_version_id,
-        opportunity_version_id: preconditions.opportunityVersionId,
-        status: "processing",
-        idempotency_key: idempotencyKey,
-        input_hash: createHash("sha256").update(idempotencyKey).digest("hex"),
-        rubric_version: IAO_RUBRIC_VERSION,
-        engine_version: ENGINE_VERSION,
-        configuration_version: CORE_2_CONFIG_VERSION,
-        started_at: new Date().toISOString(),
-      });
-      if (insertError) redirect(`/app/aderencia/vaga/${opportunityId}/revisao?erro=1`);
-    }
-
-    // Reserve the credit via the SECURITY DEFINER RPC — never write
-    // credit_accounts/credit_reservations directly from the client session
-    // (see supabase/migrations/20260101000021_credit_rpc_functions.sql).
-    const { data: reserved, error: reserveError } = await supabase.rpc("ct_reserve_credit", {
-      p_analysis_id: analysisId,
-      p_policy_version: CORE_2_CONFIG_VERSION,
-    });
-    if (reserveError) {
-      console.error("startJobAnalysisAction: ct_reserve_credit failed:", reserveError.message);
-      redirect(`/app/aderencia/vaga/${opportunityId}/revisao?erro=1`);
-    }
-    if (!reserved) redirect("/app/creditos?motivo=sem-credito");
-
-    trackEvent(ANALYTICS_EVENTS.jobAnalysisStarted, { userId: user.id, analysisId, analysisType: "job_analysis" });
-  }
-
-  redirect(`/app/aderencia/processando/${analysisId}`);
+    .eq("analysis_type", "job_analysis");
+  revalidatePath("/app/aderencia");
 }
 
 export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean }> {
@@ -467,6 +430,7 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
       recommendation_type: recommendation,
       recommendation_reasoning: result.data.recommendationCandidate.reasoning,
       calculation_snapshot: { iao, confidence },
+      risks_count: result.data.risks.length,
     });
 
     await supabase

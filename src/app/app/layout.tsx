@@ -15,8 +15,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "16rem",
-          "--header-height": "calc(3rem + 1px)",
+          "--sidebar-width": "226px",
+          "--sidebar-width-icon": "82px",
         } as React.CSSProperties
       }
     >

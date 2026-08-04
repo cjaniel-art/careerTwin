@@ -13,7 +13,7 @@ async function requireUser() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login?redirect=/app/creditos");
+  if (!user) redirect("/login?redirect=/app/assinatura");
   return { supabase, user };
 }
 
@@ -45,5 +45,5 @@ export async function confirmPurchaseIntentAction(): Promise<void> {
     },
   });
 
-  revalidatePath("/app/creditos");
+  revalidatePath("/app/assinatura");
 }

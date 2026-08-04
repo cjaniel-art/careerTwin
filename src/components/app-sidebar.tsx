@@ -1,72 +1,76 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Target, ClipboardCheck, History, ListChecks, CreditCard, UserCircle } from "lucide-react";
+import { Home, FileText, Briefcase, DollarSign, UserCircle } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/app/analise-perfil", label: "Análise de Perfil", icon: Target },
-  { href: "/app/aderencia", label: "Diagnóstico de Aderência", icon: ClipboardCheck },
-  { href: "/app/historico", label: "Histórico", icon: History },
-  { href: "/app/acoes", label: "Ações", icon: ListChecks },
-  { href: "/app/creditos", label: "Créditos", icon: CreditCard },
-  { href: "/app/conta", label: "Conta", icon: UserCircle },
+  { href: "/app/dashboard", label: "Dashboard", icon: Home },
+  { href: "/app/analise-perfil", label: "Análise de perfil", icon: FileText },
+  { href: "/app/aderencia", label: "Aderência à Vaga", icon: Briefcase },
+  { href: "/app/assinatura", label: "Assinatura", icon: DollarSign },
+  { href: "/app/conta", label: "Minha conta", icon: UserCircle },
 ];
+
+function SidebarLogo() {
+  const { state } = useSidebar();
+  if (state === "collapsed") {
+    return <Image src="/auth/logo-glyph.svg" alt="CareerTwin" width={40} height={40} className="h-10 w-10" />;
+  }
+  return <Wordmark variant="light" className="h-9 w-auto" />;
+}
 
 export function AppSidebar({ userEmail, ...props }: { userEmail: string } & React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader className="border-b border-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild className="h-auto py-2">
-              <Link href="/app/dashboard">
-                <Wordmark className="h-6 w-auto" />
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+    <Sidebar collapsible="icon" className="border-none bg-[#020000] text-white" {...props}>
+      <SidebarHeader className="items-center px-3 py-4">
+        <Link href="/app/dashboard">
+          <SidebarLogo />
+        </Link>
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarGroupLabel>Menu</SidebarGroupLabel>
-            <SidebarMenu>
-              {NAV_ITEMS.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                      <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="gap-1 px-2 pt-2">
+        <SidebarMenu>
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive}
+                  tooltip={item.label}
+                  className={cn(
+                    "h-12 rounded-none px-[29px] text-white hover:bg-white/5 hover:text-white active:bg-white/5 active:text-white",
+                    "group-data-[collapsible=icon]:px-[29px]",
+                    isActive && "border-r-4 border-primary bg-transparent text-primary hover:bg-transparent hover:text-primary",
+                  )}
+                >
+                  <Link href={item.href}>
+                    <item.icon className="size-6 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-white/10 p-0">
         <NavUser email={userEmail} />
       </SidebarFooter>
     </Sidebar>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { confirmPurchaseIntentAction } from "@/features/credits/actions";
 import { SIMULATED_OFFER } from "@/config/engine/offer";
 
-export const metadata = { title: "Créditos — CareerTwin" };
+export const metadata = { title: "Assinatura — CareerTwin" };
 export const dynamic = "force-dynamic";
 
 export default async function CreditsPage({
@@ -18,7 +18,7 @@ export default async function CreditsPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login?redirect=/app/creditos");
+  if (!user) redirect("/login?redirect=/app/assinatura");
 
   const [{ data: account }, { data: ledger }, { data: lastIntent }] = await Promise.all([
     supabase.from("credit_accounts").select("available_credits, reserved_credits").eq("user_id", user.id).maybeSingle(),

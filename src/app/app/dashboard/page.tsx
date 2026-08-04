@@ -123,7 +123,7 @@ export default async function DashboardPage() {
                     {creditAccount?.reserved_credits ? `${creditAccount.reserved_credits} reservado(s)` : "Para novas análises"}
                   </p>
                   <Button asChild size="sm" variant="secondary">
-                    <Link href="/app/creditos">Ver</Link>
+                    <Link href="/app/assinatura">Ver</Link>
                   </Button>
                 </CardContent>
               </Card>
