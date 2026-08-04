@@ -127,24 +127,36 @@ export async function startProfileAnalysisAction(): Promise<void> {
   }
 
   const analysisId = existing?.id ?? randomUUID();
+  // A prior failure must be retryable — otherwise the processing page never
+  // calls runProfileAnalysis again (it only runs while status === "processing")
+  // and the user is stuck re-reading the same failure forever.
+  const isRetry = existing?.status === "failed_retryable";
 
-  if (!existing) {
-    const { error: insertError } = await supabase.from("analyses").insert({
-      id: analysisId,
-      user_id: user.id,
-      analysis_type: "profile_analysis",
-      profile_version_id: preconditions.profileVersionId,
-      target_context_version_id: preconditions.targetContextVersionId,
-      status: "processing",
-      idempotency_key: idempotencyKey,
-      input_hash: createHash("sha256").update(idempotencyKey).digest("hex"),
-      rubric_version: IPP_RUBRIC_VERSION,
-      engine_version: ENGINE_VERSION,
-      configuration_version: CORE_1_CONFIG_VERSION,
-      started_at: new Date().toISOString(),
-    });
-    if (insertError) {
-      redirect("/app/analise-perfil?erro=1");
+  if (!existing || isRetry) {
+    if (isRetry) {
+      const { error: updateError } = await supabase
+        .from("analyses")
+        .update({ status: "processing", started_at: new Date().toISOString(), completed_at: null })
+        .eq("id", analysisId);
+      if (updateError) redirect("/app/analise-perfil?erro=1");
+    } else {
+      const { error: insertError } = await supabase.from("analyses").insert({
+        id: analysisId,
+        user_id: user.id,
+        analysis_type: "profile_analysis",
+        profile_version_id: preconditions.profileVersionId,
+        target_context_version_id: preconditions.targetContextVersionId,
+        status: "processing",
+        idempotency_key: idempotencyKey,
+        input_hash: createHash("sha256").update(idempotencyKey).digest("hex"),
+        rubric_version: IPP_RUBRIC_VERSION,
+        engine_version: ENGINE_VERSION,
+        configuration_version: CORE_1_CONFIG_VERSION,
+        started_at: new Date().toISOString(),
+      });
+      if (insertError) {
+        redirect("/app/analise-perfil?erro=1");
+      }
     }
     trackEvent(ANALYTICS_EVENTS.profileAnalysisStarted, { userId: user.id, analysisId, analysisType: "profile_analysis" });
   }

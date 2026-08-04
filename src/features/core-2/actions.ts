@@ -271,26 +271,40 @@ export async function startJobAnalysisAction(formData: FormData): Promise<void> 
     .maybeSingle();
 
   const analysisId = existing?.id ?? randomUUID();
+  // A prior technical failure already released its reservation (see the catch
+  // block in runJobAnalysis below) — retrying must start a fresh attempt, not
+  // silently redirect to a page that will just re-render the same failure
+  // forever (the "insufficient_data" case is intentionally excluded: retrying
+  // without completing the profile/job data would fail identically).
+  const isRetry = existing?.status === "failed_retryable";
 
-  if (!existing) {
-    const { error: insertError } = await supabase.from("analyses").insert({
-      id: analysisId,
-      user_id: user.id,
-      analysis_type: "job_analysis",
-      profile_version_id: preconditions.profileVersionId,
-      target_context_version_id: (
-        await supabase.from("target_contexts").select("current_version_id").eq("user_id", user.id).single()
-      ).data?.current_version_id,
-      opportunity_version_id: preconditions.opportunityVersionId,
-      status: "processing",
-      idempotency_key: idempotencyKey,
-      input_hash: createHash("sha256").update(idempotencyKey).digest("hex"),
-      rubric_version: IAO_RUBRIC_VERSION,
-      engine_version: ENGINE_VERSION,
-      configuration_version: CORE_2_CONFIG_VERSION,
-      started_at: new Date().toISOString(),
-    });
-    if (insertError) redirect(`/app/aderencia/vaga/${opportunityId}/revisao?erro=1`);
+  if (!existing || isRetry) {
+    if (isRetry) {
+      const { error: updateError } = await supabase
+        .from("analyses")
+        .update({ status: "processing", started_at: new Date().toISOString(), completed_at: null })
+        .eq("id", analysisId);
+      if (updateError) redirect(`/app/aderencia/vaga/${opportunityId}/revisao?erro=1`);
+    } else {
+      const { error: insertError } = await supabase.from("analyses").insert({
+        id: analysisId,
+        user_id: user.id,
+        analysis_type: "job_analysis",
+        profile_version_id: preconditions.profileVersionId,
+        target_context_version_id: (
+          await supabase.from("target_contexts").select("current_version_id").eq("user_id", user.id).single()
+        ).data?.current_version_id,
+        opportunity_version_id: preconditions.opportunityVersionId,
+        status: "processing",
+        idempotency_key: idempotencyKey,
+        input_hash: createHash("sha256").update(idempotencyKey).digest("hex"),
+        rubric_version: IAO_RUBRIC_VERSION,
+        engine_version: ENGINE_VERSION,
+        configuration_version: CORE_2_CONFIG_VERSION,
+        started_at: new Date().toISOString(),
+      });
+      if (insertError) redirect(`/app/aderencia/vaga/${opportunityId}/revisao?erro=1`);
+    }
 
     // Reserve the credit via the SECURITY DEFINER RPC — never write
     // credit_accounts/credit_reservations directly from the client session
@@ -495,13 +509,7 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
       trackEvent(ANALYTICS_EVENTS.jobAnalysisFailed, { userId: user.id, analysisId, analysisType: "job_analysis" });
       return { ok: false };
     }
-    // TEMP DEBUG (remove once root-caused): persist the raw failure into the
-    // otherwise-unused `warnings` column since server console.error isn't reachable here.
-    const debugDetail =
-      err instanceof Error
-        ? [err.message, err.cause instanceof Error ? err.cause.message : JSON.stringify(err.cause)].filter(Boolean)
-        : [JSON.stringify(err)];
-    await supabase.from("analyses").update({ status: "failed_retryable", warnings: debugDetail }).eq("id", analysisId);
+    await supabase.from("analyses").update({ status: "failed_retryable" }).eq("id", analysisId);
     await releaseReservation(supabase, analysisId, user.id, "technical_failure", "Falha técnica — crédito restaurado.");
     trackEvent(ANALYTICS_EVENTS.jobAnalysisFailed, { userId: user.id, analysisId, analysisType: "job_analysis" });
     console.error("runJobAnalysis failed:", err instanceof Error ? err.message : err);
