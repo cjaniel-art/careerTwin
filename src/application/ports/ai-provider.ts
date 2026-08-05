@@ -48,8 +48,31 @@ export class AiOutputValidationError extends Error {
   }
 }
 
+/**
+ * Reads a PDF the way a person would — page images included — and returns its
+ * text as Markdown. This is the only path that works for PDFs with no text
+ * layer (exports from design tools, scans, photos of a printed page), where
+ * byte-level parsing has nothing to find.
+ */
+export interface PdfToMarkdownRequest {
+  promptId: string;
+  promptVersion: string;
+  systemPrompt: string;
+  pdf: Buffer;
+  /** Instruction turn accompanying the document block — never mixed into the PDF itself. */
+  instruction: string;
+  maxOutputTokens?: number;
+  model?: string;
+}
+
+export interface PdfToMarkdownResult {
+  markdown: string;
+  modelVersion: string;
+}
+
 export interface AiProvider {
   readonly providerName: string;
   readonly modelVersion: string;
   complete<T>(request: AiCompletionRequest<T>): Promise<AiCompletionResult<T>>;
+  convertPdfToMarkdown(request: PdfToMarkdownRequest): Promise<PdfToMarkdownResult>;
 }

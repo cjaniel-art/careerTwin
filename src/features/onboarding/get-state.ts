@@ -10,7 +10,6 @@ export type OnboardingStep =
   | "identification"
   | "resume_upload"
   | "linkedin_upload"
-  | "processing"
   | "target_context"
   | "completed";
 
@@ -28,10 +27,8 @@ export interface OnboardingState {
   personalDataSaved: boolean;
   personalData: { fullName: string; city: string | null; state: string | null } | null;
   resumeDocumentId: string | null;
-  resumeStatus: string | null;
   resumeDocument: DocumentSummary | null;
   linkedinDocumentId: string | null;
-  linkedinStatus: string | null;
   linkedinDocument: DocumentSummary | null;
   profileId: string | null;
   profileVersionId: string | null;
@@ -70,15 +67,14 @@ export async function getOnboardingState(supabase: SupabaseClient, userId: strin
   const linkedin = documents?.find((d) => d.document_type === "linkedin") ?? null;
 
   const personalDataSaved = !!personalData;
-  const resumeReady = resume?.status === "ready" || resume?.status === "insufficient_content";
-  const linkedinReady = linkedin?.status === "ready" || linkedin?.status === "insufficient_content";
   const targetContextConfirmed = targetContext?.status === "confirmed";
 
+  // Document status is deliberately not part of this: uploads only persist,
+  // and extraction runs after "Concluir configuração" (runOnboardingStageAction).
   let step: OnboardingStep;
   if (!personalDataSaved) step = "identification";
   else if (!resume) step = "resume_upload";
   else if (!linkedin) step = "linkedin_upload";
-  else if (!resumeReady || !linkedinReady) step = "processing";
   else if (!targetContextConfirmed) step = "target_context";
   else step = "completed";
 
@@ -87,9 +83,9 @@ export async function getOnboardingState(supabase: SupabaseClient, userId: strin
       ? "personal-data"
       : step === "resume_upload"
         ? "resume"
-        : step === "target_context" || step === "completed"
-          ? "target-context"
-          : "linkedin"; // linkedin_upload, processing: LinkedIn is the furthest *numbered* step reached — processing is a transitional screen, not a 5th step.
+        : step === "linkedin_upload"
+          ? "linkedin"
+          : "target-context";
 
   const completedNumberedSteps: OnboardingStepId[] = (
     ["personal-data", "resume", "linkedin", "target-context"] as OnboardingStepId[]
@@ -107,10 +103,8 @@ export async function getOnboardingState(supabase: SupabaseClient, userId: strin
     personalDataSaved,
     personalData: personalData ? { fullName: personalData.full_name, city: personalData.city, state: personalData.state } : null,
     resumeDocumentId: resume?.id ?? null,
-    resumeStatus: resume?.status ?? null,
     resumeDocument: resume ? { id: resume.id, status: resume.status, originalFilename: resume.original_filename } : null,
     linkedinDocumentId: linkedin?.id ?? null,
-    linkedinStatus: linkedin?.status ?? null,
     linkedinDocument: linkedin ? { id: linkedin.id, status: linkedin.status, originalFilename: linkedin.original_filename } : null,
     profileId: profile?.id ?? null,
     profileVersionId: profile?.current_version_id ?? null,

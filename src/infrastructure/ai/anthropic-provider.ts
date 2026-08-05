@@ -1,6 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import type { AiCompletionRequest, AiCompletionResult, AiProvider } from "@/application/ports/ai-provider";
+import type {
+  AiCompletionRequest,
+  AiCompletionResult,
+  AiProvider,
+  PdfToMarkdownRequest,
+  PdfToMarkdownResult,
+} from "@/application/ports/ai-provider";
 import { requireEnv } from "@/lib/env";
 import { completeWithSchemaRepair } from "./schema-repair";
 
@@ -86,5 +92,47 @@ export class AnthropicAiProvider implements AiProvider {
       schemaVersion: "n/a", // filled by the caller from the parsed payload when present
       repairAttempts,
     };
+  }
+
+  /**
+   * Sends the PDF itself, not parsed bytes: the API renders each page and
+   * reads it visually as well as textually, which is what makes flattened /
+   * scanned PDFs readable at all. No schema and no repair loop here — the
+   * output is prose, so there is nothing to validate structurally; a bad
+   * result surfaces downstream as insufficient content.
+   */
+  async convertPdfToMarkdown(request: PdfToMarkdownRequest): Promise<PdfToMarkdownResult> {
+    // Same cast rationale as `cache_control` above: this SDK's stable types
+    // predate the `document` content block, which the runtime API accepts.
+    const params = {
+      model: request.model ?? this.modelVersion,
+      max_tokens: request.maxOutputTokens ?? 16000,
+      system: [{ type: "text" as const, text: request.systemPrompt }],
+      messages: [
+        {
+          role: "user" as const,
+          content: [
+            {
+              type: "document" as const,
+              source: {
+                type: "base64" as const,
+                media_type: "application/pdf" as const,
+                data: request.pdf.toString("base64"),
+              },
+            },
+            { type: "text" as const, text: request.instruction },
+          ],
+        },
+      ],
+    };
+    const response = await this.client.messages.create(params as unknown as Anthropic.MessageCreateParamsNonStreaming);
+
+    const markdown = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join("\n")
+      .trim();
+
+    return { markdown, modelVersion: response.model };
   }
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Processando análise — CareerTwin" };
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function ProfileAnalysisProcessingPage({
   params,

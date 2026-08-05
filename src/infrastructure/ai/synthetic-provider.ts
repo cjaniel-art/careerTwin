@@ -1,4 +1,10 @@
-import type { AiCompletionRequest, AiCompletionResult, AiProvider } from "@/application/ports/ai-provider";
+import type {
+  AiCompletionRequest,
+  AiCompletionResult,
+  AiProvider,
+  PdfToMarkdownRequest,
+  PdfToMarkdownResult,
+} from "@/application/ports/ai-provider";
 
 /**
  * Development/test adapter. Never calls a real model — produces a
@@ -33,6 +39,28 @@ export class SyntheticAiProvider implements AiProvider {
       promptVersion: request.promptVersion,
       schemaVersion: typeof raw === "object" && raw && "schemaVersion" in raw ? String((raw as Record<string, unknown>).schemaVersion) : "n/a",
       repairAttempts: 0,
+    };
+  }
+
+  /**
+   * Returns placeholder Markdown long enough to clear the minimum-useful-content
+   * threshold, so the pipeline stays exercisable without an API key. It carries
+   * no information from the actual PDF — nothing here reads the bytes.
+   */
+  async convertPdfToMarkdown(request: PdfToMarkdownRequest): Promise<PdfToMarkdownResult> {
+    return {
+      markdown: [
+        "# Documento convertido pelo adapter sintético de desenvolvimento",
+        "",
+        "Este conteúdo não foi lido do PDF enviado — o adapter sintético não interpreta arquivos.",
+        `Prompt: ${request.promptId}. Tamanho do arquivo recebido: ${request.pdf.byteLength} bytes.`,
+        "",
+        "## Experiência profissional",
+        "",
+        "- Cargo sintético em empresa sintética (2022 — atual): responsabilidade sintética de desenvolvimento.",
+        "- Cargo sintético anterior em outra empresa sintética (2019 — 2022): responsabilidade sintética de desenvolvimento.",
+      ].join("\n"),
+      modelVersion: this.modelVersion,
     };
   }
 }

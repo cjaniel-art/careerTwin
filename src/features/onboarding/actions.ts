@@ -5,8 +5,8 @@ import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { uploadDocument } from "@/infrastructure/storage/document-storage";
-import { extractDocumentText } from "@/infrastructure/storage/document-text-extraction";
+import { uploadDocument, documentStoragePath, TEMPORARY_DOCUMENTS_BUCKET } from "@/infrastructure/storage/document-storage";
+import { resolveDocumentText } from "@/infrastructure/storage/document-markdown";
 import { getAiProvider, EXTRACTION_MODEL } from "@/infrastructure/ai";
 import { profileExtractionSchema, type ProfileExtraction } from "@/config/schemas/profile-extraction";
 import { PROMPT_CATALOG, delimitUntrustedDocument } from "@/config/prompts/catalog";
@@ -127,6 +127,17 @@ export async function uploadDocumentAction(
     mimeType = "text/plain";
     sizeBytes = Buffer.byteLength(text);
     sourceType = "pasted_text";
+
+    // Pasted text goes to storage like any upload: extraction runs in a later
+    // request now, so in-memory content from this one is no longer reachable.
+    const { path } = await uploadDocument(supabase, {
+      userId: user.id,
+      documentId,
+      filename: "conteudo-colado.txt",
+      file: new Blob([text], { type: mimeType }),
+      contentType: mimeType,
+    });
+    storagePath = path;
   }
 
   // Replacing a document creates a new row rather than mutating an existing
@@ -158,11 +169,55 @@ export async function uploadDocumentAction(
     properties: { documentType },
   });
 
-  // Pasted text is processed directly from the request (no storage round-trip needed).
-  await processDocument(documentId, hasFile ? undefined : (pastedText as string));
-
+  // No extraction here: the upload steps only persist. Everything is processed
+  // one stage at a time after "Concluir configuração" (runOnboardingStageAction).
   revalidatePath("/onboarding");
   redirect("/onboarding");
+}
+
+/** Where the resolved plain-text/Markdown form of a document is cached, next to the original. */
+function documentTextPath(userId: string, documentId: string): string {
+  return documentStoragePath(userId, documentId, "document.md");
+}
+
+/**
+ * Resolves a document to text once and caches the result in storage.
+ *
+ * Caching is what makes the visual PDF fallback affordable: reading a
+ * text-layer-less PDF costs a model call, and without this every schema-repair
+ * retry and every "Tentar novamente" would pay for it again.
+ */
+async function ensureDocumentText(documentId: string): Promise<string> {
+  const { supabase, user } = await requireUser();
+
+  const { data: document } = await supabase
+    .from("documents")
+    .select("id, storage_path, mime_type, original_filename")
+    .eq("id", documentId)
+    .single();
+  if (!document?.storage_path) return "";
+
+  const textPath = documentTextPath(user.id, documentId);
+  const { data: cached } = await supabase.storage.from(TEMPORARY_DOCUMENTS_BUCKET).download(textPath);
+  if (cached) return await cached.text();
+
+  const { data: original } = await supabase.storage.from(TEMPORARY_DOCUMENTS_BUCKET).download(document.storage_path);
+  if (!original) return "";
+
+  const resolved = await resolveDocumentText({
+    buffer: Buffer.from(await original.arrayBuffer()),
+    mimeType: document.mime_type ?? "",
+    filename: document.original_filename,
+  });
+
+  // Upload failure here is recoverable — it costs a re-read next time, so it
+  // must not fail the extraction that already has its text in hand.
+  const { error: cacheError } = await supabase.storage
+    .from(TEMPORARY_DOCUMENTS_BUCKET)
+    .upload(textPath, new Blob([resolved.text], { type: "text/markdown" }), { contentType: "text/markdown", upsert: true });
+  if (cacheError) console.error("document text cache upload failed:", cacheError.message);
+
+  return resolved.text;
 }
 
 /**
@@ -171,8 +226,11 @@ export async function uploadDocumentAction(
  * the request in this implementation (no queue/worker infrastructure is
  * provisioned in this environment). A production deployment should move the
  * body of this function behind a real queue without changing its contract.
+ *
+ * One document per request, by design: a single Vercel invocation is capped at
+ * 60s, and résumé + LinkedIn extraction together routinely exceed that.
  */
-async function processDocument(documentId: string, pastedText?: string): Promise<void> {
+async function processDocument(documentId: string): Promise<void> {
   const { supabase, user } = await requireUser();
 
   const { data: document } = await supabase
@@ -204,24 +262,12 @@ async function processDocument(documentId: string, pastedText?: string): Promise
     console.error("processing_jobs insert failed:", jobInsertError.message);
   }
 
-  let content = pastedText ?? "";
-  if (!content && document.storage_path) {
-    const { data: fileData } = await supabase.storage.from("temporary-documents").download(document.storage_path);
-    if (fileData) {
-      const buffer = Buffer.from(await fileData.arrayBuffer());
-      content = await extractDocumentText({
-        buffer,
-        mimeType: document.mime_type ?? "",
-        filename: document.original_filename,
-      });
-    }
-  }
+  const content = await ensureDocumentText(documentId);
 
   const usefulChars = content.trim().length;
   if (usefulChars < ONBOARDING_CONFIG.content.minimumUsefulCharacters) {
     await supabase.from("documents").update({ status: "insufficient_content" }).eq("id", documentId);
     if (job) await supabase.from("processing_jobs").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", job.id);
-    await maybeAutoConfirmProfile(supabase, user.id);
     return;
   }
 
@@ -236,13 +282,13 @@ async function processDocument(documentId: string, pastedText?: string): Promise
       userContent: delimitUntrustedDocument(document.document_type, content),
       schema: profileExtractionSchema,
       model: EXTRACTION_MODEL,
-      // Default (4096) truncates mid-JSON before any of the required arrays
-      // (experiences/competencies/tools/...) are written for real, content-rich
-      // resumes and LinkedIn exports — every schema-repair retry fails
-      // identically since the arrays are simply missing, not malformed.
-      // Scales with input text length; 16000 ceiling matches the proven-safe
-      // cap already used for this same model in Core 2's structuring step.
-      maxOutputTokens: Math.min(16000, 6000 + Math.floor(content.length / 4)),
+      // Truncated JSON comes back as "trailing required arrays missing", which
+      // schema repair can never fix — it retries at the same budget and fails
+      // identically 3x. The structured output is routinely *larger* than the
+      // source text (every experience carries evidence + confidence), so the
+      // budget is sized above input length, not as a fraction of it. This is a
+      // ceiling, not a reservation: unused tokens are neither billed nor waited on.
+      maxOutputTokens: Math.min(32000, 8000 + content.length),
     });
 
     await supabase.from("document_extractions").insert({
@@ -264,8 +310,6 @@ async function processDocument(documentId: string, pastedText?: string): Promise
     if (job) {
       await supabase.from("processing_jobs").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", job.id);
     }
-
-    await maybeAutoConfirmProfile(supabase, user.id);
   } catch (err) {
     await supabase.from("documents").update({ status: "failed_retryable" }).eq("id", documentId);
     if (job) {
@@ -283,34 +327,6 @@ async function processDocument(documentId: string, pastedText?: string): Promise
   }
 }
 
-/**
- * There is no "Revise seu perfil" step anymore — once both résumé and
- * LinkedIn have reached a terminal ready state (ready or
- * insufficient_content), the draft Thin Twin version is created and
- * confirmed automatically, right here, instead of waiting on a user click.
- * Called from both processDocument exit points, so it fires regardless of
- * which of the two documents finishes last.
- */
-async function maybeAutoConfirmProfile(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, userId: string): Promise<void> {
-  const { data: documents } = await supabase
-    .from("documents")
-    .select("document_type, status")
-    .eq("user_id", userId)
-    .in("document_type", ["resume", "linkedin"])
-    .neq("status", "deleted");
-
-  const isTerminalReady = (status: string | undefined) => status === "ready" || status === "insufficient_content";
-  const resumeStatus = documents?.find((d) => d.document_type === "resume")?.status;
-  const linkedinStatus = documents?.find((d) => d.document_type === "linkedin")?.status;
-  if (!isTerminalReady(resumeStatus) || !isTerminalReady(linkedinStatus)) return;
-
-  const { data: profile } = await supabase.from("professional_profiles").select("status").eq("user_id", userId).maybeSingle();
-  if (profile?.status === "confirmed") return;
-
-  await ensureProfileDraft();
-  await confirmProfileAction();
-}
-
 function buildExtractionSystemPrompt(documentType: string): string {
   return [
     "Você é o motor de extração profissional do CareerTwin.",
@@ -322,29 +338,11 @@ function buildExtractionSystemPrompt(documentType: string): string {
   ].join(" ");
 }
 
-/** Retries processing for whichever résumé/LinkedIn document last failed recoverably. */
-export async function retryDocumentProcessingAction(): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const { data: documents } = await supabase
-    .from("documents")
-    .select("id, document_type, status")
-    .eq("user_id", user.id)
-    .eq("status", "failed_retryable")
-    .in("document_type", ["resume", "linkedin"]);
-
-  for (const doc of documents ?? []) {
-    await supabase.from("documents").update({ status: "queued" }).eq("id", doc.id);
-    await processDocument(doc.id);
-  }
-
-  revalidatePath("/onboarding");
-}
-
 /**
  * Creates the draft Thin Twin version and consolidates both extracted
  * documents into it (see consolidateExtractedExperiences below — a partial
  * P-003: experiences/evidences only, no conflict resolution/normalization
- * yet). Called from maybeAutoConfirmProfile — must NOT call
+ * yet). Called from the "profile" stage — must NOT call
  * revalidatePath/redirect itself, since it also runs as a plain async
  * helper (not a Server Action) when invoked from there.
  */
@@ -471,7 +469,7 @@ function toSqlDate(value: string | null): string | null {
   return null;
 }
 
-/** RF-ONB-128..133 — confirmation creates the immutable Thin Twin version. Called automatically by maybeAutoConfirmProfile, no user action needed. */
+/** RF-ONB-128..133 — confirmation creates the immutable Thin Twin version. Called automatically by the "profile" stage, no user action needed. */
 export async function confirmProfileAction(): Promise<void> {
   const { supabase, user } = await requireUser();
   const { data: profile } = await supabase
@@ -583,36 +581,90 @@ export async function saveTargetContextAction(
   redirect("/onboarding");
 }
 
-export interface CompleteOnboardingState {
-  error?: boolean;
+export type OnboardingStage =
+  | "read_resume"
+  | "resume"
+  | "read_linkedin"
+  | "linkedin"
+  | "profile"
+  | "analysis";
+
+export interface OnboardingStageResult {
+  ok: boolean;
+  /** Next stage to run, or null when the chain is finished. */
+  next: OnboardingStage | null;
+  redirectTo?: string;
 }
 
-/** RF-ONB-150..155 — the 9 preconditions are re-checked server-side, not trusted from the client. */
-export async function completeOnboardingAction(
-  _prev: CompleteOnboardingState,
-  _formData: FormData,
-): Promise<CompleteOnboardingState> {
+/**
+ * Runs a single stage of the post-"Concluir configuração" pipeline. The client
+ * chains the stages, one request each, so no single Vercel invocation has to
+ * fit résumé extraction + LinkedIn extraction + Thin Twin + Análise de Perfil
+ * inside the 60s function limit. A failed stage is returned as-is so
+ * "Tentar novamente" resumes from it instead of redoing the whole chain.
+ */
+export async function runOnboardingStageAction(stage: OnboardingStage): Promise<OnboardingStageResult> {
   const { supabase, user } = await requireUser();
+
+  // RF-ONB-150..155 — preconditions re-checked server-side on every stage, not trusted from the client.
   const { getOnboardingState } = await import("./get-state");
   const state = await getOnboardingState(supabase, user.id);
+  if (state.step !== "completed") redirect("/onboarding");
 
-  if (state.step !== "completed") {
-    redirect("/onboarding");
+  try {
+    switch (stage) {
+      // Reading is split from extraction because a PDF with no text layer costs
+      // a model call of its own — bundled with extraction it would exceed 60s.
+      // For an ordinary PDF this stage is local parsing and returns in ms.
+      case "read_resume":
+      case "read_linkedin": {
+        const documentId = stage === "read_resume" ? state.resumeDocumentId : state.linkedinDocumentId;
+        if (documentId) await ensureDocumentText(documentId);
+        return { ok: true, next: stage === "read_resume" ? "resume" : "linkedin" };
+      }
+
+      case "resume":
+      case "linkedin": {
+        const documentId = stage === "resume" ? state.resumeDocumentId : state.linkedinDocumentId;
+        if (documentId) {
+          const { data: document } = await supabase.from("documents").select("status").eq("id", documentId).single();
+          // Already extracted on an earlier attempt — skip instead of paying for it twice.
+          if (document?.status !== "ready" && document?.status !== "insufficient_content") {
+            await supabase.from("documents").update({ status: "queued" }).eq("id", documentId);
+            await processDocument(documentId);
+          }
+        }
+        return { ok: true, next: stage === "resume" ? "read_linkedin" : "profile" };
+      }
+
+      case "profile": {
+        const { data: profile } = await supabase
+          .from("professional_profiles")
+          .select("status")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (profile?.status !== "confirmed") {
+          await ensureProfileDraft();
+          await confirmProfileAction();
+        }
+        await supabase.from("user_accounts").update({ onboarding_status: "completed" }).eq("user_id", user.id);
+        trackEvent(ANALYTICS_EVENTS.onboardingCompleted, { userId: user.id });
+        return { ok: true, next: "analysis" };
+      }
+
+      case "analysis": {
+        const { runInitialProfileAnalysis } = await import("@/features/core-1/actions");
+        const result = await runInitialProfileAnalysis();
+        if (!result.ok) return { ok: false, next: "analysis" };
+        return {
+          ok: true,
+          next: null,
+          redirectTo: result.analysisId ? `/app/analise-perfil/${result.analysisId}` : "/app/analise-perfil",
+        };
+      }
+    }
+  } catch (err) {
+    console.error(`runOnboardingStageAction(${stage}) failed:`, err);
+    return { ok: false, next: stage };
   }
-
-  await supabase.from("user_accounts").update({ onboarding_status: "completed" }).eq("user_id", user.id);
-  trackEvent(ANALYTICS_EVENTS.onboardingCompleted, { userId: user.id });
-
-  // Runs the first Análise de Perfil inline so it's already ready when the
-  // user lands on the result page. On failure, returns an error state
-  // instead of redirecting — the "Tentar novamente" screen resubmits this
-  // same action.
-  const { runInitialProfileAnalysis } = await import("@/features/core-1/actions");
-  const result = await runInitialProfileAnalysis();
-
-  if (!result.ok) {
-    return { error: true };
-  }
-
-  redirect(result.analysisId ? `/app/analise-perfil/${result.analysisId}` : "/app/analise-perfil");
 }

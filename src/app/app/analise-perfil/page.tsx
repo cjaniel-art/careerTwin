@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = { title: "Análise de Perfil — CareerTwin" };
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function ProfileAnalysisEntryPage() {
   const supabase = await createSupabaseServerClient();

@@ -52,6 +52,16 @@ export const PROMPT_CATALOG: Record<string, PromptDefinition> = {
     objective: "Relaciona cada requisito às evidências do Thin Twin e atribui um estado de correspondência permitido.",
     version: "1.0.0",
   },
+  // Outside the P-001..P-012 range of Prompts e Schemas §2: this one is not a
+  // reasoning step but the OCR fallback the PRD assumes exists (ONBOARDING_CONFIG
+  // .content.ocrMinimumCharactersPerPage / .processing.ocrMedianSeconds) without
+  // ever specifying how it is implemented.
+  "P-013": {
+    id: "P-013",
+    name: "Transcrição de PDF sem camada de texto",
+    objective: "Transcreve visualmente um PDF para Markdown quando não há texto embutido para extrair.",
+    version: "1.0.0",
+  },
 } as const;
 
 /**
