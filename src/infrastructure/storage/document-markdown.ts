@@ -5,6 +5,18 @@ import { extractDocumentText, extractPdfTextLayer, isPdfDocument } from "./docum
 
 export type DocumentTextMethod = "text_layer" | "pdf_vision" | "other_format";
 
+/**
+ * Above this, a raw text layer is cleaned up through the model before
+ * extraction rather than fed in as-is.
+ *
+ * A LinkedIn PDF export runs ~21k characters across a dozen pages, most of it
+ * repeated contact blocks, certification lists and pagination. Extracting
+ * straight from that took ~80s — past the 60s function ceiling — because the
+ * structured output grows with the noise. Condensing it first splits the work
+ * into two calls that each fit, and the extraction reads better prose.
+ */
+const CLEANUP_THRESHOLD_CHARACTERS = 12_000;
+
 export interface DocumentTextResult {
   text: string;
   method: DocumentTextMethod;
@@ -53,10 +65,11 @@ export async function resolveDocumentText(params: {
   const layer = await extractPdfTextLayer(params.buffer, content.ocrMinimumCharactersPerPage);
 
   const emptyPageRatio = layer.pageCount > 0 ? layer.pagesWithoutText / layer.pageCount : 1;
+  const layerLength = layer.text.trim().length;
   const hasUsableTextLayer =
-    emptyPageRatio <= content.ocrPagesWithoutTextThreshold && layer.text.trim().length >= content.minimumUsefulCharacters;
+    emptyPageRatio <= content.ocrPagesWithoutTextThreshold && layerLength >= content.minimumUsefulCharacters;
 
-  if (hasUsableTextLayer) {
+  if (hasUsableTextLayer && layerLength <= CLEANUP_THRESHOLD_CHARACTERS) {
     return { text: layer.text, method: "text_layer", pageCount: layer.pageCount };
   }
 

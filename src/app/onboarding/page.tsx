@@ -7,6 +7,8 @@ import { IdentificationStep } from "@/features/onboarding/steps/identification-s
 import { DocumentUploadStep } from "@/features/onboarding/steps/document-upload-step";
 import { TargetContextStep } from "@/features/onboarding/steps/target-context-step";
 import { CompletionStep } from "@/features/onboarding/steps/completion-step";
+import { BackgroundPrewarm } from "@/features/onboarding/background-prewarm";
+import type { ClientStage } from "@/features/onboarding/run-stage";
 
 export const metadata = { title: "Onboarding — CareerTwin" };
 export const dynamic = "force-dynamic";
@@ -61,6 +63,18 @@ function renderNumberedStep(
   }
 }
 
+/**
+ * Only documents nobody is working on yet. A document already in `processing`
+ * has an owner, and firing at it would just make a request sit and wait.
+ */
+function prewarmableStages(state: Awaited<ReturnType<typeof getOnboardingState>>): ClientStage[] {
+  const claimable = ["queued", "failed_retryable"];
+  const stages: ClientStage[] = [];
+  if (state.resumeDocument && claimable.includes(state.resumeDocument.status)) stages.push("resume");
+  if (state.linkedinDocument && claimable.includes(state.linkedinDocument.status)) stages.push("linkedin");
+  return stages;
+}
+
 export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ step?: string }> }) {
   const { step: requestedStepParam } = await searchParams;
   const supabase = await createSupabaseServerClient();
@@ -71,21 +85,33 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
 
   const state = await getOnboardingState(supabase, user.id);
 
+  // Full-page design (no OnboardingShell photo panel) per Figma 180:995/199:1375.
+  // No prewarm here — this screen runs the same stages itself.
+  if (state.step === "completed") {
+    return <CompletionStep />;
+  }
+
+  // Extraction for an already-uploaded document starts now, in the background,
+  // while the user fills in the remaining steps — so it is largely done by the
+  // time they reach "Concluir configuração".
+  const prewarm = <BackgroundPrewarm stages={prewarmableStages(state)} />;
+
   // "Voltar" support: a valid ?step= that isn't further than the furthest step actually reached always wins,
   // regardless of the natural business state (RF: "mantenha os dados preenchidos caso o usuário volte").
   const requestedStep = ONBOARDING_STEP_IDS.find((id) => id === requestedStepParam);
   const furthestIndex = ONBOARDING_STEP_IDS.indexOf(state.numberedStep);
   if (requestedStep && ONBOARDING_STEP_IDS.indexOf(requestedStep) <= furthestIndex) {
-    return <OnboardingShell>{renderNumberedStep(requestedStep, state)}</OnboardingShell>;
-  }
-
-  // Full-page design (no OnboardingShell photo panel) per Figma 180:995/199:1375.
-  if (state.step === "completed") {
-    return <CompletionStep />;
+    return (
+      <OnboardingShell>
+        {prewarm}
+        {renderNumberedStep(requestedStep, state)}
+      </OnboardingShell>
+    );
   }
 
   return (
     <OnboardingShell>
+      {prewarm}
       {state.step === "identification" ? renderNumberedStep("personal-data", state) : null}
       {state.step === "resume_upload" ? renderNumberedStep("resume", state) : null}
       {state.step === "linkedin_upload" ? renderNumberedStep("linkedin", state) : null}

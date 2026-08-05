@@ -3,59 +3,66 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { runOnboardingStageAction, type OnboardingStage } from "../actions";
+import { runStageToCompletion } from "../run-stage";
 import { Button } from "@/components/ui/button";
 
-const STAGE_LABELS: Record<OnboardingStage, string> = {
-  read_resume: "Lendo seu currículo",
-  resume: "Organizando as informações do seu currículo",
-  read_linkedin: "Lendo seu perfil do LinkedIn",
-  linkedin: "Organizando as informações do seu LinkedIn",
+type Phase = "documents" | "profile" | "analysis";
+
+const PHASE_LABELS: Record<Phase, string> = {
+  documents: "Lendo seu currículo e seu perfil do LinkedIn",
   profile: "Montando seu perfil profissional",
   analysis: "Gerando sua Análise de Perfil",
 };
 
 /**
  * Full-page (no OnboardingShell photo panel) — matches Figma nodes 180:995
- * (preparing) / 199:1375 (error). Chains the pipeline one stage per request:
- * a single request covering all of them would blow the 60s serverless limit.
- * On failure, "Tentar novamente" resumes from the stage that failed.
+ * (preparing) / 199:1375 (error).
+ *
+ * Résumé and LinkedIn run concurrently: they touch different documents and
+ * nothing downstream, so the wait is the slower of the two rather than their
+ * sum. Anything the background prewarm already finished during data collection
+ * returns immediately here.
  */
 export function CompletionStep() {
   const router = useRouter();
-  const [stage, setStage] = useState<OnboardingStage>("read_resume");
+  const [phase, setPhase] = useState<Phase>("documents");
   const [failed, setFailed] = useState(false);
   const isRunningRef = useRef(false);
 
-  const run = useCallback(
-    async (from: OnboardingStage) => {
-      if (isRunningRef.current) return;
-      isRunningRef.current = true;
-      setFailed(false);
+  const run = useCallback(async () => {
+    if (isRunningRef.current) return;
+    isRunningRef.current = true;
+    setFailed(false);
 
-      let current: OnboardingStage | null = from;
-      while (current) {
-        setStage(current);
-        const result = await runOnboardingStageAction(current);
-        if (!result.ok) {
-          setStage(result.next ?? current);
-          setFailed(true);
-          break;
-        }
-        if (result.redirectTo) {
-          router.replace(result.redirectTo);
-          return;
-        }
-        current = result.next;
+    try {
+      setPhase("documents");
+      const documents = await Promise.all([runStageToCompletion("resume"), runStageToCompletion("linkedin")]);
+      if (documents.some((result) => !result.ok)) {
+        setFailed(true);
+        return;
       }
 
+      setPhase("profile");
+      if (!(await runStageToCompletion("profile")).ok) {
+        setFailed(true);
+        return;
+      }
+
+      setPhase("analysis");
+      const analysis = await runStageToCompletion("analysis");
+      if (!analysis.ok || !analysis.redirectTo) {
+        setFailed(true);
+        return;
+      }
+
+      router.replace(analysis.redirectTo);
+    } finally {
       isRunningRef.current = false;
-    },
-    [router],
-  );
+    }
+  }, [router]);
 
   useEffect(() => {
-    void run("read_resume");
+    void run();
   }, [run]);
 
   return (
@@ -74,10 +81,10 @@ export function CompletionStep() {
             ? "Encontramos um problema durante o processamento das suas informações."
             : "Estamos analisando seu currículo, LinkedIn e objetivo profissional para transformar sua trajetória em recomendações claras e priorizadas."}
         </p>
-        {!failed ? <p className="text-sm leading-5 text-muted-foreground">{STAGE_LABELS[stage]}…</p> : null}
+        {!failed ? <p className="text-sm leading-5 text-muted-foreground">{PHASE_LABELS[phase]}…</p> : null}
       </div>
       {failed ? (
-        <Button className="h-9 w-[206px] rounded-[10px] text-sm" onClick={() => void run(stage)}>
+        <Button className="h-9 w-[206px] rounded-[10px] text-sm" onClick={() => void run()}>
           Tentar novamente
         </Button>
       ) : null}
