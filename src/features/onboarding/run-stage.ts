@@ -31,11 +31,15 @@ export async function postStage(stage: ClientStage): Promise<StageResponse> {
  * cannot spin hot; the cap is a backstop against a stage that never settles,
  * which would otherwise loop forever behind a screen that looks like progress.
  */
-const MAX_ROUNDS = 10;
+export const MAX_STAGE_ROUNDS = 10;
 
-export async function runStageToCompletion(stage: ClientStage): Promise<StageResponse> {
-  for (let round = 0; round < MAX_ROUNDS; round++) {
+export async function runStageToCompletion(
+  stage: ClientStage,
+  onRound?: (result: StageResponse) => void,
+): Promise<StageResponse> {
+  for (let round = 0; round < MAX_STAGE_ROUNDS; round++) {
     const result = await postStage(stage);
+    onRound?.(result);
     if (!result.ok || result.done) return result;
   }
   return { ok: false, done: false };
