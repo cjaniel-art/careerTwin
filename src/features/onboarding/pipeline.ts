@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { documentStoragePath, TEMPORARY_DOCUMENTS_BUCKET } from "@/infrastructure/storage/document-storage";
 import { resolveDocumentText } from "@/infrastructure/storage/document-markdown";
-import { getAiProvider, EXTRACTION_MODEL } from "@/infrastructure/ai";
+import { getAiProvider } from "@/infrastructure/ai";
 import { profileExtractionSchema, type ProfileExtraction } from "@/config/schemas/profile-extraction";
 import { PROMPT_CATALOG, delimitUntrustedDocument } from "@/config/prompts/catalog";
 import { ONBOARDING_CONFIG } from "@/config/engine/onboarding";
@@ -193,7 +193,6 @@ async function processDocument(supabase: SupabaseClient, userId: string, documen
       systemPrompt: buildExtractionSystemPrompt(document.document_type),
       userContent: delimitUntrustedDocument(document.document_type, content),
       schema: profileExtractionSchema,
-      model: EXTRACTION_MODEL,
       // Truncated JSON comes back as "trailing required arrays missing", which
       // schema repair can never fix — it retries at the same budget and fails
       // identically 3x. The structured output is routinely *larger* than the

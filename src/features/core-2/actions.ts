@@ -4,7 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { getAiProvider, EXTRACTION_MODEL } from "@/infrastructure/ai";
+import { getAiProvider } from "@/infrastructure/ai";
 import { opportunityStructureSchema } from "@/config/schemas/opportunity";
 import { core2OutputSchema } from "@/config/schemas/core2";
 import { PROMPT_CATALOG } from "@/config/prompts/catalog";
@@ -88,7 +88,6 @@ export async function createAndRunJobAnalysisAction(
       systemPrompt: buildStructuringSystemPrompt(),
       userContent: text,
       schema: opportunityStructureSchema,
-      model: EXTRACTION_MODEL,
     });
     structured = result.data;
   } catch (err) {
