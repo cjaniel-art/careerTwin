@@ -236,6 +236,13 @@ async function processDocument(documentId: string, pastedText?: string): Promise
       userContent: delimitUntrustedDocument(document.document_type, content),
       schema: profileExtractionSchema,
       model: EXTRACTION_MODEL,
+      // Default (4096) truncates mid-JSON before any of the required arrays
+      // (experiences/competencies/tools/...) are written for real, content-rich
+      // resumes and LinkedIn exports — every schema-repair retry fails
+      // identically since the arrays are simply missing, not malformed.
+      // Scales with input text length; 16000 ceiling matches the proven-safe
+      // cap already used for this same model in Core 2's structuring step.
+      maxOutputTokens: Math.min(16000, 6000 + Math.floor(content.length / 4)),
     });
 
     await supabase.from("document_extractions").insert({
