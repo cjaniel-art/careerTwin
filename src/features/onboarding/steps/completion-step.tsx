@@ -1,33 +1,51 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { Loader2 } from "lucide-react";
-import { completeOnboardingAction } from "../actions";
-import { Card, CardContent } from "@/components/ui/card";
+import { useActionState, useEffect, useRef } from "react";
+import Image from "next/image";
+import { completeOnboardingAction, type CompleteOnboardingState } from "../actions";
+import { SubmitButton } from "@/components/submit-button";
 
-/** Auto-submits on mount — no click required. Runs onboarding completion + the first Análise de Perfil, then redirects to the dashboard once both are done. */
+const initialState: CompleteOnboardingState = {};
+
+/**
+ * Full-page (no OnboardingShell photo panel) — matches Figma nodes 180:995
+ * (preparing) / 199:1375 (error). Auto-submits on mount; on failure shows
+ * the error state with a manual "Tentar novamente" that resubmits the same
+ * action instead of auto-retrying.
+ */
 export function CompletionStep() {
+  const [state, formAction] = useActionState(completeOnboardingAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
-  const hasSubmittedRef = useRef(false);
+  const hasAutoSubmittedRef = useRef(false);
 
   useEffect(() => {
-    if (hasSubmittedRef.current) return;
-    hasSubmittedRef.current = true;
+    if (hasAutoSubmittedRef.current) return;
+    hasAutoSubmittedRef.current = true;
     formRef.current?.requestSubmit();
   }, []);
 
   return (
-    <Card>
-      <CardContent className="space-y-4 pt-6 text-center">
-        <Loader2 className="mx-auto size-8 animate-spin text-primary" aria-hidden />
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Criando seu perfil</h2>
-          <p className="text-sm text-muted-foreground">
-            Estamos montando seu Thin Twin e gerando sua primeira Análise de Perfil. Isso pode levar um instante.
-          </p>
-        </div>
-        <form ref={formRef} action={completeOnboardingAction} className="hidden" />
-      </CardContent>
-    </Card>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-white px-6 text-center">
+      {state.error ? (
+        <Image src="/onboarding/analysis-error-icon.svg" alt="" width={208} height={208} className="size-[208px]" />
+      ) : (
+        <Image src="/onboarding/analysis-loading-icon.svg" alt="" width={223} height={218} className="h-[218px] w-[223px]" />
+      )}
+      <div className="flex max-w-[565px] flex-col gap-1.5">
+        <p className="text-xl font-black leading-7 text-foreground">
+          {state.error ? "Não foi possível concluir sua Análise de Perfil" : "Sua Análise de Perfil está sendo preparada"}
+        </p>
+        <p className="text-sm leading-5 text-foreground">
+          {state.error
+            ? "Encontramos um problema durante o processamento das suas informações."
+            : "Estamos analisando seu currículo, LinkedIn e objetivo profissional para transformar sua trajetória em recomendações claras e priorizadas."}
+        </p>
+      </div>
+      <form ref={formRef} action={formAction}>
+        {state.error ? (
+          <SubmitButton className="h-9 w-[206px] rounded-[10px] text-sm">Tentar novamente</SubmitButton>
+        ) : null}
+      </form>
+    </div>
   );
 }

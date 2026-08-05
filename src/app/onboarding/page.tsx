@@ -76,6 +76,11 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
     return <OnboardingShell>{renderNumberedStep(requestedStep, state)}</OnboardingShell>;
   }
 
+  // Full-page design (no OnboardingShell photo panel) per Figma 180:995/199:1375.
+  if (state.step === "completed") {
+    return <CompletionStep />;
+  }
+
   return (
     <OnboardingShell>
       {state.step === "identification" ? renderNumberedStep("personal-data", state) : null}
@@ -83,7 +88,6 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
       {state.step === "linkedin_upload" ? renderNumberedStep("linkedin", state) : null}
       {state.step === "processing" ? <ProcessingStep resumeStatus={state.resumeStatus} linkedinStatus={state.linkedinStatus} /> : null}
       {state.step === "target_context" ? renderNumberedStep("target-context", state) : null}
-      {state.step === "completed" ? <CompletionStep /> : null}
     </OnboardingShell>
   );
 }

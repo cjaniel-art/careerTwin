@@ -583,8 +583,15 @@ export async function saveTargetContextAction(
   redirect("/onboarding");
 }
 
+export interface CompleteOnboardingState {
+  error?: boolean;
+}
+
 /** RF-ONB-150..155 — the 9 preconditions are re-checked server-side, not trusted from the client. */
-export async function completeOnboardingAction(): Promise<void> {
+export async function completeOnboardingAction(
+  _prev: CompleteOnboardingState,
+  _formData: FormData,
+): Promise<CompleteOnboardingState> {
   const { supabase, user } = await requireUser();
   const { getOnboardingState } = await import("./get-state");
   const state = await getOnboardingState(supabase, user.id);
@@ -597,11 +604,15 @@ export async function completeOnboardingAction(): Promise<void> {
   trackEvent(ANALYTICS_EVENTS.onboardingCompleted, { userId: user.id });
 
   // Runs the first Análise de Perfil inline so it's already ready when the
-  // user lands on the result page — best-effort: on failure they land on
-  // the plain entry page instead and can retry from there like any other
-  // analysis.
+  // user lands on the result page. On failure, returns an error state
+  // instead of redirecting — the "Tentar novamente" screen resubmits this
+  // same action.
   const { runInitialProfileAnalysis } = await import("@/features/core-1/actions");
   const result = await runInitialProfileAnalysis();
 
-  redirect(result.ok && result.analysisId ? `/app/analise-perfil/${result.analysisId}` : "/app/analise-perfil");
+  if (!result.ok) {
+    return { error: true };
+  }
+
+  redirect(result.analysisId ? `/app/analise-perfil/${result.analysisId}` : "/app/analise-perfil");
 }
