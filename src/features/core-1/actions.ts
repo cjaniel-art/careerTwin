@@ -257,18 +257,23 @@ async function runDimensionsStage(
         languages: profileContext.languages,
       }),
       schema: core1DimensionsOutputSchema,
-      // On the provider's default model (Sonnet 5), this call reliably timed
-      // out past Vercel's 60s ceiling in production even after splitting
-      // dimensions from recommendations (two separate FUNCTION_INVOCATION_TIMEOUT
-      // failures, in two different sessions, after the split was already live).
-      // Reliability, in this environment, wins over the deeper reasoning Sonnet
-      // gives here — see EXTRACTION_MODEL's doc comment for the full tradeoff.
+      // Root cause of the production timeouts, found by measuring directly:
+      // NOT the model being slow — a too-tight maxOutputTokens truncated the
+      // response for a realistic profile, which fails schema.parse, which
+      // triggers up to 3 sequential schema-repair attempts inside this one
+      // call, each re-paying the full generation. A single untruncated
+      // generation is comfortably fast; three of them chained is what blew
+      // past 60s. Fixed at the source (below) rather than by choosing a
+      // faster model. Kept on Haiku regardless: for structured
+      // classification against a fixed rubric this is adequate quality,
+      // and it's cheaper than Sonnet with no measured quality complaint —
+      // not a reliability workaround.
       model: EXTRACTION_MODEL,
-      // Default (4096) truncates mid-JSON once the profile has real content to
-      // reason about across 7 dimensions — a truncated response fails
-      // schema.parse identically on every retry. Scales with profile size for
-      // the same reason Core 2 scales with requirement count.
-      maxOutputTokens: Math.min(16000, 6000 + (experienceCount + evidenceCount + profileContext.projects.length) * 250),
+      // 16000 measured comfortably sufficient for a 5-experience profile with
+      // the conciseness instruction above (dimensions/actions.ts's buildDimensionsSystemPrompt);
+      // the previous formula computed as low as ~6750 tokens for that same
+      // profile and truncated.
+      maxOutputTokens: 16000,
     });
 
     const assessments: DimensionAssessment[] = result.data.dimensionAssessments.map((d) => ({
@@ -394,9 +399,14 @@ async function runRecommendationsStage(
         },
       }),
       schema: core1RecommendationsOutputSchema,
-      // See the model override on the dimensions call above — same reasoning.
+      // See the model/maxOutputTokens comments on the dimensions call above —
+      // same root cause and same fix. Measured directly: at max_tokens 8000
+      // without the conciseness instruction, this call truncated (stop_reason
+      // "max_tokens") for a 5-experience/8-recommendation profile. With the
+      // conciseness instruction, the same profile completed cleanly in 3495
+      // output tokens — 16000 leaves ample margin for larger profiles.
       model: EXTRACTION_MODEL,
-      maxOutputTokens: Math.min(16000, 6000 + profileContext.experiences.length * 300),
+      maxOutputTokens: 16000,
     });
 
     const priorityInputs: PriorityInput[] = result.data.recommendations
@@ -524,6 +534,9 @@ function buildDimensionsSystemPrompt(): string {
     "Nunca invente experiências, resultados, métricas ou competências não presentes no perfil confirmado.",
     'Em evidenceRefs, use sourceId = o id real do item citado (experience/evidence/skill/tool) exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com um trecho real do conteúdo — nunca invente ids ou trechos.',
     "Se o perfil fornecido estiver vazio ou quase vazio em uma dimensão, reflita isso honestamente com rubricLevel baixo, em vez de gerar texto genérico como se houvesse conteúdo.",
+    // Verbose output was the actual cause of production timeouts — see the
+    // model/maxOutputTokens comments on the call site below.
+    "Seja direto e conciso em cada campo de texto (1-2 frases por campo, nunca um parágrafo longo).",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
   ].join(" ");
 }
@@ -536,6 +549,7 @@ function buildRecommendationsSystemPrompt(): string {
     "Você NUNCA calcula a prioridade final das recomendações — isso é feito pelo backend a partir de impact/effort/urgency/confidence.",
     "Nunca invente experiências, resultados, métricas ou competências não presentes no perfil confirmado.",
     'Em evidenceRefs, use sourceId = o id real do item citado (experience/evidence/skill/tool) exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com um trecho real do conteúdo — nunca invente ids ou trechos.',
+    "Seja direto e conciso em cada campo de texto (1-2 frases por campo, nunca um parágrafo longo).",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
   ].join(" ");
 }

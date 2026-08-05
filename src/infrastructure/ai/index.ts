@@ -6,23 +6,23 @@ import { SyntheticAiProvider } from "./synthetic-provider";
 let cached: AiProvider | undefined;
 
 /**
- * Faster model, used everywhere a Vercel Hobby function (60s ceiling) has
- * proven unreliable on the provider's default model (Sonnet 5) — pass as
- * `model` on AiCompletionRequest. Originally scoped to mechanical extraction
- * (P-001/P-002 résumé/LinkedIn, P-007 opportunity structuring, P-013 PDF
- * vision), where the choice is free: those calls don't need Sonnet's
- * reasoning quality.
+ * Faster/cheaper model — pass as `model` on AiCompletionRequest. Used for
+ * mechanical extraction (P-001/P-002 résumé/LinkedIn, P-007 opportunity
+ * structuring, P-013 PDF vision) and for Core 1's two analysis calls
+ * (P-005 dimensions + P-005-recommendations).
  *
- * Core 1 (P-005 dimensions + P-005-recommendations) is different: that call
- * IS the analytical judgment users see. It stayed on Sonnet 5 through an
- * earlier fix that split it into two requests specifically to fit the 60s
- * ceiling, and still timed out twice in separate production sessions after
- * that split shipped — isolated, one stage measured ~33s on Sonnet 5, well
- * inside budget, but under real production conditions (network to Anthropic,
- * concurrent load) it repeatedly exceeded 60s anyway. Moved here to Haiku
- * as a reliability trade against analysis depth, not a cost/speed
- * preference — revisit if the platform's duration ceiling is ever raised
- * (Vercel Pro allows up to 800s).
+ * The Core 1 calls were suspected, at first, of needing Sonnet 5's judgment
+ * quality and of being slow specifically because of that — but measuring
+ * directly showed the real production timeouts (FUNCTION_INVOCATION_TIMEOUT,
+ * Vercel's 60s ceiling) came from something else: an under-sized
+ * maxOutputTokens truncated the response for a realistic profile, which
+ * fails schema validation, which triggers up to 3 sequential schema-repair
+ * attempts inside one call — each re-paying the full generation cost. That's
+ * fixed at the source now (see the maxOutputTokens/system-prompt comments at
+ * the Core 1 call sites: a higher ceiling plus an explicit
+ * conciseness instruction). Haiku stays there anyway because, once
+ * measured, it produced fine output for this structured-classification task
+ * at meaningfully lower cost — not as a quality-for-reliability trade.
  */
 export const EXTRACTION_MODEL = "claude-haiku-4-5-20251001";
 
