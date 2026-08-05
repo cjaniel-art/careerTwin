@@ -3,7 +3,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { getAiProvider } from "@/infrastructure/ai";
+import { getAiProvider, EXTRACTION_MODEL } from "@/infrastructure/ai";
 import { core1DimensionsOutputSchema, core1RecommendationsOutputSchema } from "@/config/schemas/core1";
 import { PROMPT_CATALOG } from "@/config/prompts/catalog";
 import { calculateIpp, type DimensionAssessment } from "@/domain/scores/ipp";
@@ -257,6 +257,13 @@ async function runDimensionsStage(
         languages: profileContext.languages,
       }),
       schema: core1DimensionsOutputSchema,
+      // On the provider's default model (Sonnet 5), this call reliably timed
+      // out past Vercel's 60s ceiling in production even after splitting
+      // dimensions from recommendations (two separate FUNCTION_INVOCATION_TIMEOUT
+      // failures, in two different sessions, after the split was already live).
+      // Reliability, in this environment, wins over the deeper reasoning Sonnet
+      // gives here — see EXTRACTION_MODEL's doc comment for the full tradeoff.
+      model: EXTRACTION_MODEL,
       // Default (4096) truncates mid-JSON once the profile has real content to
       // reason about across 7 dimensions — a truncated response fails
       // schema.parse identically on every retry. Scales with profile size for
@@ -387,6 +394,8 @@ async function runRecommendationsStage(
         },
       }),
       schema: core1RecommendationsOutputSchema,
+      // See the model override on the dimensions call above — same reasoning.
+      model: EXTRACTION_MODEL,
       maxOutputTokens: Math.min(16000, 6000 + profileContext.experiences.length * 300),
     });
 
