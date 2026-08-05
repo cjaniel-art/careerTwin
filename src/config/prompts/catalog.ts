@@ -36,8 +36,17 @@ export const PROMPT_CATALOG: Record<string, PromptDefinition> = {
   },
   "P-005": {
     id: "P-005",
-    name: "Análise de Perfil",
+    name: "Análise de Perfil — dimensões",
     objective: "Classifica as sete dimensões do IPP em níveis de zero a quatro e gera o diagnóstico do Core 1.",
+    version: "1.0.0",
+  },
+  // Second call of the same P-005 analysis, split out as its own request so
+  // neither half risks the platform's function-duration ceiling — see the
+  // comment on core1DimensionsOutputSchema.
+  "P-005-recommendations": {
+    id: "P-005-recommendations",
+    name: "Análise de Perfil — recomendações",
+    objective: "Gera as recomendações priorizadas do Core 1 a partir do diagnóstico e das lacunas já identificados.",
     version: "1.0.0",
   },
   "P-007": {

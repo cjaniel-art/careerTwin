@@ -114,18 +114,33 @@ function synthesizeProfileExtraction(content: string, documentType: "resume" | "
 }
 
 /**
- * Core 1 (P-005) fixture. Never computes rubricLevel from anything but the
- * plain counts the caller provides (JSON in `content`) — it must NOT decide
- * the final IPP (that stays exclusively backend math in src/domain/scores/ipp.ts),
- * only produce plausible per-dimension classifications for the engine to score.
+ * Core 1 fixtures, split to match the two real request stages (see
+ * core1DimensionsOutputSchema in config/schemas/core1.ts for why the real
+ * pipeline is two calls, not one). `content` here is the actual
+ * JSON.stringify'd profile-context payload the real call sends — not a
+ * counts summary — so both fixtures read array lengths out of it directly.
+ * Never computes rubricLevel from anything but those counts: it must NOT
+ * decide the final IPP (that stays exclusively backend math in
+ * src/domain/scores/ipp.ts), only produce plausible per-dimension
+ * classifications for the engine to score.
  */
-function synthesizeCore1Output(content: string) {
-  let counts = { experienceCount: 0, evidenceCount: 0, skillCount: 0, toolCount: 0 };
+function parseProfileContextCounts(content: string) {
+  let parsed: { experiences?: unknown[]; evidences?: unknown[]; skills?: unknown[]; tools?: unknown[] } = {};
   try {
-    counts = { ...counts, ...JSON.parse(content) };
+    parsed = JSON.parse(content);
   } catch {
     // keep zeros — insufficient data is a legitimate, expected outcome here
   }
+  return {
+    experienceCount: Array.isArray(parsed.experiences) ? parsed.experiences.length : 0,
+    evidenceCount: Array.isArray(parsed.evidences) ? parsed.evidences.length : 0,
+    skillCount: Array.isArray(parsed.skills) ? parsed.skills.length : 0,
+    toolCount: Array.isArray(parsed.tools) ? parsed.tools.length : 0,
+  };
+}
+
+function synthesizeCore1Dimensions(content: string) {
+  const counts = parseProfileContextCounts(content);
 
   const levelFromCount = (count: number, thresholds: [number, number, number]): 0 | 1 | 2 | 3 | 4 => {
     if (count <= 0) return 0;
@@ -198,10 +213,6 @@ function synthesizeCore1Output(content: string) {
           : "Poucas competências e ferramentas confirmadas.",
       nextBestAction: "Complementar o perfil com mais evidências e competências antes de avançar para o Core 2.",
     },
-    strengths:
-      counts.experienceCount > 0
-        ? [{ title: "Experiência confirmada", description: "Ao menos uma experiência foi confirmada no perfil.", evidenceRefs: [] }]
-        : [],
     gaps: [
       {
         type: "evidencia" as const,
@@ -210,28 +221,36 @@ function synthesizeCore1Output(content: string) {
         missingInformation: ["Resultados ou entregas específicas por experiência."],
       },
     ],
-    recommendations: [
-      {
-        recommendationKey: "add-evidence-1",
-        category: "evidencia" as const,
-        title: "Adicione evidências às suas experiências",
-        problem: "Suas experiências confirmadas têm poucas evidências concretas associadas.",
-        reasoning: "Evidências concretas aumentam a confiança e a especificidade do diagnóstico.",
-        evidenceRefs: [],
-        missingEvidence: ["Resultados quantitativos ou qualitativos por experiência"],
-        suggestedAction: "Descreva um resultado, entrega ou projeto concreto para cada experiência confirmada.",
-        expectedOutcome: "Diagnóstico mais específico e recomendações mais precisas nas próximas análises.",
-        impact: 4,
-        effort: 2,
-        urgency: 3,
-        confidence: 4,
-        completionCriteria: "Ao menos uma evidência concreta adicionada a cada experiência confirmada.",
-      },
-    ],
-    experienceTranslations: [],
-    actionCandidates: [],
-    authenticityValidation: { warnings: [], blockedClaims: [] },
     warnings: ["Análise gerada pelo adapter sintético de desenvolvimento — não é uma análise real de IA."],
+  };
+}
+
+function synthesizeCore1Recommendations(content: string) {
+  const counts = parseProfileContextCounts(content);
+
+  return {
+    recommendations:
+      counts.experienceCount > 0
+        ? [
+            {
+              recommendationKey: "add-evidence-1",
+              category: "evidencia" as const,
+              title: "Adicione evidências às suas experiências",
+              problem: "Suas experiências confirmadas têm poucas evidências concretas associadas.",
+              reasoning: "Evidências concretas aumentam a confiança e a especificidade do diagnóstico.",
+              evidenceRefs: [],
+              missingEvidence: ["Resultados quantitativos ou qualitativos por experiência"],
+              suggestedAction: "Descreva um resultado, entrega ou projeto concreto para cada experiência confirmada.",
+              expectedOutcome: "Diagnóstico mais específico e recomendações mais precisas nas próximas análises.",
+              impact: 4,
+              effort: 2,
+              urgency: 3,
+              confidence: 4,
+              completionCriteria: "Ao menos uma evidência concreta adicionada a cada experiência confirmada.",
+            },
+          ]
+        : [],
+    warnings: ["Recomendações geradas pelo adapter sintético de desenvolvimento — não é uma análise real de IA."],
   };
 }
 
@@ -396,7 +415,8 @@ function synthesizeCore2Output(content: string) {
 const SYNTHETIC_BUILDERS: Record<string, (content: string) => unknown> = {
   "P-001": (content) => synthesizeProfileExtraction(content, "resume"),
   "P-002": (content) => synthesizeProfileExtraction(content, "linkedin"),
-  "P-005": (content) => synthesizeCore1Output(content),
+  "P-005": (content) => synthesizeCore1Dimensions(content),
+  "P-005-recommendations": (content) => synthesizeCore1Recommendations(content),
   "P-007": (content) => synthesizeOpportunityStructure(content),
   "P-009": (content) => synthesizeCore2Output(content),
 };

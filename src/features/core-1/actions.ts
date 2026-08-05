@@ -4,7 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { getAiProvider } from "@/infrastructure/ai";
-import { core1OutputSchema } from "@/config/schemas/core1";
+import { core1DimensionsOutputSchema, core1RecommendationsOutputSchema } from "@/config/schemas/core1";
 import { PROMPT_CATALOG } from "@/config/prompts/catalog";
 import { calculateIpp, type DimensionAssessment } from "@/domain/scores/ipp";
 import { calculateConfidence } from "@/domain/scores/confidence";
@@ -176,12 +176,22 @@ export async function startProfileAnalysisAction(): Promise<void> {
   redirect(`/app/analise-perfil/processando/${row.analysisId}`);
 }
 
+export interface ProfileAnalysisStageResult {
+  ok: boolean;
+  /** False means "call me again" — this stage finished its own request but the pipeline isn't done. */
+  done: boolean;
+}
+
 /**
- * Runs the actual analysis pipeline for an analysis already in `processing`.
- * Separated from startProfileAnalysisAction so the processing page can
- * trigger it (simulating the async worker picking up the job).
+ * Runs exactly one stage of the Core 1 pipeline for an analysis already in
+ * `processing` (dimensions) or `preliminary` (recommendations), then
+ * returns — never both in one call. The combined single-call version of this
+ * (dimension classification + up to 8 evidence-grounded recommendations)
+ * routinely exceeded Vercel's 60s function ceiling in production. The caller
+ * (the onboarding pipeline's client-side loop, or the processing page's
+ * self-redirect) is responsible for calling again while `done` is false.
  */
-export async function runProfileAnalysis(analysisId: string): Promise<{ ok: boolean }> {
+export async function runProfileAnalysisStage(analysisId: string): Promise<ProfileAnalysisStageResult> {
   const { supabase, user } = await requireUser();
 
   const { data: analysis } = await supabase
@@ -190,7 +200,36 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
     .eq("id", analysisId)
     .eq("user_id", user.id)
     .single();
-  if (!analysis || analysis.status !== "processing") return { ok: analysis?.status === "completed" };
+  if (!analysis) return { ok: false, done: false };
+  if (analysis.status === "completed") return { ok: true, done: true };
+  if (analysis.status === "preliminary") return runRecommendationsStage(supabase, user.id, analysisId, analysis);
+  if (analysis.status !== "processing") return { ok: false, done: false };
+
+  return runDimensionsStage(supabase, user.id, analysisId, analysis);
+}
+
+type AnalysesClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+async function runDimensionsStage(
+  supabase: AnalysesClient,
+  userId: string,
+  analysisId: string,
+  analysis: { profile_version_id: string; target_context_version_id: string },
+): Promise<ProfileAnalysisStageResult> {
+  // Idempotent: ensureProfileAnalysisRow resets a failed_retryable analysis
+  // straight back to "processing" on retry — if stage 1's results already
+  // exist (this stage itself failed downstream, or the request died after
+  // persisting but before returning), skip straight to stage 2 rather than
+  // re-billing and re-running the model call.
+  const { data: existingResult } = await supabase
+    .from("profile_analysis_results")
+    .select("analysis_id")
+    .eq("analysis_id", analysisId)
+    .maybeSingle();
+  if (existingResult) {
+    await supabase.from("analyses").update({ status: "preliminary" }).eq("id", analysisId);
+    return { ok: true, done: false };
+  }
 
   const [profileContext, targetContext] = await Promise.all([
     fetchProfileContext(supabase, analysis.profile_version_id),
@@ -205,7 +244,7 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
     const result = await provider.complete({
       promptId: "P-005",
       promptVersion: prompt.version,
-      systemPrompt: buildCore1SystemPrompt(),
+      systemPrompt: buildDimensionsSystemPrompt(),
       userContent: JSON.stringify({
         targetContext,
         experiences: profileContext.experiences,
@@ -217,18 +256,12 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
         certifications: profileContext.certifications,
         languages: profileContext.languages,
       }),
-      schema: core1OutputSchema,
+      schema: core1DimensionsOutputSchema,
       // Default (4096) truncates mid-JSON once the profile has real content to
-      // reason about across 7 dimensions + up to 5 recommendations, each now
-      // required to cite real evidenceRefs — a truncated response fails
-      // schema.parse identically on every retry (confirmed on Core 2 with the
-      // same fix: see runJobAnalysis's maxOutputTokens). Scales with profile
-      // size for the same reason Core 2 scales with requirement count.
-      maxOutputTokens: Math.min(
-        24000,
-        8000 +
-          (profileContext.experiences.length + profileContext.evidences.length + profileContext.projects.length) * 400,
-      ),
+      // reason about across 7 dimensions — a truncated response fails
+      // schema.parse identically on every retry. Scales with profile size for
+      // the same reason Core 2 scales with requirement count.
+      maxOutputTokens: Math.min(16000, 6000 + (experienceCount + evidenceCount + profileContext.projects.length) * 250),
     });
 
     const assessments: DimensionAssessment[] = result.data.dimensionAssessments.map((d) => ({
@@ -238,28 +271,15 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
     }));
     const ipp = calculateIpp(assessments);
 
-    const hasExperience = experienceCount > 0;
-    const hasEvidence = evidenceCount > 0;
     const confidence = calculateConfidence(
       {
-        inputCompleteness: hasExperience ? 0.8 : 0.3,
+        inputCompleteness: experienceCount > 0 ? 0.8 : 0.3,
         userConfirmation: 1.0,
-        evidenceTraceability: hasEvidence ? 0.7 : 0.3,
+        evidenceTraceability: evidenceCount > 0 ? 0.7 : 0.3,
         sourceConsistency: 0.9,
       },
       { reasons: result.data.confidenceAssessment.reasons, missingInformation: result.data.confidenceAssessment.missingInformation },
     );
-
-    const priorityInputs: PriorityInput[] = result.data.recommendations
-      .slice(0, CORE_1_CONFIG.recommendations.maximum)
-      .map((r) => ({
-        id: r.recommendationKey,
-        impact: asLikert(r.impact),
-        effort: asLikert(r.effort),
-        urgency: asLikert(r.urgency),
-        confidence: asLikert(r.confidence),
-      }));
-    const prioritized = orderByPriority(priorityInputs);
 
     await supabase.from("profile_dimension_results").insert(
       ipp.dimensions.map((d) => ({
@@ -282,8 +302,109 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
       main_strength: result.data.diagnosis.mainStrength,
       main_gap: result.data.diagnosis.mainGap,
       next_best_action: result.data.diagnosis.nextBestAction,
-      calculation_snapshot: { ipp, confidence },
+      // `gaps` rides along in this jsonb blob purely so stage 2 — a separate
+      // request — can read it back; there is no other place to hand off
+      // stage 1's intermediate output between the two calls.
+      calculation_snapshot: { ipp, confidence, gaps: result.data.gaps },
     });
+
+    await supabase
+      .from("analyses")
+      .update({
+        status: "preliminary",
+        confidence_score: confidence.score,
+        confidence_band: confidence.level,
+        confidence_reasons: confidence.reasons,
+        missing_information: confidence.missingInformation,
+        model_version: result.modelVersion,
+        prompt_version: prompt.version,
+        schema_version: result.data.schemaVersion,
+      })
+      .eq("id", analysisId);
+
+    return { ok: true, done: false };
+  } catch (err) {
+    await failAnalysis(supabase, analysisId, err);
+    trackEvent(ANALYTICS_EVENTS.profileAnalysisFailed, { userId, analysisId, analysisType: "profile_analysis" });
+    return { ok: false, done: false };
+  }
+}
+
+async function runRecommendationsStage(
+  supabase: AnalysesClient,
+  userId: string,
+  analysisId: string,
+  analysis: { profile_version_id: string; target_context_version_id: string },
+): Promise<ProfileAnalysisStageResult> {
+  const { data: stage1 } = await supabase
+    .from("profile_analysis_results")
+    .select("calculation_snapshot, diagnosis, main_strength, main_gap, next_best_action, ipp_band")
+    .eq("analysis_id", analysisId)
+    .single();
+  // The status gate in runProfileAnalysisStage guarantees stage 1 completed
+  // before this stage can run — a missing row here means the data was lost
+  // some other way, not a normal retry case.
+  if (!stage1) return { ok: false, done: false };
+
+  const { data: dimensionRows } = await supabase
+    .from("profile_dimension_results")
+    .select("dimension, rubric_level, reasoning")
+    .eq("analysis_id", analysisId);
+
+  const [profileContext, targetContext] = await Promise.all([
+    fetchProfileContext(supabase, analysis.profile_version_id),
+    fetchTargetContext(supabase, analysis.target_context_version_id),
+  ]);
+
+  const snapshot = stage1.calculation_snapshot as { gaps?: unknown };
+
+  try {
+    const provider = getAiProvider();
+    const prompt = PROMPT_CATALOG["P-005-recommendations"]!;
+    const result = await provider.complete({
+      promptId: "P-005-recommendations",
+      promptVersion: prompt.version,
+      systemPrompt: buildRecommendationsSystemPrompt(),
+      userContent: JSON.stringify({
+        targetContext,
+        experiences: profileContext.experiences,
+        projects: profileContext.projects,
+        skills: profileContext.skills,
+        tools: profileContext.tools,
+        evidences: profileContext.evidences,
+        education: profileContext.education,
+        certifications: profileContext.certifications,
+        languages: profileContext.languages,
+        analysis: {
+          diagnosis: {
+            summary: stage1.diagnosis,
+            mainStrength: stage1.main_strength,
+            mainGap: stage1.main_gap,
+            nextBestAction: stage1.next_best_action,
+          },
+          dimensionAssessments: dimensionRows ?? [],
+          gaps: snapshot.gaps ?? [],
+        },
+      }),
+      schema: core1RecommendationsOutputSchema,
+      maxOutputTokens: Math.min(16000, 6000 + profileContext.experiences.length * 300),
+    });
+
+    const priorityInputs: PriorityInput[] = result.data.recommendations
+      .slice(0, CORE_1_CONFIG.recommendations.maximum)
+      .map((r) => ({
+        id: r.recommendationKey,
+        impact: asLikert(r.impact),
+        effort: asLikert(r.effort),
+        urgency: asLikert(r.urgency),
+        confidence: asLikert(r.confidence),
+      }));
+    const prioritized = orderByPriority(priorityInputs);
+
+    // Idempotent: clears any partial insert from a previous failed attempt.
+    // Safe before "completed" — the immutability trigger on `analyses` only
+    // blocks further writes once status flips there, at the very end below.
+    await supabase.from("recommendations").delete().eq("analysis_id", analysisId);
 
     if (result.data.recommendations.length > 0) {
       await supabase.from("recommendations").insert(
@@ -311,61 +432,50 @@ export async function runProfileAnalysis(analysisId: string): Promise<{ ok: bool
       );
     }
 
-    await supabase
-      .from("analyses")
-      .update({
-        status: "completed",
-        confidence_score: confidence.score,
-        confidence_band: confidence.level,
-        confidence_reasons: confidence.reasons,
-        missing_information: confidence.missingInformation,
-        model_version: result.modelVersion,
-        prompt_version: prompt.version,
-        schema_version: result.data.schemaVersion,
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", analysisId);
+    await supabase.from("analyses").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", analysisId);
 
     trackEvent(ANALYTICS_EVENTS.profileAnalysisCompleted, {
-      userId: user.id,
+      userId,
       analysisId,
       analysisType: "profile_analysis",
       properties: {
-        ippBand: mapIppBand(ipp.level),
-        confidenceLevel: confidence.level,
+        ippBand: stage1.ipp_band,
         recommendationCount: result.data.recommendations.length,
       },
     });
 
-    return { ok: true };
+    return { ok: true, done: true };
   } catch (err) {
-    // TEMP DEBUG (remove once root-caused): persist the raw failure into the
-    // otherwise-unused `warnings` column since server console.error isn't reachable here.
-    const debugDetail =
-      err instanceof Error
-        ? [err.message, err.cause instanceof Error ? err.cause.message : JSON.stringify(err.cause)].filter(Boolean)
-        : [JSON.stringify(err)];
-    await supabase.from("analyses").update({ status: "failed_retryable", warnings: debugDetail }).eq("id", analysisId);
-    trackEvent(ANALYTICS_EVENTS.profileAnalysisFailed, { userId: user.id, analysisId, analysisType: "profile_analysis" });
-    console.error("runProfileAnalysis failed:", err instanceof Error ? err.message : err);
-    return { ok: false };
+    await failAnalysis(supabase, analysisId, err);
+    trackEvent(ANALYTICS_EVENTS.profileAnalysisFailed, { userId, analysisId, analysisType: "profile_analysis" });
+    return { ok: false, done: false };
   }
 }
 
+async function failAnalysis(supabase: AnalysesClient, analysisId: string, err: unknown): Promise<void> {
+  // TEMP DEBUG (remove once root-caused): persist the raw failure into the
+  // otherwise-unused `warnings` column since server console.error isn't reachable here.
+  const debugDetail =
+    err instanceof Error
+      ? [err.message, err.cause instanceof Error ? err.cause.message : JSON.stringify(err.cause)].filter(Boolean)
+      : [JSON.stringify(err)];
+  await supabase.from("analyses").update({ status: "failed_retryable", warnings: debugDetail }).eq("id", analysisId);
+  console.error("runProfileAnalysisStage failed:", err instanceof Error ? err.message : err);
+}
+
 /**
- * Creates and runs the first Análise de Perfil inline, right after
- * onboarding finishes — so it's already ready by the time the user lands on
- * /app/analise-perfil, no separate processing page or manual "Iniciar
- * análise" click. Best-effort: on failure the caller falls back to the
- * plain entry page, where the user can retry like any other failed
- * analysis.
+ * Creates the analysis row and runs exactly one stage of it — called from
+ * the onboarding pipeline's client-side loop (features/onboarding/pipeline.ts),
+ * which calls this again while `done` is false, one request per stage. Not a
+ * loop-to-completion itself: doing both stages here would reintroduce the
+ * same timeout risk runProfileAnalysisStage's split exists to avoid.
  */
-export async function runInitialProfileAnalysis(): Promise<{ ok: boolean; analysisId?: string }> {
+export async function runInitialProfileAnalysis(): Promise<{ ok: boolean; done: boolean; analysisId?: string }> {
   const row = await ensureProfileAnalysisRow();
-  if (!row.ok) return { ok: false };
-  if (row.alreadyCompleted) return { ok: true, analysisId: row.analysisId };
-  const result = await runProfileAnalysis(row.analysisId);
-  return { ok: result.ok, analysisId: row.analysisId };
+  if (!row.ok) return { ok: false, done: false };
+  if (row.alreadyCompleted) return { ok: true, done: true, analysisId: row.analysisId };
+  const result = await runProfileAnalysisStage(row.analysisId);
+  return { ok: result.ok, done: result.done, analysisId: row.analysisId };
 }
 
 /** Schema already validated these as integers 1..5 at runtime (core1.ts). */
@@ -395,15 +505,28 @@ function mapRecommendationCategory(category: string): "competency" | "communicat
   return map[category] ?? "evidence";
 }
 
-function buildCore1SystemPrompt(): string {
+function buildDimensionsSystemPrompt(): string {
   return [
-    "Você é o motor de Análise de Perfil (Core 1) do CareerTwin.",
+    "Você é o motor de Análise de Perfil (Core 1) do CareerTwin, etapa de classificação de dimensões.",
     "A mensagem do usuário contém o conteúdo real e completo do perfil confirmado (experiências, projetos, competências, ferramentas, evidências, formação, certificações, idiomas) e o contexto-alvo — baseie toda a análise exclusivamente nesse conteúdo, nunca em suposições.",
-    "Classifique cada uma das sete dimensões do IPP em um nível de rubrica de 0 a 4, com justificativa concreta referenciando o conteúdo fornecido.",
-    "Você NUNCA calcula o IPP final, a confiança final, nem a prioridade das recomendações — isso é feito pelo backend.",
+    "Classifique cada uma das sete dimensões do IPP em um nível de rubrica de 0 a 4, com justificativa concreta referenciando o conteúdo fornecido, e identifique as lacunas (gaps) do perfil frente ao contexto-alvo.",
+    "As recomendações são geradas em uma etapa separada, com base neste diagnóstico — não as gere aqui.",
+    "Você NUNCA calcula o IPP final nem a confiança final — isso é feito pelo backend.",
     "Nunca invente experiências, resultados, métricas ou competências não presentes no perfil confirmado.",
     'Em evidenceRefs, use sourceId = o id real do item citado (experience/evidence/skill/tool) exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com um trecho real do conteúdo — nunca invente ids ou trechos.',
     "Se o perfil fornecido estiver vazio ou quase vazio em uma dimensão, reflita isso honestamente com rubricLevel baixo, em vez de gerar texto genérico como se houvesse conteúdo.",
+    "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
+  ].join(" ");
+}
+
+function buildRecommendationsSystemPrompt(): string {
+  return [
+    "Você é o motor de Análise de Perfil (Core 1) do CareerTwin, etapa de geração de recomendações.",
+    "A mensagem do usuário contém o conteúdo completo do perfil confirmado, o contexto-alvo, e o diagnóstico, as dimensões classificadas e as lacunas já identificados em uma etapa anterior desta mesma análise — gere recomendações a partir desse diagnóstico, sem reavaliar as dimensões do zero.",
+    `Gere no máximo ${CORE_1_CONFIG.recommendations.maximum} recomendações, cada uma endereçando uma lacuna real identificada.`,
+    "Você NUNCA calcula a prioridade final das recomendações — isso é feito pelo backend a partir de impact/effort/urgency/confidence.",
+    "Nunca invente experiências, resultados, métricas ou competências não presentes no perfil confirmado.",
+    'Em evidenceRefs, use sourceId = o id real do item citado (experience/evidence/skill/tool) exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com um trecho real do conteúdo — nunca invente ids ou trechos.',
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
   ].join(" ");
 }

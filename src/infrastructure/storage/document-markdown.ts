@@ -1,4 +1,4 @@
-import { getAiProvider } from "@/infrastructure/ai";
+import { getAiProvider, EXTRACTION_MODEL } from "@/infrastructure/ai";
 import { PROMPT_CATALOG } from "@/config/prompts/catalog";
 import { ONBOARDING_CONFIG } from "@/config/engine/onboarding";
 import { extractDocumentText, extractPdfTextLayer, isPdfDocument } from "./document-text-extraction";
@@ -80,6 +80,7 @@ export async function resolveDocumentText(params: {
     systemPrompt: SYSTEM_PROMPT,
     pdf: params.buffer,
     instruction: INSTRUCTION,
+    model: EXTRACTION_MODEL,
   });
 
   return { text: result.markdown, method: "pdf_vision", pageCount: layer.pageCount };

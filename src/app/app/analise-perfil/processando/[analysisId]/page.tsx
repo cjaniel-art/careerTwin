@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { runProfileAnalysis } from "@/features/core-1/actions";
+import { runProfileAnalysisStage } from "@/features/core-1/actions";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,9 +31,15 @@ export default async function ProfileAnalysisProcessingPage({
   if (!analysis) redirect("/app/analise-perfil");
   if (analysis.status === "completed") redirect(`/app/analise-perfil/${analysisId}`);
 
-  if (analysis.status === "processing") {
-    const result = await runProfileAnalysis(analysisId);
-    if (result.ok) redirect(`/app/analise-perfil/${analysisId}`);
+  // "preliminary" = stage 1 (dimensions) done, stage 2 (recommendations)
+  // still pending — each stage is its own request/invocation (see
+  // runProfileAnalysisStage), so an unfinished stage redirects back to this
+  // same page rather than looping in-process, giving the next stage a fresh
+  // function-duration budget.
+  if (analysis.status === "processing" || analysis.status === "preliminary") {
+    const result = await runProfileAnalysisStage(analysisId);
+    if (result.ok && result.done) redirect(`/app/analise-perfil/${analysisId}`);
+    if (result.ok && !result.done) redirect(`/app/analise-perfil/processando/${analysisId}`);
   }
 
   return (

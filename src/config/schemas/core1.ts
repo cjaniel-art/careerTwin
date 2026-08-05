@@ -26,7 +26,26 @@ export const recommendationCandidateSchema = z.object({
   completionCriteria: z.string(),
 });
 
-export const core1OutputSchema = z.object({
+const gapSchema = z.object({
+  type: z.enum(["competencia", "comunicacao", "evidencia", "posicionamento", "desconhecida"]),
+  description: z.string(),
+  evidenceRefs: z.array(evidenceReferenceSchema),
+  missingInformation: z.array(z.string()),
+});
+
+/**
+ * Stage 1 of Core 1 (P-005) — dimension classification + diagnosis. Split
+ * from recommendation generation (below) because the single combined call
+ * reasoning over 7 dimensions and up to 8 evidence-grounded recommendations
+ * routinely exceeded Vercel's 60s function ceiling in production. Each stage
+ * is its own request, chained by the caller (mirrors the résumé/LinkedIn
+ * read+extract split in features/onboarding/pipeline.ts).
+ *
+ * `strengths`/`experienceTranslations`/`actionCandidates`/`authenticityValidation`
+ * from the original combined schema are dropped, not carried into either
+ * stage: nothing downstream ever persisted or read them.
+ */
+export const core1DimensionsOutputSchema = z.object({
   analysisType: z.literal("profile_analysis"),
   profileVersionId: z.string(),
   targetContextVersionId: z.string(),
@@ -53,32 +72,16 @@ export const core1OutputSchema = z.object({
     mainGap: z.string(),
     nextBestAction: z.string(),
   }),
-  strengths: z.array(
-    z.object({ title: z.string(), description: z.string(), evidenceRefs: z.array(evidenceReferenceSchema) }),
-  ),
-  gaps: z.array(
-    z.object({
-      type: z.enum(["competencia", "comunicacao", "evidencia", "posicionamento", "desconhecida"]),
-      description: z.string(),
-      evidenceRefs: z.array(evidenceReferenceSchema),
-      missingInformation: z.array(z.string()),
-    }),
-  ),
-  recommendations: z.array(recommendationCandidateSchema),
-  experienceTranslations: z.array(
-    z.object({
-      originalText: z.string(),
-      identifiedIssue: z.string(),
-      implicitSkills: z.array(z.string()),
-      suggestedText: z.string(),
-      marketTerms: z.array(z.string()),
-      evidenceRefs: z.array(evidenceReferenceSchema),
-      authenticityWarning: z.string().optional(),
-    }),
-  ),
-  actionCandidates: z.array(z.unknown()),
-  authenticityValidation: z.object({ warnings: z.array(z.string()), blockedClaims: z.array(z.string()) }),
+  gaps: z.array(gapSchema),
   warnings: z.array(z.string()),
 });
 
-export type Core1Output = z.infer<typeof core1OutputSchema>;
+/** Stage 2 of Core 1 (P-005) — recommendations, generated from stage 1's diagnosis/gaps as context. */
+export const core1RecommendationsOutputSchema = z.object({
+  recommendations: z.array(recommendationCandidateSchema),
+  warnings: z.array(z.string()),
+});
+
+export type Core1DimensionsOutput = z.infer<typeof core1DimensionsOutputSchema>;
+export type Core1RecommendationsOutput = z.infer<typeof core1RecommendationsOutputSchema>;
+export type Core1Gap = z.infer<typeof gapSchema>;
