@@ -3,7 +3,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { documentStoragePath, TEMPORARY_DOCUMENTS_BUCKET } from "@/infrastructure/storage/document-storage";
 import { resolveDocumentText } from "@/infrastructure/storage/document-markdown";
 import { getAiProvider, EXTRACTION_MODEL } from "@/infrastructure/ai";
-import { profileExtractionSchema, type ProfileExtraction } from "@/config/schemas/profile-extraction";
+import {
+  profileExtractionSchema,
+  profileExperiencesExtractionSchema,
+  profileSkillsExtractionSchema,
+  type ProfileExtraction,
+} from "@/config/schemas/profile-extraction";
 import { PROMPT_CATALOG, delimitUntrustedDocument } from "@/config/prompts/catalog";
 import { ONBOARDING_CONFIG } from "@/config/engine/onboarding";
 import { trackEvent } from "@/infrastructure/analytics";
@@ -132,13 +137,34 @@ async function ensureDocumentText(supabase: SupabaseClient, userId: string, docu
   return resolved.text;
 }
 
-function buildExtractionSystemPrompt(documentType: string): string {
+function buildExperiencesExtractionSystemPrompt(documentType: string): string {
   return [
-    "Você é o motor de extração profissional do CareerTwin.",
-    "Extraia apenas informações presentes no documento fornecido, com evidência e confiança de extração.",
-    "Nunca invente experiências, ferramentas, métricas ou resultados não presentes no material.",
+    "Você é o motor de extração profissional do CareerTwin, etapa de experiências.",
+    "Extraia apenas a identidade profissional e as experiências presentes no documento fornecido, com evidência e confiança de extração.",
+    "Ignore competências, ferramentas, formação e certificações — isso é extraído em uma etapa separada.",
+    "Nunca invente experiências, métricas ou resultados não presentes no material.",
     "Marque inferências como inferência/hipótese, nunca como fato confirmado.",
     `Tipo de documento: ${documentType}.`,
+    // Measured directly against a real 13-experience profile: extracting
+    // everything in one call took 64-70s even with a conciseness instruction
+    // and numeric caps — over the 60s function ceiling. Splitting into this
+    // and buildSkillsExtractionSystemPrompt, run concurrently, is what
+    // actually closed the gap.
+    "Seja direto e conciso em cada campo de texto (1-2 frases por item, nunca um parágrafo longo).",
+    "Para cada experiência, extraia no máximo 3 responsabilidades e no máximo 2 resultados/evidências — escolha os mais relevantes e quantificáveis, nunca liste tudo que houver no documento.",
+    "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
+  ].join(" ");
+}
+
+function buildSkillsExtractionSystemPrompt(documentType: string): string {
+  return [
+    "Você é o motor de extração profissional do CareerTwin, etapa de competências.",
+    "Extraia apenas competências, ferramentas, formação, certificações e conflitos entre fontes presentes no documento fornecido, com evidência e confiança de extração.",
+    "Ignore experiências e identidade profissional — isso é extraído em uma etapa separada.",
+    "Nunca invente competências, ferramentas ou certificações não presentes no material.",
+    "Marque inferências como inferência/hipótese, nunca como fato confirmado.",
+    `Tipo de documento: ${documentType}.`,
+    "Seja direto e conciso em cada campo de texto (1-2 frases por item, nunca um parágrafo longo).",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
   ].join(" ");
 }
@@ -187,36 +213,74 @@ async function processDocument(supabase: SupabaseClient, userId: string, documen
     const provider = getAiProvider();
     const promptId = document.document_type === "resume" ? "P-001" : "P-002";
     const prompt = PROMPT_CATALOG[promptId]!;
-    const result = await provider.complete({
-      promptId,
-      promptVersion: prompt.version,
-      systemPrompt: buildExtractionSystemPrompt(document.document_type),
-      userContent: delimitUntrustedDocument(document.document_type, content),
-      schema: profileExtractionSchema,
-      model: EXTRACTION_MODEL,
-      // Truncated JSON comes back as "trailing required arrays missing", which
-      // schema repair can never fix — it retries at the same budget and fails
-      // identically 3x. The structured output is routinely *larger* than the
-      // source text (every experience carries evidence + confidence), so the
-      // budget is sized above input length, not as a fraction of it. This is a
-      // ceiling, not a reservation: unused tokens are neither billed nor waited on.
-      maxOutputTokens: Math.min(32000, 8000 + content.length),
-    });
+    const documentType = document.document_type as "resume" | "linkedin";
+    const userContent = delimitUntrustedDocument(documentType, content);
+    // Two independent schema halves run concurrently rather than one combined
+    // call — see profileExperiencesExtractionSchema's doc comment for the
+    // direct measurement behind this. The round's wall-clock time becomes the
+    // slower of the two, not their sum.
+    const [experiencesResult, skillsResult] = await Promise.all([
+      provider.complete({
+        promptId,
+        promptVersion: prompt.version,
+        systemPrompt: buildExperiencesExtractionSystemPrompt(documentType),
+        userContent,
+        schema: profileExperiencesExtractionSchema,
+        model: EXTRACTION_MODEL,
+        maxOutputTokens: Math.min(24000, 6000 + content.length),
+      }),
+      provider.complete({
+        promptId,
+        promptVersion: prompt.version,
+        systemPrompt: buildSkillsExtractionSystemPrompt(documentType),
+        userContent,
+        schema: profileSkillsExtractionSchema,
+        model: EXTRACTION_MODEL,
+        maxOutputTokens: Math.min(16000, 4000 + content.length),
+      }),
+    ]);
+
+    const isInsufficient =
+      experiencesResult.data.extractionStatus === "insufficient_content" ||
+      skillsResult.data.extractionStatus === "insufficient_content";
+    const isFailed = experiencesResult.data.extractionStatus === "failed" || skillsResult.data.extractionStatus === "failed";
+    const extractionStatus = isInsufficient ? "insufficient_content" : isFailed ? "failed" : "complete";
+
+    const merged: ProfileExtraction = {
+      schemaVersion: experiencesResult.data.schemaVersion,
+      documentType: experiencesResult.data.documentType,
+      sourceId: experiencesResult.data.sourceId,
+      language: experiencesResult.data.language,
+      extractionStatus,
+      professionalIdentity: experiencesResult.data.professionalIdentity,
+      experiences: experiencesResult.data.experiences,
+      competencies: skillsResult.data.competencies,
+      tools: skillsResult.data.tools,
+      education: skillsResult.data.education,
+      certifications: skillsResult.data.certifications,
+      conflicts: skillsResult.data.conflicts,
+      warnings: [...experiencesResult.data.warnings, ...skillsResult.data.warnings],
+    };
+    // Defense in depth: the two halves are independently schema-valid, but
+    // never persist the merge itself without validating it also conforms to
+    // the shape every downstream reader (consolidateExtractedExperiences,
+    // Core 1) expects.
+    const validated = profileExtractionSchema.parse(merged);
 
     await supabase.from("document_extractions").insert({
       document_id: documentId,
-      schema_version: result.data.schemaVersion,
+      schema_version: validated.schemaVersion,
       prompt_version: prompt.version,
-      model_version: result.modelVersion,
-      status: result.data.extractionStatus,
-      validated_payload: result.data,
-      warnings: result.data.warnings,
+      model_version: experiencesResult.modelVersion,
+      status: validated.extractionStatus,
+      validated_payload: validated,
+      warnings: validated.warnings,
       completed_at: new Date().toISOString(),
     });
 
     await supabase
       .from("documents")
-      .update({ status: result.data.extractionStatus === "failed" ? "failed_final" : "ready", processed_at: new Date().toISOString() })
+      .update({ status: validated.extractionStatus === "failed" ? "failed_final" : "ready", processed_at: new Date().toISOString() })
       .eq("id", documentId);
 
     if (job) {

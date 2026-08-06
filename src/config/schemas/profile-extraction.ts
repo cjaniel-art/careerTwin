@@ -82,3 +82,40 @@ export const profileExtractionSchema = z.object({
 });
 
 export type ProfileExtraction = z.infer<typeof profileExtractionSchema>;
+
+/**
+ * Split of profileExtractionSchema into two independent halves, run as two
+ * concurrent calls instead of one (see processDocument in
+ * features/onboarding/pipeline.ts). Measured directly against a real
+ * 13-experience profile: the combined single-schema call took 64-70s even
+ * with a conciseness instruction and numeric per-item caps — over the 60s
+ * function ceiling. Splitting means each call generates roughly half the
+ * output, and running them concurrently makes the round's wall-clock time the
+ * slower of the two rather than their sum.
+ */
+export const profileExperiencesExtractionSchema = profileExtractionSchema.pick({
+  schemaVersion: true,
+  documentType: true,
+  sourceId: true,
+  language: true,
+  extractionStatus: true,
+  professionalIdentity: true,
+  experiences: true,
+  warnings: true,
+});
+export type ProfileExperiencesExtraction = z.infer<typeof profileExperiencesExtractionSchema>;
+
+export const profileSkillsExtractionSchema = profileExtractionSchema.pick({
+  schemaVersion: true,
+  documentType: true,
+  sourceId: true,
+  language: true,
+  extractionStatus: true,
+  competencies: true,
+  tools: true,
+  education: true,
+  certifications: true,
+  conflicts: true,
+  warnings: true,
+});
+export type ProfileSkillsExtraction = z.infer<typeof profileSkillsExtractionSchema>;

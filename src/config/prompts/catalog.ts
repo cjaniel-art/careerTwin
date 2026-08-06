@@ -71,6 +71,17 @@ export const PROMPT_CATALOG: Record<string, PromptDefinition> = {
     objective: "Transcreve visualmente um PDF para Markdown quando não há texto embutido para extrair.",
     version: "1.0.0",
   },
+  // Text-only condensing pass for a PDF whose text layer is fine but long
+  // (e.g. a 12-page LinkedIn export) — never re-reads the PDF as images.
+  // Confirmed by direct measurement: routing that case through P-013 instead
+  // (full-page vision on all 12 pages) took ~65s just to read, before any
+  // extraction — see the maxOutputTokens comment in document-markdown.ts.
+  "P-013-cleanup": {
+    id: "P-013-cleanup",
+    name: "Condensação de texto já extraído",
+    objective: "Remove ruído (paginação, cabeçalhos/rodapés repetidos) de um texto já extraído de um PDF, sem reler o documento.",
+    version: "1.0.0",
+  },
 } as const;
 
 /**
