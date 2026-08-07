@@ -30,6 +30,8 @@ export interface StageResult {
   /** False means "call me again" — the stage ran out of budget, not that it failed. */
   done: boolean;
   redirectTo?: string;
+  /** "analysis" stage only — which half of Core 1 is in flight, for accurate UI progress (see runAnalysisStage). */
+  analysisStatus?: "processing" | "preliminary" | "completed" | "failed_retryable";
 }
 
 const TERMINAL_STATUSES = ["ready", "insufficient_content", "failed_final"];
@@ -539,15 +541,17 @@ export async function runProfileStage(supabase: SupabaseClient, userId: string):
 export async function runAnalysisStage(): Promise<StageResult> {
   const { runInitialProfileAnalysis } = await import("@/features/core-1/actions");
   const result = await runInitialProfileAnalysis();
-  if (!result.ok) return { ok: false, done: false };
+  if (!result.ok) return { ok: false, done: false, analysisStatus: result.status };
   // Analysis is itself two model calls (dimensions, then recommendations),
-  // each its own request — same reason as runDocumentStage's read/extract
-  // split. `done: false` here means "call this stage again", handled by the
-  // client's runStageToCompletion loop like any other stage.
-  if (!result.done) return { ok: true, done: false };
+  // each dispatched to a Supabase Edge Function and polled for rather than
+  // run inline — see runProfileAnalysisStage's comment. `done: false` here
+  // means "call this stage again", handled by the client's
+  // runStageToCompletion loop like any other stage.
+  if (!result.done) return { ok: true, done: false, analysisStatus: result.status };
   return {
     ok: true,
     done: true,
+    analysisStatus: result.status,
     redirectTo: result.analysisId ? `/app/analise-perfil/${result.analysisId}` : "/app/analise-perfil",
   };
 }

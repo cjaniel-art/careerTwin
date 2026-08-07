@@ -32,14 +32,30 @@ export default async function ProfileAnalysisProcessingPage({
   if (analysis.status === "completed") redirect(`/app/analise-perfil/${analysisId}`);
 
   // "preliminary" = stage 1 (dimensions) done, stage 2 (recommendations)
-  // still pending — each stage is its own request/invocation (see
-  // runProfileAnalysisStage), so an unfinished stage redirects back to this
-  // same page rather than looping in-process, giving the next stage a fresh
-  // function-duration budget.
+  // still pending. runProfileAnalysisStage no longer runs the AI call itself —
+  // it dispatches the core1-analysis Supabase Edge Function (which has a
+  // longer wall-clock budget than Vercel's 60s) and returns right away, so
+  // this render can't redirect straight back to itself: with nothing left to
+  // wait on, that would fire dozens of redirects per second and hit the
+  // browser's redirect-loop guard long before the edge function finishes. A
+  // meta-refresh instead gives each poll a real few-second gap.
   if (analysis.status === "processing" || analysis.status === "preliminary") {
     const result = await runProfileAnalysisStage(analysisId);
     if (result.ok && result.done) redirect(`/app/analise-perfil/${analysisId}`);
-    if (result.ok && !result.done) redirect(`/app/analise-perfil/processando/${analysisId}`);
+    if (result.ok) {
+      return (
+        <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
+          {/* Next.js hoists <meta>/<title>/<link> rendered anywhere in the tree into <head>. */}
+          <meta httpEquiv="refresh" content={`3;url=/app/analise-perfil/processando/${analysisId}`} />
+          <Card className="max-w-md">
+            <CardContent className="space-y-4 pt-6">
+              <h1 className="text-lg font-semibold text-foreground">Preparando sua Análise de Perfil</h1>
+              <p className="text-sm text-muted-foreground">Isso pode levar alguns minutos. Esta página atualiza sozinha.</p>
+            </CardContent>
+          </Card>
+        </main>
+      );
+    }
   }
 
   return (

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Check, Loader2 } from "lucide-react";
-import { runStageToCompletion } from "../run-stage";
+import { runStageToCompletion, ANALYSIS_STAGE_POLL_OPTIONS } from "../run-stage";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -147,20 +147,34 @@ export function CompletionStep() {
       // this line would already have wiped "done" back to "active" by the
       // time that check runs.
       setSteps((prev) => (prev.dimensions === "done" ? prev : { ...prev, dimensions: "active" }));
-      const analysisResult = await runStageToCompletion("analysis", (round) => {
-        setSteps((prev) => {
-          if (!round.ok) {
-            // Whichever half was in flight when it failed gets the error mark.
-            const failedStep: StepId = prev.dimensions === "done" ? "recommendations" : "dimensions";
-            return { ...prev, [failedStep]: "error" };
-          }
-          // The first successful round always means dimensions have landed —
-          // either it ran just now, or (on a retry) it was already done and
-          // this round went straight to recommendations. `done: true` on that
-          // same round means recommendations finished too, in one round.
-          return { ...prev, dimensions: "done", recommendations: round.done ? "done" : "active" };
-        });
-      });
+      const analysisResult = await runStageToCompletion(
+        "analysis",
+        (round) => {
+          setSteps((prev) => {
+            if (!round.ok) {
+              // failed_retryable doesn't say which half was running — infer it
+              // from the last status this loop actually observed.
+              const failedStep: StepId = prev.dimensions === "done" ? "recommendations" : "dimensions";
+              return { ...prev, [failedStep]: "error" };
+            }
+            // Most rounds now just poll a dispatched Edge Function rather than
+            // doing the stage themselves (see runProfileAnalysisStage), so
+            // "this round returned done: false" no longer means "dimensions
+            // just finished" — read the real status instead.
+            switch (round.analysisStatus) {
+              case "processing":
+                return { ...prev, dimensions: "active" };
+              case "preliminary":
+                return { ...prev, dimensions: "done", recommendations: "active" };
+              case "completed":
+                return { ...prev, dimensions: "done", recommendations: "done" };
+              default:
+                return prev;
+            }
+          });
+        },
+        ANALYSIS_STAGE_POLL_OPTIONS,
+      );
       if (!analysisResult.ok || !analysisResult.redirectTo) {
         setFailed(true);
         return;

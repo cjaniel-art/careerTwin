@@ -4,6 +4,8 @@ export interface StageResponse {
   ok: boolean;
   done: boolean;
   redirectTo?: string;
+  /** "analysis" stage only — which half of Core 1 is in flight, for accurate UI progress. */
+  analysisStatus?: "processing" | "preliminary" | "completed" | "failed_retryable";
 }
 
 /**
@@ -33,14 +35,29 @@ export async function postStage(stage: ClientStage): Promise<StageResponse> {
  */
 export const MAX_STAGE_ROUNDS = 10;
 
+/**
+ * The "analysis" stage no longer runs its AI call inside the round itself —
+ * it dispatches the core1-analysis Supabase Edge Function and returns almost
+ * immediately, then relies on later rounds to see the DB flip to done. Without
+ * a real gap between rounds, MAX_STAGE_ROUNDS would burn through in well
+ * under a second. pollIntervalMs adds that gap; the higher round count covers
+ * two sequential edge-function stages (dimensions, then recommendations),
+ * each with its own ~150s wall-clock ceiling.
+ */
+export const ANALYSIS_STAGE_POLL_OPTIONS = { maxRounds: 110, pollIntervalMs: 3000 };
+
 export async function runStageToCompletion(
   stage: ClientStage,
   onRound?: (result: StageResponse) => void,
+  options?: { maxRounds?: number; pollIntervalMs?: number },
 ): Promise<StageResponse> {
-  for (let round = 0; round < MAX_STAGE_ROUNDS; round++) {
+  const maxRounds = options?.maxRounds ?? MAX_STAGE_ROUNDS;
+  const pollIntervalMs = options?.pollIntervalMs ?? 0;
+  for (let round = 0; round < maxRounds; round++) {
     const result = await postStage(stage);
     onRound?.(result);
     if (!result.ok || result.done) return result;
+    if (pollIntervalMs > 0) await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
   return { ok: false, done: false };
 }

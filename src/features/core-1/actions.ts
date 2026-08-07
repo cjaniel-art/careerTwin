@@ -3,13 +3,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { getAiProvider, EXTRACTION_MODEL } from "@/infrastructure/ai";
-import { core1DimensionsOutputSchema, core1RecommendationsOutputSchema } from "@/config/schemas/core1";
-import { PROMPT_CATALOG } from "@/config/prompts/catalog";
-import { calculateIpp, type DimensionAssessment } from "@/domain/scores/ipp";
-import { calculateConfidence } from "@/domain/scores/confidence";
-import { orderByPriority, type PriorityInput, type LikertScale } from "@/domain/scores/priority";
-import { CORE_1_CONFIG } from "@/config/engine/core1";
 import {
   ENGINE_VERSION,
   IPP_RUBRIC_VERSION,
@@ -18,7 +11,7 @@ import {
 import { isAccountDeletionPending } from "@/lib/account-status";
 import { trackEvent } from "@/infrastructure/analytics";
 import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
-import { fetchProfileContext, fetchTargetContext } from "@/features/analysis/profile-context";
+import { requireEnv } from "@/lib/env";
 
 async function requireUser() {
   const supabase = await createSupabaseServerClient();
@@ -137,9 +130,12 @@ async function ensureProfileAnalysisRow(): Promise<EnsuredAnalysisRow> {
 
   if (!existing || isRetry) {
     if (isRetry) {
+      // Also clears stage_dispatched_at — otherwise a retry right after a
+      // failed dispatch would look "recently dispatched" and runProfileAnalysisStage
+      // would wait out the stale window before actually redispatching.
       const { error: updateError } = await supabase
         .from("analyses")
-        .update({ status: "processing", started_at: new Date().toISOString(), completed_at: null })
+        .update({ status: "processing", started_at: new Date().toISOString(), completed_at: null, stage_dispatched_at: null })
         .eq("id", analysisId);
       if (updateError) return { ok: false, reason: "db_error" };
     } else {
@@ -180,309 +176,88 @@ export interface ProfileAnalysisStageResult {
   ok: boolean;
   /** False means "call me again" — this stage finished its own request but the pipeline isn't done. */
   done: boolean;
+  /**
+   * The analysis row's status as of this call. Most rounds now just poll a
+   * dispatched Edge Function rather than doing work themselves (see
+   * runProfileAnalysisStage's comment), so callers can no longer infer
+   * "dimensions just finished" from "this round returned done: false" the way
+   * they could when each round was itself a synchronous stage — they need the
+   * real status to know which half of the analysis is actually in flight.
+   */
+  status?: "processing" | "preliminary" | "completed" | "failed_retryable";
 }
+
+const STAGE_DISPATCH_STALE_MS = 160_000; // Edge Function wall-clock ceiling (150s on this project's free plan) + margin
 
 /**
  * Runs exactly one stage of the Core 1 pipeline for an analysis already in
- * `processing` (dimensions) or `preliminary` (recommendations), then
- * returns — never both in one call. The combined single-call version of this
- * (dimension classification + up to 8 evidence-grounded recommendations)
- * routinely exceeded Vercel's 60s function ceiling in production. The caller
- * (the onboarding pipeline's client-side loop, or the processing page's
- * self-redirect) is responsible for calling again while `done` is false.
+ * `processing` (dimensions) or `preliminary` (recommendations) — except it
+ * doesn't actually run the AI call itself anymore. It used to, but the
+ * combined-call version routinely exceeded Vercel's 60s function ceiling in
+ * production, and splitting it into two calls (dimensions, then
+ * recommendations) still wasn't reliably enough margin for a large real
+ * profile once Vercel→Anthropic network latency was in the mix (measured:
+ * isolated dev-machine calls stayed comfortably under 60s; the same calls in
+ * production didn't). The AI call now runs in the core1-analysis Supabase
+ * Edge Function instead (150s wall-clock ceiling on this project vs. Vercel's
+ * 60s) — this function's only job is to dispatch it and report whether the
+ * DB shows the stage done yet. `stage_dispatched_at` is the compare-and-set
+ * claim that stops a poll round from re-dispatching a stage that's already
+ * running (mirrors documents.status's claim in onboarding/pipeline.ts).
  */
 export async function runProfileAnalysisStage(analysisId: string): Promise<ProfileAnalysisStageResult> {
   const { supabase, user } = await requireUser();
 
   const { data: analysis } = await supabase
     .from("analyses")
-    .select("id, status, profile_version_id, target_context_version_id")
+    .select("id, status, stage_dispatched_at")
     .eq("id", analysisId)
     .eq("user_id", user.id)
     .single();
   if (!analysis) return { ok: false, done: false };
-  if (analysis.status === "completed") return { ok: true, done: true };
-  if (analysis.status === "preliminary") return runRecommendationsStage(supabase, user.id, analysisId, analysis);
-  if (analysis.status !== "processing") return { ok: false, done: false };
-
-  return runDimensionsStage(supabase, user.id, analysisId, analysis);
-}
-
-type AnalysesClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-
-async function runDimensionsStage(
-  supabase: AnalysesClient,
-  userId: string,
-  analysisId: string,
-  analysis: { profile_version_id: string; target_context_version_id: string },
-): Promise<ProfileAnalysisStageResult> {
-  // Idempotent: ensureProfileAnalysisRow resets a failed_retryable analysis
-  // straight back to "processing" on retry — if stage 1's results already
-  // exist (this stage itself failed downstream, or the request died after
-  // persisting but before returning), skip straight to stage 2 rather than
-  // re-billing and re-running the model call.
-  const { data: existingResult } = await supabase
-    .from("profile_analysis_results")
-    .select("analysis_id")
-    .eq("analysis_id", analysisId)
-    .maybeSingle();
-  if (existingResult) {
-    await supabase.from("analyses").update({ status: "preliminary" }).eq("id", analysisId);
-    return { ok: true, done: false };
+  if (analysis.status === "completed") return { ok: true, done: true, status: "completed" };
+  if (analysis.status !== "processing" && analysis.status !== "preliminary") {
+    return { ok: false, done: false, status: analysis.status as ProfileAnalysisStageResult["status"] };
   }
 
-  const [profileContext, targetContext] = await Promise.all([
-    fetchProfileContext(supabase, analysis.profile_version_id),
-    fetchTargetContext(supabase, analysis.target_context_version_id),
-  ]);
-  const experienceCount = profileContext.experiences.length;
-  const evidenceCount = profileContext.evidences.length;
+  const dispatchedAt = analysis.stage_dispatched_at ? new Date(analysis.stage_dispatched_at).getTime() : 0;
+  const recentlyDispatched = Date.now() - dispatchedAt < STAGE_DISPATCH_STALE_MS;
 
-  try {
-    const provider = getAiProvider();
-    const prompt = PROMPT_CATALOG["P-005"]!;
-    const result = await provider.complete({
-      promptId: "P-005",
-      promptVersion: prompt.version,
-      systemPrompt: buildDimensionsSystemPrompt(),
-      userContent: JSON.stringify({
-        targetContext,
-        experiences: profileContext.experiences,
-        projects: profileContext.projects,
-        skills: profileContext.skills,
-        tools: profileContext.tools,
-        evidences: profileContext.evidences,
-        education: profileContext.education,
-        certifications: profileContext.certifications,
-        languages: profileContext.languages,
-      }),
-      schema: core1DimensionsOutputSchema,
-      // Root cause of the production timeouts, found by measuring directly:
-      // NOT the model being slow — a too-tight maxOutputTokens truncated the
-      // response for a realistic profile, which fails schema.parse, which
-      // triggers up to 3 sequential schema-repair attempts inside this one
-      // call, each re-paying the full generation. A single untruncated
-      // generation is comfortably fast; three of them chained is what blew
-      // past 60s. Fixed at the source (below) rather than by choosing a
-      // faster model. Kept on Haiku regardless: for structured
-      // classification against a fixed rubric this is adequate quality,
-      // and it's cheaper than Sonnet with no measured quality complaint —
-      // not a reliability workaround.
-      model: EXTRACTION_MODEL,
-      // 16000 measured comfortably sufficient for a 5-experience profile with
-      // the conciseness instruction above (dimensions/actions.ts's buildDimensionsSystemPrompt);
-      // the previous formula computed as low as ~6750 tokens for that same
-      // profile and truncated.
-      maxOutputTokens: 16000,
-    });
-
-    const assessments: DimensionAssessment[] = result.data.dimensionAssessments.map((d) => ({
-      dimension: d.dimension,
-      rubricLevel: d.rubricLevel as 0 | 1 | 2 | 3 | 4,
-      reasoning: d.reasoning,
-    }));
-    const ipp = calculateIpp(assessments);
-
-    const confidence = calculateConfidence(
-      {
-        inputCompleteness: experienceCount > 0 ? 0.8 : 0.3,
-        userConfirmation: 1.0,
-        evidenceTraceability: evidenceCount > 0 ? 0.7 : 0.3,
-        sourceConsistency: 0.9,
-      },
-      { reasons: result.data.confidenceAssessment.reasons, missingInformation: result.data.confidenceAssessment.missingInformation },
-    );
-
-    await supabase.from("profile_dimension_results").insert(
-      ipp.dimensions.map((d) => ({
-        analysis_id: analysisId,
-        dimension: d.dimension,
-        rubric_level: d.rubricLevel,
-        dimension_score: d.score,
-        weight: d.weight,
-        weighted_contribution: d.weightedContribution,
-        reasoning: d.reasoning,
-      })),
-    );
-
-    await supabase.from("profile_analysis_results").insert({
-      analysis_id: analysisId,
-      ipp_score: ipp.score,
-      ipp_display_score: ipp.score,
-      ipp_band: mapIppBand(ipp.level),
-      diagnosis: result.data.diagnosis.summary,
-      main_strength: result.data.diagnosis.mainStrength,
-      main_gap: result.data.diagnosis.mainGap,
-      next_best_action: result.data.diagnosis.nextBestAction,
-      // `gaps` rides along in this jsonb blob purely so stage 2 — a separate
-      // request — can read it back; there is no other place to hand off
-      // stage 1's intermediate output between the two calls.
-      calculation_snapshot: { ipp, confidence, gaps: result.data.gaps },
-    });
-
-    await supabase
+  if (!recentlyDispatched) {
+    const staleThresholdIso = new Date(Date.now() - STAGE_DISPATCH_STALE_MS).toISOString();
+    const { data: claimed } = await supabase
       .from("analyses")
-      .update({
-        status: "preliminary",
-        confidence_score: confidence.score,
-        confidence_band: confidence.level,
-        confidence_reasons: confidence.reasons,
-        missing_information: confidence.missingInformation,
-        model_version: result.modelVersion,
-        prompt_version: prompt.version,
-        schema_version: result.data.schemaVersion,
-      })
-      .eq("id", analysisId);
+      .update({ stage_dispatched_at: new Date().toISOString() })
+      .eq("id", analysisId)
+      .eq("status", analysis.status)
+      .or(`stage_dispatched_at.is.null,stage_dispatched_at.lt.${staleThresholdIso}`)
+      .select("id");
 
-    return { ok: true, done: false };
-  } catch (err) {
-    await failAnalysis(supabase, analysisId, err);
-    trackEvent(ANALYTICS_EVENTS.profileAnalysisFailed, { userId, analysisId, analysisType: "profile_analysis" });
-    return { ok: false, done: false };
-  }
-}
-
-async function runRecommendationsStage(
-  supabase: AnalysesClient,
-  userId: string,
-  analysisId: string,
-  analysis: { profile_version_id: string; target_context_version_id: string },
-): Promise<ProfileAnalysisStageResult> {
-  const { data: stage1 } = await supabase
-    .from("profile_analysis_results")
-    .select("calculation_snapshot, diagnosis, main_strength, main_gap, next_best_action, ipp_band")
-    .eq("analysis_id", analysisId)
-    .single();
-  // The status gate in runProfileAnalysisStage guarantees stage 1 completed
-  // before this stage can run — a missing row here means the data was lost
-  // some other way, not a normal retry case.
-  if (!stage1) return { ok: false, done: false };
-
-  const { data: dimensionRows } = await supabase
-    .from("profile_dimension_results")
-    .select("dimension, rubric_level, reasoning")
-    .eq("analysis_id", analysisId);
-
-  const [profileContext, targetContext] = await Promise.all([
-    fetchProfileContext(supabase, analysis.profile_version_id),
-    fetchTargetContext(supabase, analysis.target_context_version_id),
-  ]);
-
-  const snapshot = stage1.calculation_snapshot as { gaps?: unknown };
-
-  try {
-    const provider = getAiProvider();
-    const prompt = PROMPT_CATALOG["P-005-recommendations"]!;
-    const result = await provider.complete({
-      promptId: "P-005-recommendations",
-      promptVersion: prompt.version,
-      systemPrompt: buildRecommendationsSystemPrompt(),
-      userContent: JSON.stringify({
-        targetContext,
-        // Condensed, not the full profileContext: stage 1 already reasoned
-        // over the full text and distilled it into diagnosis/gaps below. A
-        // real 24-experience/37-evidence profile, measured directly against
-        // production, consistently exceeded 60s here when re-sending every
-        // full experience (responsibilities, results, evidenceRefs) again —
-        // this keeps just enough identity (id/company/role) and evidence
-        // text for evidenceRefs to still cite real sourceIds/excerpts.
-        experiences: profileContext.experiences.map((e) => ({ id: e.id, companyName: e.companyName, roleTitle: e.roleTitle })),
-        skills: profileContext.skills.map((s) => ({ id: s.id, name: s.name })),
-        tools: profileContext.tools.map((t) => ({ id: t.id, name: t.name })),
-        evidences: profileContext.evidences.map((e) => ({ id: e.id, summary: e.summary, sourceType: e.sourceType })),
-        analysis: {
-          diagnosis: {
-            summary: stage1.diagnosis,
-            mainStrength: stage1.main_strength,
-            mainGap: stage1.main_gap,
-            nextBestAction: stage1.next_best_action,
-          },
-          dimensionAssessments: dimensionRows ?? [],
-          gaps: snapshot.gaps ?? [],
-        },
-      }),
-      schema: core1RecommendationsOutputSchema,
-      // See the model/maxOutputTokens comments on the dimensions call above —
-      // same root cause and same fix. Measured directly: at max_tokens 8000
-      // without the conciseness instruction, this call truncated (stop_reason
-      // "max_tokens") for a 5-experience/8-recommendation profile. With the
-      // conciseness instruction, the same profile completed cleanly in 3495
-      // output tokens — 16000 leaves ample margin for larger profiles.
-      model: EXTRACTION_MODEL,
-      maxOutputTokens: 16000,
-    });
-
-    const priorityInputs: PriorityInput[] = result.data.recommendations
-      .slice(0, CORE_1_CONFIG.recommendations.maximum)
-      .map((r) => ({
-        id: r.recommendationKey,
-        impact: asLikert(r.impact),
-        effort: asLikert(r.effort),
-        urgency: asLikert(r.urgency),
-        confidence: asLikert(r.confidence),
-      }));
-    const prioritized = orderByPriority(priorityInputs);
-
-    // Idempotent: clears any partial insert from a previous failed attempt.
-    // Safe before "completed" — the immutability trigger on `analyses` only
-    // blocks further writes once status flips there, at the very end below.
-    await supabase.from("recommendations").delete().eq("analysis_id", analysisId);
-
-    if (result.data.recommendations.length > 0) {
-      await supabase.from("recommendations").insert(
-        result.data.recommendations.slice(0, CORE_1_CONFIG.recommendations.maximum).map((r) => {
-          const p = prioritized.find((x) => x.id === r.recommendationKey)!;
-          return {
-            analysis_id: analysisId,
-            recommendation_key: r.recommendationKey,
-            category: mapRecommendationCategory(r.category),
-            title: r.title,
-            problem: r.problem,
-            reasoning: r.reasoning,
-            suggested_action: r.suggestedAction,
-            expected_outcome: r.expectedOutcome,
-            completion_criteria: r.completionCriteria,
-            impact: r.impact,
-            effort: r.effort,
-            urgency: r.urgency,
-            confidence: r.confidence,
-            priority_score: p.priorityScore100,
-            priority_order: p.priorityOrder,
-            status: p.priorityOrder <= CORE_1_CONFIG.recommendations.highlightedMaximum ? "highlighted" : "generated",
-          };
-        }),
-      );
+    if (claimed && claimed.length > 0) {
+      await dispatchCore1AnalysisEdgeFunction(analysisId).catch((err) => {
+        console.error("dispatchCore1AnalysisEdgeFunction failed:", err instanceof Error ? err.message : err);
+      });
     }
-
-    await supabase.from("analyses").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", analysisId);
-
-    trackEvent(ANALYTICS_EVENTS.profileAnalysisCompleted, {
-      userId,
-      analysisId,
-      analysisType: "profile_analysis",
-      properties: {
-        ippBand: stage1.ipp_band,
-        recommendationCount: result.data.recommendations.length,
-      },
-    });
-
-    return { ok: true, done: true };
-  } catch (err) {
-    await failAnalysis(supabase, analysisId, err);
-    trackEvent(ANALYTICS_EVENTS.profileAnalysisFailed, { userId, analysisId, analysisType: "profile_analysis" });
-    return { ok: false, done: false };
   }
+
+  return { ok: true, done: false, status: analysis.status };
 }
 
-async function failAnalysis(supabase: AnalysesClient, analysisId: string, err: unknown): Promise<void> {
-  // TEMP DEBUG (remove once root-caused): persist the raw failure into the
-  // otherwise-unused `warnings` column since server console.error isn't reachable here.
-  const debugDetail =
-    err instanceof Error
-      ? [err.message, err.cause instanceof Error ? err.cause.message : JSON.stringify(err.cause)].filter(Boolean)
-      : [JSON.stringify(err)];
-  await supabase.from("analyses").update({ status: "failed_retryable", warnings: debugDetail }).eq("id", analysisId);
-  console.error("runProfileAnalysisStage failed:", err instanceof Error ? err.message : err);
+async function dispatchCore1AnalysisEdgeFunction(analysisId: string): Promise<void> {
+  const url = `${requireEnv("NEXT_PUBLIC_SUPABASE_URL")}/functions/v1/core1-analysis`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-dispatch-secret": requireEnv("EDGE_FUNCTION_DISPATCH_SECRET") },
+      body: JSON.stringify({ analysisId }),
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`core1-analysis dispatch failed: ${response.status}`);
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 /**
@@ -492,77 +267,15 @@ async function failAnalysis(supabase: AnalysesClient, analysisId: string, err: u
  * loop-to-completion itself: doing both stages here would reintroduce the
  * same timeout risk runProfileAnalysisStage's split exists to avoid.
  */
-export async function runInitialProfileAnalysis(): Promise<{ ok: boolean; done: boolean; analysisId?: string }> {
+export async function runInitialProfileAnalysis(): Promise<{
+  ok: boolean;
+  done: boolean;
+  analysisId?: string;
+  status?: ProfileAnalysisStageResult["status"];
+}> {
   const row = await ensureProfileAnalysisRow();
   if (!row.ok) return { ok: false, done: false };
-  if (row.alreadyCompleted) return { ok: true, done: true, analysisId: row.analysisId };
+  if (row.alreadyCompleted) return { ok: true, done: true, analysisId: row.analysisId, status: "completed" };
   const result = await runProfileAnalysisStage(row.analysisId);
-  return { ok: result.ok, done: result.done, analysisId: row.analysisId };
-}
-
-/** Schema already validated these as integers 1..5 at runtime (core1.ts). */
-function asLikert(n: number): LikertScale {
-  return n as LikertScale;
-}
-
-function mapIppBand(level: string): "low_readiness" | "developing_readiness" | "good_readiness" | "high_readiness" {
-  switch (level) {
-    case "low_readiness":
-    case "developing_readiness":
-    case "good_readiness":
-    case "high_readiness":
-      return level;
-    default:
-      return "low_readiness";
-  }
-}
-
-function mapRecommendationCategory(category: string): "competency" | "communication" | "evidence" | "positioning" {
-  const map: Record<string, "competency" | "communication" | "evidence" | "positioning"> = {
-    competencia: "competency",
-    comunicacao: "communication",
-    evidencia: "evidence",
-    posicionamento: "positioning",
-  };
-  return map[category] ?? "evidence";
-}
-
-function buildDimensionsSystemPrompt(): string {
-  return [
-    "Você é o motor de Análise de Perfil (Core 1) do CareerTwin, etapa de classificação de dimensões.",
-    "A mensagem do usuário contém o conteúdo real e completo do perfil confirmado (experiências, projetos, competências, ferramentas, evidências, formação, certificações, idiomas) e o contexto-alvo — baseie toda a análise exclusivamente nesse conteúdo, nunca em suposições.",
-    "Classifique cada uma das sete dimensões do IPP em um nível de rubrica de 0 a 4, com justificativa concreta referenciando o conteúdo fornecido, e identifique as lacunas (gaps) do perfil frente ao contexto-alvo.",
-    "As recomendações são geradas em uma etapa separada, com base neste diagnóstico — não as gere aqui.",
-    "Você NUNCA calcula o IPP final nem a confiança final — isso é feito pelo backend.",
-    "Nunca invente experiências, resultados, métricas ou competências não presentes no perfil confirmado.",
-    'Em evidenceRefs, use sourceId = o id real do item citado (experience/evidence/skill/tool) exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com um trecho real do conteúdo — nunca invente ids ou trechos.',
-    "Se o perfil fornecido estiver vazio ou quase vazio em uma dimensão, reflita isso honestamente com rubricLevel baixo, em vez de gerar texto genérico como se houvesse conteúdo.",
-    // Verbose output was the actual cause of production timeouts — see the
-    // model/maxOutputTokens comments on the call site below. For a profile
-    // with 24 experiences (measured directly via a real production account),
-    // this alone still wasn't enough margin against the extra latency of the
-    // real Vercel→Anthropic network path (isolated calls from a dev machine
-    // measured comfortably under 60s; the same call in production did not) —
-    // an explicit cap on evidenceRefs per dimension is the next lever.
-    "Seja direto e conciso em cada campo de texto (1-2 frases por campo, nunca um parágrafo longo).",
-    "Em cada dimensão, cite no máximo 2 evidenceRefs — as mais representativas, não todas as aplicáveis.",
-    "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
-  ].join(" ");
-}
-
-function buildRecommendationsSystemPrompt(): string {
-  return [
-    "Você é o motor de Análise de Perfil (Core 1) do CareerTwin, etapa de geração de recomendações.",
-    "A mensagem do usuário contém identificadores do perfil confirmado (experiências, competências, ferramentas e evidências — apenas id e um resumo curto, não o texto completo), o contexto-alvo, e o diagnóstico, as dimensões classificadas e as lacunas já identificados em uma etapa anterior desta mesma análise — gere recomendações a partir desse diagnóstico, sem reavaliar as dimensões do zero.",
-    `Gere no máximo ${CORE_1_CONFIG.recommendations.maximum} recomendações, cada uma endereçando uma lacuna real identificada.`,
-    "Você NUNCA calcula a prioridade final das recomendações — isso é feito pelo backend a partir de impact/effort/urgency/confidence.",
-    "Nunca invente experiências, resultados, métricas ou competências não presentes no perfil confirmado.",
-    // Fields were condensed to fit a large profile (24+ experiences measured
-    // in production) inside 60s — only id/company/role and id/summary are
-    // available now, not the original full text, so excerpt must be built
-    // from what's actually in this message.
-    'Em evidenceRefs, use sourceId = o id real do item citado exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com o resumo fornecido para aquele item — nunca invente ids ou trechos que não estejam na entrada.',
-    "Seja direto e conciso em cada campo de texto (1-2 frases por campo, nunca um parágrafo longo).",
-    "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
-  ].join(" ");
+  return { ok: result.ok, done: result.done, analysisId: row.analysisId, status: result.status };
 }

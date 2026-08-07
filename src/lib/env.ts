@@ -28,6 +28,11 @@ const envSchema = z.object({
   AI_PROVIDER_API_KEY: optionalNonEmptyString(),
   AI_PROVIDER_MODEL: optionalNonEmptyString(),
 
+  // Shared secret Vercel presents to the core1-analysis Supabase Edge
+  // Function so it can tell a real dispatch from a stranger with the
+  // (public) anon key — see the dispatch comment in features/core-1/actions.ts.
+  EDGE_FUNCTION_DISPATCH_SECRET: optionalNonEmptyString(),
+
   ANALYTICS_WRITE_KEY: optionalNonEmptyString(),
 
   RESUME_UPLOAD_MAX_MB: z.coerce.number().positive().default(5),
