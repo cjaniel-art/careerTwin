@@ -105,7 +105,14 @@ export function CompletionStep() {
     if (isRunningRef.current) return;
     isRunningRef.current = true;
     setFailed(false);
-    setSteps(INITIAL_STEP_STATE);
+    // Deliberately not resetting `steps` here: on a retry, whichever steps
+    // are already "done" must stay visibly done, both because they really
+    // did finish (server-side is idempotent, so re-running them is just a
+    // fast skip-ahead) and because the analysis round's error-attribution
+    // below reads prev.dimensions to tell dimensions and recommendations
+    // failures apart — resetting it on every retry made that check always
+    // see "not done" and mislabel a recommendations failure as dimensions.
+    // `steps` starts at INITIAL_STEP_STATE from useState on first mount.
 
     try {
       setStep("resume", "active");

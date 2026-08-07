@@ -379,14 +379,17 @@ async function runRecommendationsStage(
       systemPrompt: buildRecommendationsSystemPrompt(),
       userContent: JSON.stringify({
         targetContext,
-        experiences: profileContext.experiences,
-        projects: profileContext.projects,
-        skills: profileContext.skills,
-        tools: profileContext.tools,
-        evidences: profileContext.evidences,
-        education: profileContext.education,
-        certifications: profileContext.certifications,
-        languages: profileContext.languages,
+        // Condensed, not the full profileContext: stage 1 already reasoned
+        // over the full text and distilled it into diagnosis/gaps below. A
+        // real 24-experience/37-evidence profile, measured directly against
+        // production, consistently exceeded 60s here when re-sending every
+        // full experience (responsibilities, results, evidenceRefs) again —
+        // this keeps just enough identity (id/company/role) and evidence
+        // text for evidenceRefs to still cite real sourceIds/excerpts.
+        experiences: profileContext.experiences.map((e) => ({ id: e.id, companyName: e.companyName, roleTitle: e.roleTitle })),
+        skills: profileContext.skills.map((s) => ({ id: s.id, name: s.name })),
+        tools: profileContext.tools.map((t) => ({ id: t.id, name: t.name })),
+        evidences: profileContext.evidences.map((e) => ({ id: e.id, summary: e.summary, sourceType: e.sourceType })),
         analysis: {
           diagnosis: {
             summary: stage1.diagnosis,
@@ -544,11 +547,15 @@ function buildDimensionsSystemPrompt(): string {
 function buildRecommendationsSystemPrompt(): string {
   return [
     "Você é o motor de Análise de Perfil (Core 1) do CareerTwin, etapa de geração de recomendações.",
-    "A mensagem do usuário contém o conteúdo completo do perfil confirmado, o contexto-alvo, e o diagnóstico, as dimensões classificadas e as lacunas já identificados em uma etapa anterior desta mesma análise — gere recomendações a partir desse diagnóstico, sem reavaliar as dimensões do zero.",
+    "A mensagem do usuário contém identificadores do perfil confirmado (experiências, competências, ferramentas e evidências — apenas id e um resumo curto, não o texto completo), o contexto-alvo, e o diagnóstico, as dimensões classificadas e as lacunas já identificados em uma etapa anterior desta mesma análise — gere recomendações a partir desse diagnóstico, sem reavaliar as dimensões do zero.",
     `Gere no máximo ${CORE_1_CONFIG.recommendations.maximum} recomendações, cada uma endereçando uma lacuna real identificada.`,
     "Você NUNCA calcula a prioridade final das recomendações — isso é feito pelo backend a partir de impact/effort/urgency/confidence.",
     "Nunca invente experiências, resultados, métricas ou competências não presentes no perfil confirmado.",
-    'Em evidenceRefs, use sourceId = o id real do item citado (experience/evidence/skill/tool) exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com um trecho real do conteúdo — nunca invente ids ou trechos.',
+    // Fields were condensed to fit a large profile (24+ experiences measured
+    // in production) inside 60s — only id/company/role and id/summary are
+    // available now, not the original full text, so excerpt must be built
+    // from what's actually in this message.
+    'Em evidenceRefs, use sourceId = o id real do item citado exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com o resumo fornecido para aquele item — nunca invente ids ou trechos que não estejam na entrada.',
     "Seja direto e conciso em cada campo de texto (1-2 frases por campo, nunca um parágrafo longo).",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
   ].join(" ");
