@@ -538,8 +538,14 @@ function buildDimensionsSystemPrompt(): string {
     'Em evidenceRefs, use sourceId = o id real do item citado (experience/evidence/skill/tool) exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com um trecho real do conteúdo — nunca invente ids ou trechos.',
     "Se o perfil fornecido estiver vazio ou quase vazio em uma dimensão, reflita isso honestamente com rubricLevel baixo, em vez de gerar texto genérico como se houvesse conteúdo.",
     // Verbose output was the actual cause of production timeouts — see the
-    // model/maxOutputTokens comments on the call site below.
+    // model/maxOutputTokens comments on the call site below. For a profile
+    // with 24 experiences (measured directly via a real production account),
+    // this alone still wasn't enough margin against the extra latency of the
+    // real Vercel→Anthropic network path (isolated calls from a dev machine
+    // measured comfortably under 60s; the same call in production did not) —
+    // an explicit cap on evidenceRefs per dimension is the next lever.
     "Seja direto e conciso em cada campo de texto (1-2 frases por campo, nunca um parágrafo longo).",
+    "Em cada dimensão, cite no máximo 2 evidenceRefs — as mais representativas, não todas as aplicáveis.",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
   ].join(" ");
 }
