@@ -140,7 +140,13 @@ export function CompletionStep() {
         return;
       }
 
-      setStep("dimensions", "active");
+      // Only "active" if dimensions isn't already known done from a prior
+      // attempt — unconditionally overwriting it here would corrupt the
+      // `prev.dimensions === "done"` check the round callback below relies on
+      // to tell a dimensions failure from a recommendations failure, since
+      // this line would already have wiped "done" back to "active" by the
+      // time that check runs.
+      setSteps((prev) => (prev.dimensions === "done" ? prev : { ...prev, dimensions: "active" }));
       const analysisResult = await runStageToCompletion("analysis", (round) => {
         setSteps((prev) => {
           if (!round.ok) {
