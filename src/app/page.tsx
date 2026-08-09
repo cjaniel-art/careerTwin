@@ -60,6 +60,20 @@ const FIT_DIAGNOSIS_ITEMS = [
   "priorizar oportunidades com mais clareza.",
 ];
 
+const FREE_PLAN_FEATURES = [
+  "1 Análise de Perfil completa",
+  "1 análise de vaga específica",
+  "Recomendações e ações priorizadas",
+  "Dashboard e histórico de análises",
+];
+
+const PRO_PLAN_FEATURES = [
+  "5 créditos para análises de vagas",
+  "Créditos válidos por 30 dias",
+  "Diagnóstico de aderência e lacunas",
+  "Lacunas e recomendações",
+];
+
 export default function HomePage() {
   return (
     <>
@@ -302,6 +316,134 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+        </section>
+
+        <div className="px-6 md:px-14">
+          <hr className="mx-auto max-w-content border-border" />
+        </div>
+
+        {/* Valores */}
+        <section id="valores" className="px-6 py-16 md:px-14">
+          <div className="mx-auto max-w-content">
+            <p className="text-2xl font-semibold tracking-tight">
+              <span className="text-primary">Análise</span>{" "}
+              <span className="text-foreground">o melhor valor</span>
+            </p>
+            <p className="text-3xl font-semibold tracking-tight text-foreground">
+              Mais clareza para cada nova oportunidade.
+            </p>
+            <div className="mt-[13px] h-[3px] w-[69px] bg-primary" />
+            <p className="mt-[13px] max-w-3xl text-base leading-7 text-[#2e2c2c]">
+              Analise seu perfil gratuitamente e continue avaliando vagas com diagnósticos explicáveis,
+              recomendações práticas e ações priorizadas.
+            </p>
+
+            <div className="mt-8">
+              <div className="-mx-6 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:mx-0 lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
+                {/* Card de destaque com foto — tamanho fixo (299x470), igual ao Figma */}
+                <div className="relative h-[470px] w-[299px] shrink-0 snap-center overflow-hidden rounded-2xl bg-black">
+                  <Image
+                    src="/landing/pricing-card-photo.svg"
+                    alt=""
+                    fill
+                    sizes="299px"
+                    className="pointer-events-none object-cover"
+                  />
+                  <div className="absolute inset-x-0 top-0 p-8">
+                    <p className="text-xl font-bold leading-tight text-white">
+                      Prepare-se melhor
+                      <br />
+                      antes de se candidatar.
+                    </p>
+                    <p className="mt-4 text-sm leading-6 text-white/90">
+                      Analise seu perfil, identifique o que precisa melhorar e concentre sua energia nas
+                      oportunidades mais alinhadas ao seu momento profissional.
+                    </p>
+                    <ArrowRight className="mt-6 h-6 w-6 text-white" aria-hidden />
+                  </div>
+                </div>
+
+                {/* Plano gratuito — tamanho fixo (483x470), igual ao Figma */}
+                <div className="flex h-[470px] w-[377px] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border border-border shadow-sm lg:w-[483px]">
+                  <div className="flex flex-1 flex-col justify-between gap-8 bg-white px-6 pb-6 pt-7">
+                    <div className="space-y-2">
+                      <p className="text-base font-medium text-foreground">experiência gratuita</p>
+                      <div className="flex items-end gap-1.5">
+                        <p className="text-4xl font-semibold text-foreground">Grátis</p>
+                        <div className="flex flex-col text-xs leading-tight text-muted-foreground">
+                          <span>para</span>
+                          <span>começar</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-6">
+                      <p className="text-sm leading-6 text-[#514f6e]">
+                        Entenda como seu perfil está sendo apresentado e descubra o que melhorar.
+                      </p>
+                      <Button asChild variant="secondary" className="h-auto w-full rounded-lg py-3 text-sm">
+                        <Link href="/cadastro">Começar gratuitamente</Link>
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-5 border-t border-border bg-white px-6 py-6">
+                    <p className="text-sm font-medium text-foreground">Inclui:</p>
+                    <ul className="space-y-3">
+                      {FREE_PLAN_FEATURES.map((feature) => (
+                        <li key={feature} className="flex items-center gap-2">
+                          <CheckCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                          <span className="text-xs text-muted-foreground">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Pacote em destaque — tamanho fixo (483x470), igual ao Figma */}
+                <div className="flex h-[470px] w-[377px] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border border-border shadow-sm lg:w-[483px]">
+                  <div className="flex flex-1 flex-col justify-between gap-8 bg-gradient-to-b from-[#f1f0fb] to-white px-6 pb-6 pt-7">
+                    <div className="space-y-2">
+                      <p className="text-base font-medium text-foreground">pacote em destaque</p>
+                      <div className="flex items-end gap-1.5">
+                        <p className="text-4xl font-semibold text-foreground">R$ 29,90</p>
+                        <div className="flex flex-col text-xs leading-tight text-muted-foreground">
+                          <span>Por</span>
+                          <span>pacote</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-6">
+                      <p className="text-sm leading-6 text-[#514f6e]">
+                        Para quem está avaliando novas vagas e quer decidir quais candidaturas realmente vale a
+                        pena priorizar.
+                      </p>
+                      <Button asChild className="h-auto w-full rounded-lg py-3 text-sm">
+                        <Link href="/cadastro">Tenho interesse</Link>
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-5 border-t border-border bg-white px-6 py-6">
+                    <p className="text-sm font-medium text-foreground">Features:</p>
+                    <ul className="space-y-3">
+                      {PRO_PLAN_FEATURES.map((feature) => (
+                        <li key={feature} className="flex items-center gap-2">
+                          <CheckCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                          <span className="text-xs text-muted-foreground">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-center gap-2 lg:hidden">
+                {[0, 1, 2].map((index) => (
+                  <span
+                    key={index}
+                    className={`h-[13px] w-[13px] rounded-full ${index === 0 ? "bg-primary" : "bg-[#d6d6d6]"}`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </section>
