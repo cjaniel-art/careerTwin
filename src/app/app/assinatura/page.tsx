@@ -1,9 +1,30 @@
+import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowRight, CheckCheck } from "lucide-react";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { SubmitButton } from "@/components/submit-button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { confirmPurchaseIntentAction } from "@/features/credits/actions";
 import { SIMULATED_OFFER } from "@/config/engine/offer";
+
+const FREE_PLAN_FEATURES = [
+  "1 Análise de Perfil completa",
+  "1 análise de vaga específica",
+  "Recomendações e ações priorizadas",
+  "Dashboard e histórico de análises",
+];
+
+/** Os dois primeiros itens usam SIMULATED_OFFER — nunca hardcode créditos/validade separadamente do config. */
+function proPlanFeatures(): string[] {
+  return [
+    `${SIMULATED_OFFER.creditsDisplayed} créditos para análises de vagas`,
+    `Créditos válidos por ${SIMULATED_OFFER.validityDaysDisplayed} dias`,
+    "Diagnóstico de aderência e lacunas",
+    "Lacunas e recomendações",
+  ];
+}
 
 export const metadata = { title: "Assinatura — CareerTwin" };
 export const dynamic = "force-dynamic";
@@ -38,74 +59,155 @@ export default async function CreditsPage({
   ]);
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
+    <main className="flex flex-col gap-6 px-8 py-6">
       {motivo === "sem-credito" ? (
-        <p className="mb-6 rounded-md bg-secondary p-3 text-sm text-foreground">
+        <p className="rounded-md bg-secondary p-3 text-sm text-foreground">
           Você não tem créditos disponíveis para uma nova análise de vaga. Seu histórico, ações e perfil
           continuam disponíveis normalmente.
         </p>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Seus créditos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold text-foreground">{account?.available_credits ?? 0}</p>
-          <p className="text-sm text-muted-foreground">
-            {account?.reserved_credits ? `${account.reserved_credits} reservado(s) em análises em andamento.` : "disponíveis"}
-          </p>
-        </CardContent>
-      </Card>
+      <h1 className="text-2xl font-bold text-foreground">Assinatura</h1>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Pacote Novas Oportunidades</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-2xl font-bold text-foreground">
-            R$ {(SIMULATED_OFFER.priceCents / 100).toFixed(2).replace(".", ",")}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {SIMULATED_OFFER.creditsDisplayed} créditos para novas análises de vagas · validade de{" "}
-            {SIMULATED_OFFER.validityDaysDisplayed} dias
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Preço, quantidade de créditos e validade são hipóteses de monetização. Não haverá cobrança real
-            nem coleta de dados de cartão.
-          </p>
-          {lastIntent?.status === "confirmed_intent" ? (
-            <p className="rounded-md bg-secondary p-3 text-sm text-foreground">
-              Você já registrou intenção de compra deste pacote.
+      <div className="flex flex-col gap-6 md:flex-row">
+        <Card className="md:flex-1">
+          <CardHeader>
+            <CardTitle>Seus créditos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-foreground">{account?.available_credits ?? 0}</p>
+            <p className="text-sm text-muted-foreground">
+              {account?.reserved_credits ? `${account.reserved_credits} reservado(s) em análises em andamento.` : "disponíveis"}
             </p>
-          ) : (
-            <form action={confirmPurchaseIntentAction}>
-              <SubmitButton>Registrar intenção de compra</SubmitButton>
-            </form>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Histórico</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {ledger && ledger.length > 0 ? (
-            ledger.map((entry, i) => (
-              <div key={i} className="flex items-center justify-between border-b border-border py-2 text-sm last:border-0">
-                <span className="text-foreground">{entry.reason}</span>
-                <span className={entry.amount >= 0 ? "text-foreground" : "text-muted-foreground"}>
-                  {entry.amount >= 0 ? "+" : ""}
-                  {entry.amount}
-                </span>
+        <Card className="md:flex-1">
+          <CardHeader>
+            <CardTitle>Histórico</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {ledger && ledger.length > 0 ? (
+              ledger.map((entry, i) => (
+                <div key={i} className="flex items-center justify-between border-b border-border py-2 text-sm last:border-0">
+                  <span className="text-foreground">{entry.reason}</span>
+                  <span className={entry.amount >= 0 ? "text-foreground" : "text-muted-foreground"}>
+                    {entry.amount >= 0 ? "+" : ""}
+                    {entry.amount}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhuma movimentação ainda.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex flex-col gap-6 lg:flex-row">
+        {/* Card de destaque com foto — tamanho fixo (299x488), igual ao Figma */}
+        <div className="relative h-[488px] w-full shrink-0 overflow-hidden rounded-2xl bg-black lg:w-[299px]">
+          <Image
+            src="/landing/pricing-card-photo.svg"
+            alt=""
+            fill
+            sizes="299px"
+            className="pointer-events-none object-cover"
+          />
+          <div className="absolute inset-x-0 top-0 p-8">
+            <p className="text-xl font-bold leading-tight text-white">
+              Prepare-se melhor
+              <br />
+              antes de se candidatar.
+            </p>
+            <p className="mt-4 text-sm leading-6 text-white/90">
+              Analise seu perfil, identifique o que precisa melhorar e concentre sua energia nas oportunidades
+              mais alinhadas ao seu momento profissional.
+            </p>
+            <ArrowRight className="mt-6 h-6 w-6 text-white" aria-hidden />
+          </div>
+        </div>
+
+        {/* Plano gratuito — expansivo, ocupa o espaço restante */}
+        <div className="flex h-[488px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border shadow-sm">
+          <div className="flex flex-1 flex-col justify-between gap-8 bg-white px-6 pb-6 pt-7">
+            <div className="space-y-2">
+              <p className="text-base font-medium text-foreground">experiência gratuita</p>
+              <div className="flex items-end gap-1.5">
+                <p className="text-4xl font-semibold text-foreground">Grátis</p>
+                <div className="flex flex-col text-xs leading-tight text-muted-foreground">
+                  <span>para</span>
+                  <span>começar</span>
+                </div>
               </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">Nenhuma movimentação ainda.</p>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+            <div className="space-y-6">
+              <p className="text-sm leading-6 text-[#514f6e]">
+                Entenda como seu perfil está sendo apresentado e descubra o que melhorar.
+              </p>
+              <Button asChild variant="secondary" className="h-auto w-full rounded-lg py-3 text-sm">
+                <Link href="/app/analise-perfil">Continuar gratuitamente</Link>
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-5 border-t border-border bg-white px-6 py-6">
+            <p className="text-sm font-medium text-foreground">Inclui:</p>
+            <ul className="space-y-3">
+              {FREE_PLAN_FEATURES.map((feature) => (
+                <li key={feature} className="flex items-center gap-2">
+                  <CheckCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  <span className="text-xs text-muted-foreground">{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Pacote em destaque — expansivo, ocupa o espaço restante */}
+        <div className="flex h-[488px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border shadow-sm">
+          <div className="flex flex-1 flex-col justify-between gap-8 bg-gradient-to-b from-[#f1f0fb] to-white px-6 pb-6 pt-7">
+            <div className="space-y-2">
+              <p className="text-base font-medium text-foreground">pacote em destaque</p>
+              <div className="flex items-end gap-1.5">
+                <p className="text-4xl font-semibold text-foreground">
+                  R$ {(SIMULATED_OFFER.priceCents / 100).toFixed(2).replace(".", ",")}
+                </p>
+                <div className="flex flex-col text-xs leading-tight text-muted-foreground">
+                  <span>Por</span>
+                  <span>pacote</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <p className="text-sm leading-6 text-[#514f6e]">
+                Para quem está avaliando novas vagas e quer decidir quais candidaturas realmente vale a pena
+                priorizar. Preço, créditos e validade são hipóteses de monetização — sem cobrança real nem
+                coleta de dados de cartão.
+              </p>
+              {lastIntent?.status === "confirmed_intent" ? (
+                <p className="rounded-lg bg-secondary p-3 text-center text-sm text-foreground">
+                  Você já registrou intenção de compra deste pacote.
+                </p>
+              ) : (
+                <form action={confirmPurchaseIntentAction}>
+                  <SubmitButton className="h-auto w-full rounded-lg py-3 text-sm">Tenho interesse</SubmitButton>
+                </form>
+              )}
+            </div>
+          </div>
+          <div className="space-y-5 border-t border-border bg-white px-6 py-6">
+            <p className="text-sm font-medium text-foreground">Features:</p>
+            <ul className="space-y-3">
+              {proPlanFeatures().map((feature) => (
+                <li key={feature} className="flex items-center gap-2">
+                  <CheckCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  <span className="text-xs text-muted-foreground">{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }
