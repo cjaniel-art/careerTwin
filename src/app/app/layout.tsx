@@ -13,6 +13,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider
+      // Breaks out of the root layout's `mx-auto max-w-content` (1440px cap,
+      // src/app/layout.tsx) — the app shell should use the full viewport
+      // width even though marketing/auth pages stay capped.
+      className="w-screen max-w-none relative left-1/2 -translate-x-1/2"
       style={
         {
           "--sidebar-width": "226px",
