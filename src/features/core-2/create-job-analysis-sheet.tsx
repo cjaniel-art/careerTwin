@@ -31,7 +31,7 @@ export function CreateJobAnalysisSheet() {
           Nova análise
         </Button>
       </SheetTrigger>
-      <SheetContent showCloseButton={false} className="w-full gap-0 border-none bg-transparent p-0 sm:max-w-[602px]">
+      <SheetContent showCloseButton={false} className="w-full gap-0 border-none bg-transparent p-0 sm:w-[45%] sm:max-w-none">
         <SheetInner key={sheetKey} onClose={() => setOpen(false)} />
       </SheetContent>
     </Sheet>
