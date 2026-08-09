@@ -50,7 +50,7 @@ function SheetInner({ onClose }: { onClose: () => void }) {
           aria-label="Fechar"
           className="flex shrink-0 items-center px-2 pb-2 pt-8"
         >
-          <span className="flex size-10 items-center justify-center rounded-full bg-white">
+          <span className="flex size-10 items-center justify-center rounded-full bg-card">
             <X className="size-6" />
           </span>
         </button>
@@ -80,7 +80,7 @@ function FormView({
   onCancel: () => void;
 }) {
   return (
-    <form action={formAction} className="flex h-full flex-1 flex-col bg-white px-8">
+    <form action={formAction} className="flex h-full flex-1 flex-col bg-card px-8">
       <div className="border-b border-border py-4">
         <p className="text-xs text-muted-foreground">Análise de</p>
         <p className="text-2xl font-semibold text-foreground">Aderência à Vaga</p>
@@ -133,7 +133,7 @@ function FormView({
 
 function SuccessView({ onViewResult }: { onViewResult: () => void }) {
   return (
-    <div className="flex h-full flex-1 flex-col items-center justify-center gap-[30px] bg-white px-8">
+    <div className="flex h-full flex-1 flex-col items-center justify-center gap-[30px] bg-card px-8">
       <div className="flex flex-col items-center gap-[30px]">
         <CheckCircle2 className="size-[172px] text-primary" strokeWidth={1.5} />
         <p className="text-center text-2xl font-semibold text-foreground">Análise efetuada com sucesso</p>

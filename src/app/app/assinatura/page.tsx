@@ -130,7 +130,7 @@ export default async function CreditsPage({
 
         {/* Plano gratuito — expansivo, ocupa o espaço restante */}
         <div className="flex h-[488px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border shadow-sm">
-          <div className="flex flex-1 flex-col justify-between gap-8 bg-white px-6 pb-6 pt-7">
+          <div className="flex flex-1 flex-col justify-between gap-8 bg-card px-6 pb-6 pt-7">
             <div className="space-y-2">
               <p className="text-base font-medium text-foreground">experiência gratuita</p>
               <div className="flex items-end gap-1.5">
@@ -150,7 +150,7 @@ export default async function CreditsPage({
               </Button>
             </div>
           </div>
-          <div className="space-y-5 border-t border-border bg-white px-6 py-6">
+          <div className="space-y-5 border-t border-border bg-card px-6 py-6">
             <p className="text-sm font-medium text-foreground">Inclui:</p>
             <ul className="space-y-3">
               {FREE_PLAN_FEATURES.map((feature) => (
@@ -165,7 +165,7 @@ export default async function CreditsPage({
 
         {/* Pacote em destaque — expansivo, ocupa o espaço restante */}
         <div className="flex h-[488px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border shadow-sm">
-          <div className="flex flex-1 flex-col justify-between gap-8 bg-gradient-to-b from-[#f1f0fb] to-white px-6 pb-6 pt-7">
+          <div className="flex flex-1 flex-col justify-between gap-8 bg-gradient-to-b from-[#f1f0fb] to-card dark:from-[#2a2440] px-6 pb-6 pt-7">
             <div className="space-y-2">
               <p className="text-base font-medium text-foreground">pacote em destaque</p>
               <div className="flex items-end gap-1.5">
@@ -195,7 +195,7 @@ export default async function CreditsPage({
               )}
             </div>
           </div>
-          <div className="space-y-5 border-t border-border bg-white px-6 py-6">
+          <div className="space-y-5 border-t border-border bg-card px-6 py-6">
             <p className="text-sm font-medium text-foreground">Features:</p>
             <ul className="space-y-3">
               {proPlanFeatures().map((feature) => (

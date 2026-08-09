@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Briefcase, DollarSign, UserCircle } from "lucide-react";
+import { Home, FileText, Briefcase, DollarSign, Settings } from "lucide-react";
 import { NavUser } from "@/components/nav-user";
+import { useAppTheme } from "@/components/theme-provider";
 import {
   Sidebar,
   SidebarContent,
@@ -22,13 +23,21 @@ const NAV_ITEMS = [
   { href: "/app/analise-perfil", label: "Análise de perfil", icon: FileText },
   { href: "/app/aderencia", label: "Aderência à Vaga", icon: Briefcase },
   { href: "/app/assinatura", label: "Assinatura", icon: DollarSign },
-  { href: "/app/conta", label: "Minha conta", icon: UserCircle },
+  { href: "/app/conta", label: "Minha conta", icon: Settings },
 ];
 
 function SidebarLogo() {
   const { state } = useSidebar();
+  const { theme, mounted } = useAppTheme();
+  const isDark = mounted && theme === "dark";
+
   if (state === "collapsed") {
     return <Image src="/auth/logo-glyph.svg" alt="CareerTwin" width={40} height={40} className="h-10 w-10" />;
+  }
+  if (isDark) {
+    return (
+      <Image src="/sidebar/logo-full-dark.svg" alt="CareerTwin" width={183} height={44} className="h-11 w-[183px]" />
+    );
   }
   return (
     <div className="relative h-11 w-[183px] shrink-0">
@@ -48,13 +57,13 @@ export function AppSidebar({ userEmail, ...props }: { userEmail: string } & Reac
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-[#dadce0] bg-white" {...props}>
+    <Sidebar collapsible="icon" className="border-r border-border bg-card" {...props}>
       <SidebarHeader className="items-center px-[18px] py-4">
         <Link href="/app/dashboard">
           <SidebarLogo />
         </Link>
       </SidebarHeader>
-      <SidebarContent className="gap-1 px-0 pt-2">
+      <SidebarContent className="gap-2 px-0 pt-4">
         <SidebarMenu>
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -65,14 +74,17 @@ export function AppSidebar({ userEmail, ...props }: { userEmail: string } & Reac
                   isActive={isActive}
                   tooltip={item.label}
                   className={cn(
-                    "h-12 rounded-none pl-[29px] pr-[18px] text-[#8d8d8d]",
+                    // Figma spec is 24px nav icons — overrides the sidebar
+                    // primitive's own [&>svg]:size-4 (16px) base, which wins
+                    // on specificity over a plain size-6 on the <svg> itself.
+                    "h-12 rounded-none pl-[29px] pr-[18px] text-muted-foreground [&>svg]:size-6",
                     "group-data-[collapsible=icon]:pl-[29px] group-data-[collapsible=icon]:pr-[18px]",
                     isActive && "border-r-4 border-primary bg-transparent text-primary hover:bg-transparent hover:text-primary",
                   )}
                 >
                   <Link href={item.href}>
                     <item.icon className="size-6 shrink-0" />
-                    <span>{item.label}</span>
+                    <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

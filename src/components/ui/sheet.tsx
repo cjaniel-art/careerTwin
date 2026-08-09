@@ -4,6 +4,7 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePortalContainer } from "@/components/theme-provider";
 
 export const Sheet = DialogPrimitive.Root;
 export const SheetTrigger = DialogPrimitive.Trigger;
@@ -32,8 +33,9 @@ export function SheetContent({
   side?: "top" | "right" | "bottom" | "left";
   showCloseButton?: boolean;
 }) {
+  const container = usePortalContainer();
   return (
-    <SheetPortal>
+    <SheetPortal container={container}>
       <SheetOverlay />
       <DialogPrimitive.Content
         className={cn(
