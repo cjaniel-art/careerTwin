@@ -64,7 +64,8 @@ export function AppSidebar({ userEmail, ...props }: { userEmail: string } & Reac
         </Link>
       </SidebarHeader>
       <SidebarContent className="gap-2 px-0 pt-4">
-        <SidebarMenu>
+        {/* SidebarMenu's own base is gap-1 (4px) — Figma wants 8px between the 48px-tall items. */}
+        <SidebarMenu className="gap-2">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
