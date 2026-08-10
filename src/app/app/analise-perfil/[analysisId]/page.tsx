@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { ArrowLeftRight, BarChart3, ListChecks, ShieldAlert, Sparkles, TrendingUp, AlertTriangle } from "lucide-react";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
+import { ACTIONS_CONFIG } from "@/config/engine/actions";
 import type { Core1Gap } from "@/config/schemas/core1";
-import { FeedbackForm } from "@/features/feedback/feedback-form";
 import { ReportHeader } from "@/features/core-1/report/report-header";
 import { ExecutiveSummaryCard } from "@/features/core-1/report/executive-summary-card";
 import { IppCard } from "@/features/core-1/report/ipp-card";
@@ -18,7 +18,6 @@ import { GapsSection } from "@/features/core-1/report/gaps-section";
 import { RecommendationsSection } from "@/features/core-1/report/recommendations-section";
 import { SourceConflictsSection } from "@/features/core-1/report/source-conflicts-section";
 import { ActionPlanPreview } from "@/features/core-1/report/action-plan-preview";
-import { ReanalysisSection } from "@/features/core-1/report/reanalysis-section";
 import { ReportDisclaimer } from "@/features/core-1/report/report-disclaimer";
 
 export const metadata = { title: "Relatório de Análise de Perfil — CareerTwin" };
@@ -39,7 +38,7 @@ export default async function ProfileAnalysisResultPage({
   const { data: analysis } = await supabase
     .from("analyses")
     .select(
-      "id, status, confidence_band, confidence_reasons, missing_information, conflicts, previous_analysis_id, target_context_version_id, profile_version_id, completed_at, profile_versions(version_number)",
+      "id, status, confidence_band, confidence_reasons, missing_information, conflicts, previous_analysis_id, target_context_version_id, completed_at",
     )
     .eq("id", analysisId)
     .eq("user_id", user.id)
@@ -47,63 +46,63 @@ export default async function ProfileAnalysisResultPage({
   if (!analysis) redirect("/app/analise-perfil");
   if (analysis.status !== "completed") redirect(`/app/analise-perfil/processando/${analysisId}`);
 
-  const [{ data: result }, { data: dimensions }, { data: recommendations }, { data: feedback }, { data: targetContext }] =
-    await Promise.all([
-      supabase
-        .from("profile_analysis_results")
-        .select("ipp_display_score, ipp_band, diagnosis, main_strength, main_gap, next_best_action, calculation_snapshot")
-        .eq("analysis_id", analysisId)
-        .single(),
-      supabase
-        .from("profile_dimension_results")
-        .select("dimension, rubric_level, dimension_score, reasoning")
-        .eq("analysis_id", analysisId),
-      supabase
-        .from("recommendations")
-        .select(
-          "id, recommendation_key, category, title, problem, reasoning, suggested_action, expected_outcome, completion_criteria, impact, effort, urgency, confidence, priority_order, status",
-        )
-        .eq("analysis_id", analysisId)
-        .order("priority_order", { ascending: true }),
-      supabase
-        .from("analysis_feedback")
-        .select("usefulness_score, specificity, application_intent, comment")
-        .eq("analysis_id", analysisId)
-        .eq("user_id", user.id)
-        .maybeSingle(),
-      analysis.target_context_version_id
-        ? supabase.from("target_context_versions").select("target_role").eq("id", analysis.target_context_version_id).maybeSingle()
-        : Promise.resolve({ data: null }),
-    ]);
+  const [{ data: result }, { data: dimensions }, { data: recommendations }, { data: targetContext }] = await Promise.all([
+    supabase
+      .from("profile_analysis_results")
+      .select("ipp_display_score, ipp_band, diagnosis, main_strength, main_gap, next_best_action, calculation_snapshot")
+      .eq("analysis_id", analysisId)
+      .single(),
+    supabase
+      .from("profile_dimension_results")
+      .select("dimension, rubric_level, dimension_score, reasoning")
+      .eq("analysis_id", analysisId),
+    supabase
+      .from("recommendations")
+      .select(
+        "id, recommendation_key, category, title, problem, reasoning, suggested_action, expected_outcome, completion_criteria, impact, effort, urgency, confidence, priority_order, status",
+      )
+      .eq("analysis_id", analysisId)
+      .order("priority_order", { ascending: true }),
+    analysis.target_context_version_id
+      ? supabase.from("target_context_versions").select("target_role").eq("id", analysis.target_context_version_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
   const recommendationIds = (recommendations ?? []).map((r) => r.id);
-  const { data: actionRows } = recommendationIds.length
-    ? await supabase
-        .from("actions")
-        .select("id, status, recommendation_id")
-        .eq("user_id", user.id)
-        .in("recommendation_id", recommendationIds)
-    : { data: [] as { id: string; status: string; recommendation_id: string }[] };
+  const [{ data: actionRows }, { count: activeActionsCount }] = await Promise.all([
+    recommendationIds.length
+      ? supabase
+          .from("actions")
+          .select("id, status, recommendation_id")
+          .eq("user_id", user.id)
+          .in("recommendation_id", recommendationIds)
+      : Promise.resolve({ data: [] as { id: string; status: string; recommendation_id: string }[] }),
+    supabase
+      .from("actions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .in("status", ["pending", "selected", "in_progress"]),
+  ]);
 
-  const recommendationTitleById = new Map((recommendations ?? []).map((r) => [r.id, r.title]));
+  const recommendationById = new Map((recommendations ?? []).map((r) => [r.id, r]));
   const actionPreviewRows = (actionRows ?? []).map((a) => ({
     id: a.id,
     status: a.status,
-    title: recommendationTitleById.get(a.recommendation_id) ?? "",
+    title: recommendationById.get(a.recommendation_id)?.title ?? "",
+    suggestedAction: recommendationById.get(a.recommendation_id)?.suggested_action ?? "",
   }));
+  const candidateRecommendations = (recommendations ?? [])
+    .filter((r) => r.status === "generated" || r.status === "highlighted")
+    .map((r) => ({ id: r.id, title: r.title, problem: r.problem, category: r.category }));
+  const atActionsLimit = (activeActionsCount ?? 0) >= ACTIONS_CONFIG.maximum;
 
   const snapshot = (result?.calculation_snapshot ?? {}) as { gaps?: Core1Gap[] };
   const gaps = snapshot.gaps ?? [];
   const conflicts = (analysis.conflicts as string[] | null) ?? [];
-  const profileVersion = Array.isArray(analysis.profile_versions) ? analysis.profile_versions[0] : analysis.profile_versions;
 
   return (
     <main className="flex w-full flex-col gap-8 px-6 py-10 lg:px-10">
-      <ReportHeader
-        completedAt={analysis.completed_at}
-        targetRole={targetContext?.target_role ?? null}
-        profileVersionNumber={profileVersion?.version_number ?? null}
-      />
+      <ReportHeader completedAt={analysis.completed_at} targetRole={targetContext?.target_role ?? null} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ExecutiveSummaryCard
@@ -182,7 +181,12 @@ export default async function ProfileAnalysisResultPage({
           <RecommendationsSection recommendations={recommendations ?? []} analysisId={analysisId} />
         </ReportTabsContent>
         <ReportTabsContent value="plano-evolucao">
-          <ActionPlanPreview actions={actionPreviewRows} />
+          <ActionPlanPreview
+            analysisId={analysisId}
+            actions={actionPreviewRows}
+            candidates={candidateRecommendations}
+            atLimit={atActionsLimit}
+          />
         </ReportTabsContent>
         {conflicts.length > 0 ? (
           <ReportTabsContent value="inconsistencias">
@@ -190,20 +194,6 @@ export default async function ProfileAnalysisResultPage({
           </ReportTabsContent>
         ) : null}
       </ReportTabsRoot>
-
-      <ReanalysisSection />
-
-      <div className="rounded-lg border border-border p-4">
-        <h2 className="text-base font-semibold text-foreground">Seu feedback</h2>
-        <div className="mt-3">
-          <FeedbackForm
-            analysisId={analysisId}
-            redirectTo={`/app/analise-perfil/${analysisId}`}
-            showApplicationIntent={false}
-            existing={feedback ?? null}
-          />
-        </div>
-      </div>
 
       <ReportDisclaimer />
     </main>

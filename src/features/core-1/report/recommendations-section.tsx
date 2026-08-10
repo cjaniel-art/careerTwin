@@ -135,7 +135,7 @@ export function RecommendationsSection({ recommendations, analysisId }: { recomm
         ) : null}
 
         {others.length > 0 ? (
-          <Accordion type="single" collapsible>
+          <Accordion type="single" collapsible defaultValue="others">
             <AccordionItem value="others" className="border-0">
               <AccordionTrigger className="text-sm font-medium text-foreground hover:no-underline">
                 Outras recomendações ({others.length})

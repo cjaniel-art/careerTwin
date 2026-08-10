@@ -69,6 +69,7 @@ const ACTION_STATUS_TRANSITIONS: Record<string, string> = {
 /** Advances an action one step along pendente → selecionada → em andamento → concluída. */
 export async function advanceActionStatusAction(formData: FormData): Promise<void> {
   const actionId = formData.get("actionId");
+  const currentPath = formData.get("currentPath");
   if (typeof actionId !== "string") return;
   const { supabase, user } = await requireUser();
 
@@ -94,4 +95,5 @@ export async function advanceActionStatusAction(formData: FormData): Promise<voi
   if (nextStatus === "completed") trackEvent(ANALYTICS_EVENTS.actionCompleted, { userId: user.id });
 
   revalidatePath("/app/acoes");
+  if (typeof currentPath === "string") revalidatePath(currentPath);
 }

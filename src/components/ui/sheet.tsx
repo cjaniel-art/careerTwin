@@ -64,6 +64,23 @@ export function SheetContent({
   );
 }
 
+/**
+ * Botão de fechar circular usado nos Sheets "full bleed" (sem showCloseButton padrão),
+ * ex.: CreateJobAnalysisSheet e ConfidenceCard. Padronizado aqui para que o ícone fique
+ * branco no modo escuro em todos os Sheets que o usam, em vez de cada um definir a cor.
+ */
+export function SheetCircleClose({ className }: { className?: string }) {
+  return (
+    <SheetClose asChild>
+      <button type="button" aria-label="Fechar" className={cn("flex shrink-0 items-center px-2 pb-2 pt-8", className)}>
+        <span className="flex size-10 items-center justify-center rounded-full bg-card text-foreground dark:text-white">
+          <X className="size-6" />
+        </span>
+      </button>
+    </SheetClose>
+  );
+}
+
 export function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex flex-col gap-1.5 p-4", className)} {...props} />;
 }

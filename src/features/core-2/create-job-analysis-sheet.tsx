@@ -2,12 +2,12 @@
 
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ArrowLeft, X, CheckCircle2 } from "lucide-react";
+import { Plus, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
-import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetCircleClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { createAndRunJobAnalysisAction, type CreateJobAnalysisState } from "@/features/core-2/actions";
 
 const INITIAL_STATE: CreateJobAnalysisState = {};
@@ -44,17 +44,7 @@ function SheetInner({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="flex h-full items-start">
-      <SheetClose asChild>
-        <button
-          type="button"
-          aria-label="Fechar"
-          className="flex shrink-0 items-center px-2 pb-2 pt-8"
-        >
-          <span className="flex size-10 items-center justify-center rounded-full bg-card">
-            <X className="size-6" />
-          </span>
-        </button>
-      </SheetClose>
+      <SheetCircleClose />
 
       {state.analysisId ? (
         <SuccessView

@@ -9,8 +9,8 @@ function ScoreRing({ score }: { score: number }) {
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - clamped / 100);
   return (
-    <div className="relative flex size-32 shrink-0 items-center justify-center">
-      <svg viewBox="0 0 120 120" className="size-32 -rotate-90" aria-hidden>
+    <div className="relative flex size-36 shrink-0 items-center justify-center">
+      <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90" aria-hidden>
         <circle cx="60" cy="60" r={radius} fill="none" stroke="hsl(var(--secondary))" strokeWidth="10" />
         <circle
           cx="60"
@@ -26,7 +26,7 @@ function ScoreRing({ score }: { score: number }) {
       </svg>
       <div className="absolute flex flex-col items-center" aria-hidden>
         <span className="text-3xl font-bold text-foreground">{clamped}</span>
-        <span className="text-xs text-muted-foreground">de 100</span>
+        <span className="text-sm text-muted-foreground">de 100</span>
       </div>
     </div>
   );
@@ -53,9 +53,14 @@ export function IppCard({ score, band }: { score: number; band: string }) {
           </TooltipContent>
         </Tooltip>
       </CardHeader>
-      <CardContent className="flex flex-1 flex-col items-center justify-center gap-3 text-center" aria-label={`IPP ${score} de 100`}>
+      <CardContent className="flex flex-1 items-center gap-6" aria-label={`IPP ${score} de 100`}>
         <ScoreRing score={score} />
-        <p className="text-sm font-semibold text-foreground">{bandLabel}</p>
+        <div>
+          <p className="text-lg font-bold text-foreground">{bandLabel}</p>
+          <p className="mt-1 text-sm leading-5 text-muted-foreground">
+            O IPP avalia a prontidão observável da comunicação do seu perfil.
+          </p>
+        </div>
       </CardContent>
       <div className="border-t border-border px-6 py-3">
         <p className="text-center text-xs leading-5 text-muted-foreground">
