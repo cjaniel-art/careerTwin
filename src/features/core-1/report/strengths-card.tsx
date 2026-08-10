@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GoToTabButton } from "./report-tabs";
 
 /**
  * §6 (Card-resumo A) — o schema atual do Core 1 não retorna uma lista de pontos fortes,
@@ -25,9 +24,7 @@ export function StrengthsCard({ mainStrength }: { mainStrength: string }) {
         </ul>
       </CardContent>
       <div className="border-t border-border px-6 py-3">
-        <Button asChild variant="tertiary" size="sm">
-          <Link href="#forcas">Ver todos</Link>
-        </Button>
+        <GoToTabButton tab="forcas">Ver todos</GoToTabButton>
       </div>
     </Card>
   );

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { ArrowLeftRight, BarChart3, ListChecks, ShieldAlert, Sparkles, TrendingUp, AlertTriangle } from "lucide-react";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import type { Core1Gap } from "@/config/schemas/core1";
 import { FeedbackForm } from "@/features/feedback/feedback-form";
@@ -6,7 +7,7 @@ import { ReportHeader } from "@/features/core-1/report/report-header";
 import { ExecutiveSummaryCard } from "@/features/core-1/report/executive-summary-card";
 import { IppCard } from "@/features/core-1/report/ipp-card";
 import { ConfidenceCard } from "@/features/core-1/report/confidence-card";
-import { SectionNav, type ReportSection } from "@/features/core-1/report/section-nav";
+import { ReportTabsRoot, ReportTabsList, ReportTabsTrigger, ReportTabsContent } from "@/features/core-1/report/report-tabs";
 import { StrengthsCard } from "@/features/core-1/report/strengths-card";
 import { GapsCard } from "@/features/core-1/report/gaps-card";
 import { TopRecommendationsCard } from "@/features/core-1/report/top-recommendations-card";
@@ -22,16 +23,6 @@ import { ReportDisclaimer } from "@/features/core-1/report/report-disclaimer";
 
 export const metadata = { title: "Relatório de Análise de Perfil — CareerTwin" };
 export const dynamic = "force-dynamic";
-
-const REPORT_SECTIONS: ReportSection[] = [
-  { id: "visao-geral", label: "Visão geral" },
-  { id: "dimensoes", label: "Dimensões" },
-  { id: "forcas", label: "Forças" },
-  { id: "lacunas", label: "Lacunas" },
-  { id: "recomendacoes", label: "Recomendações" },
-  { id: "plano-evolucao", label: "Plano de evolução" },
-  { id: "inconsistencias", label: "Inconsistências" },
-];
 
 export default async function ProfileAnalysisResultPage({
   params,
@@ -103,10 +94,11 @@ export default async function ProfileAnalysisResultPage({
 
   const snapshot = (result?.calculation_snapshot ?? {}) as { gaps?: Core1Gap[] };
   const gaps = snapshot.gaps ?? [];
+  const conflicts = (analysis.conflicts as string[] | null) ?? [];
   const profileVersion = Array.isArray(analysis.profile_versions) ? analysis.profile_versions[0] : analysis.profile_versions;
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10">
+    <main className="flex w-full flex-col gap-8 px-6 py-10 lg:px-10">
       <ReportHeader
         completedAt={analysis.completed_at}
         targetRole={targetContext?.target_role ?? null}
@@ -125,42 +117,79 @@ export default async function ProfileAnalysisResultPage({
           level={analysis.confidence_band ?? ""}
           reasons={(analysis.confidence_reasons as string[] | null) ?? []}
           missingInformation={(analysis.missing_information as string[] | null) ?? []}
-          conflicts={(analysis.conflicts as string[] | null) ?? []}
+          conflicts={conflicts}
         />
       </div>
 
-      <SectionNav sections={REPORT_SECTIONS} />
+      <ReportTabsRoot defaultValue="visao-geral">
+        <ReportTabsList>
+          <ReportTabsTrigger value="visao-geral">
+            <ArrowLeftRight className="size-4" aria-hidden />
+            Visão geral
+          </ReportTabsTrigger>
+          <ReportTabsTrigger value="dimensoes">
+            <BarChart3 className="size-4" aria-hidden />
+            Dimensões
+          </ReportTabsTrigger>
+          <ReportTabsTrigger value="forcas">
+            <Sparkles className="size-4" aria-hidden />
+            Forças
+          </ReportTabsTrigger>
+          {gaps.length > 0 ? (
+            <ReportTabsTrigger value="lacunas">
+              <AlertTriangle className="size-4" aria-hidden />
+              Lacunas
+            </ReportTabsTrigger>
+          ) : null}
+          <ReportTabsTrigger value="recomendacoes">
+            <ListChecks className="size-4" aria-hidden />
+            Recomendações
+          </ReportTabsTrigger>
+          <ReportTabsTrigger value="plano-evolucao">
+            <TrendingUp className="size-4" aria-hidden />
+            Plano de evolução
+          </ReportTabsTrigger>
+          {conflicts.length > 0 ? (
+            <ReportTabsTrigger value="inconsistencias">
+              <ShieldAlert className="size-4" aria-hidden />
+              Inconsistências
+            </ReportTabsTrigger>
+          ) : null}
+        </ReportTabsList>
 
-      <div id="visao-geral" className="flex flex-col gap-8 scroll-mt-24">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <StrengthsCard mainStrength={result?.main_strength ?? ""} />
-          <GapsCard gaps={gaps} />
-          <TopRecommendationsCard recommendations={recommendations ?? []} />
-        </div>
+        <ReportTabsContent value="visao-geral" className="flex flex-col gap-8">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <StrengthsCard mainStrength={result?.main_strength ?? ""} />
+            <GapsCard gaps={gaps} />
+            <TopRecommendationsCard recommendations={recommendations ?? []} />
+          </div>
 
-        <NextBestActionBanner action={result?.next_best_action ?? ""} />
-      </div>
+          <NextBestActionBanner action={result?.next_best_action ?? ""} />
+        </ReportTabsContent>
 
-      <div className="flex flex-col gap-6">
-        <div className="scroll-mt-24">
+        <ReportTabsContent value="dimensoes">
           <DimensionsSection dimensions={dimensions ?? []} />
-        </div>
-        <div className="scroll-mt-24">
+        </ReportTabsContent>
+        <ReportTabsContent value="forcas">
           <StrengthsSection mainStrength={result?.main_strength ?? ""} />
-        </div>
-        <div className="scroll-mt-24">
-          <GapsSection gaps={gaps} />
-        </div>
-        <div className="scroll-mt-24">
+        </ReportTabsContent>
+        {gaps.length > 0 ? (
+          <ReportTabsContent value="lacunas">
+            <GapsSection gaps={gaps} />
+          </ReportTabsContent>
+        ) : null}
+        <ReportTabsContent value="recomendacoes">
           <RecommendationsSection recommendations={recommendations ?? []} analysisId={analysisId} />
-        </div>
-        <div className="scroll-mt-24">
+        </ReportTabsContent>
+        <ReportTabsContent value="plano-evolucao">
           <ActionPlanPreview actions={actionPreviewRows} />
-        </div>
-        <div className="scroll-mt-24">
-          <SourceConflictsSection conflicts={(analysis.conflicts as string[] | null) ?? []} />
-        </div>
-      </div>
+        </ReportTabsContent>
+        {conflicts.length > 0 ? (
+          <ReportTabsContent value="inconsistencias">
+            <SourceConflictsSection conflicts={conflicts} />
+          </ReportTabsContent>
+        ) : null}
+      </ReportTabsRoot>
 
       <ReanalysisSection />
 

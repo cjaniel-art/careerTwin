@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RECOMMENDATION_CATEGORY_LABELS } from "@/lib/result-labels";
+import { GoToTabButton, GoToTabRow } from "./report-tabs";
 import type { RecommendationRow } from "./recommendations-section";
 
 /**
@@ -22,9 +21,9 @@ export function TopRecommendationsCard({ recommendations }: { recommendations: R
       <CardContent className="flex flex-1 flex-col gap-1">
         {top.length > 0 ? (
           top.map((r, i) => (
-            <Link
+            <GoToTabRow
               key={r.id}
-              href={`#recomendacao-${r.recommendation_key}`}
+              tab="recomendacoes"
               className="-mx-1.5 flex items-center gap-3 rounded-md px-1.5 py-2 hover:bg-secondary"
             >
               <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
@@ -35,16 +34,14 @@ export function TopRecommendationsCard({ recommendations }: { recommendations: R
                 {RECOMMENDATION_CATEGORY_LABELS[r.category] ?? r.category}
               </Badge>
               <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            </Link>
+            </GoToTabRow>
           ))
         ) : (
           <p className="text-sm text-muted-foreground">Nenhuma recomendação em destaque nesta análise.</p>
         )}
       </CardContent>
       <div className="border-t border-border px-6 py-3">
-        <Button asChild variant="tertiary" size="sm">
-          <Link href="#recomendacoes">Ver todas as recomendações</Link>
-        </Button>
+        <GoToTabButton tab="recomendacoes">Ver todas as recomendações</GoToTabButton>
       </div>
     </Card>
   );

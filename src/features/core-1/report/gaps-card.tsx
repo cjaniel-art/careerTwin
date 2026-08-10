@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Core1Gap } from "@/config/schemas/core1";
 import { GAP_TYPE_LABELS } from "@/lib/result-labels";
+import { GoToTabButton } from "./report-tabs";
 
 /** §7 (Card-resumo B) — prévia das lacunas reais (calculation_snapshot.gaps), com tag de categoria. */
 export function GapsCard({ gaps }: { gaps: Core1Gap[] }) {
@@ -33,9 +32,7 @@ export function GapsCard({ gaps }: { gaps: Core1Gap[] }) {
       </CardContent>
       {gaps.length > 0 ? (
         <div className="border-t border-border px-6 py-3">
-          <Button asChild variant="tertiary" size="sm">
-            <Link href="#lacunas">Ver todas</Link>
-          </Button>
+          <GoToTabButton tab="lacunas">Ver todas</GoToTabButton>
         </div>
       ) : null}
     </Card>
