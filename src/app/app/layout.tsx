@@ -17,8 +17,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <SidebarProvider
         // Breaks out of the root layout's `mx-auto max-w-content` (1440px cap,
         // src/app/layout.tsx) — the app shell should use the full viewport
-        // width even though marketing/auth pages stay capped.
-        className="w-screen max-w-none relative left-1/2 -translate-x-1/2"
+        // width even though marketing/auth pages stay capped. Uses a
+        // margin-based full-bleed (not `transform`/`translate`): a transform
+        // on this ancestor would create a new containing block for its
+        // `position: fixed` sidebar descendant, breaking the sidebar's fixed
+        // positioning and making it scroll away with the page.
+        className="w-screen max-w-none ml-[calc(50%-50vw)]"
         style={
           {
             "--sidebar-width": "226px",
