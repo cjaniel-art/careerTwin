@@ -51,3 +51,38 @@ export const DIMENSION_LABELS: Record<string, string> = {
   positioning_quality: "Qualidade do posicionamento",
   profile_completeness: "Completude do perfil",
 };
+
+/** Core 1 gap.type (profile_analysis_results.calculation_snapshot.gaps[].type) — Relatório de Análise de Perfil §7. */
+export const GAP_TYPE_LABELS: Record<string, string> = {
+  competencia: "Competência",
+  comunicacao: "Comunicação",
+  evidencia: "Evidência",
+  posicionamento: "Posicionamento",
+  desconhecida: "Dados insuficientes",
+};
+
+/** recommendations.category (DB enum, English) — display in PT-BR per Relatório de Análise de Perfil §8. */
+export const RECOMMENDATION_CATEGORY_LABELS: Record<string, string> = {
+  competency: "Competência",
+  communication: "Comunicação",
+  evidence: "Evidência",
+  positioning: "Posicionamento",
+};
+
+/** profile_dimension_results.rubric_level (0-4, backend-assigned) — short interpretation only, never a score. */
+export const RUBRIC_LEVEL_LABELS: Record<number, string> = {
+  0: "Não observado",
+  1: "Pouco evidenciado",
+  2: "Em desenvolvimento",
+  3: "Bom",
+  4: "Muito bom",
+};
+
+/** Likert 1-5 fields on recommendations (impact/effort/urgency/confidence) — presentation-only labels. */
+export const LIKERT_LABELS: Record<number, string> = {
+  1: "Muito baixo",
+  2: "Baixo",
+  3: "Médio",
+  4: "Alto",
+  5: "Muito alto",
+};
