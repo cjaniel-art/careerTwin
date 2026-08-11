@@ -10,12 +10,39 @@ export const metadata = { title: "Análise de Perfil — CareerTwin" };
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-export default async function ProfileAnalysisEntryPage() {
+export default async function ProfileAnalysisEntryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ erro?: string; insuficiente?: string }>;
+}) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/app/analise-perfil");
+
+  const { erro, insuficiente } = await searchParams;
+
+  /**
+   * O relatório da análise mais recente é a home desta seção: se o usuário já
+   * tem uma análise de perfil concluída, /app/analise-perfil leva direto para
+   * ela em vez da tela de "iniciar análise" (que passa a valer só para quem
+   * ainda não tem nenhuma análise concluída). Não redireciona quando há um
+   * erro de reanálise na URL (?erro=1/?insuficiente=1, ver startProfileAnalysisAction),
+   * para não escondar a falha atrás do relatório antigo.
+   */
+  if (!erro && !insuficiente) {
+    const { data: latestCompleted } = await supabase
+      .from("analyses")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("analysis_type", "profile_analysis")
+      .eq("status", "completed")
+      .order("completed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestCompleted) redirect(`/app/analise-perfil/${latestCompleted.id}`);
+  }
 
   const preconditions = await checkCore1Preconditions();
 

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { getOnboardingState } from "@/features/onboarding/get-state";
-import { runAnalysisStage, runDocumentStage, runProfileStage, type PipelineStage } from "@/features/onboarding/pipeline";
+import {
+  runAnalysisStage,
+  runDocumentStage,
+  runProfileStage,
+  runProfileReconsolidationStage,
+  type PipelineStage,
+} from "@/features/onboarding/pipeline";
 
 export const dynamic = "force-dynamic";
 // Server Actions inherit their page segment's limit; a Route Handler needs its
@@ -9,7 +15,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const DOCUMENT_STAGES: PipelineStage[] = ["resume", "linkedin"];
-const VALID_STAGES: PipelineStage[] = [...DOCUMENT_STAGES, "profile", "analysis"];
+const VALID_STAGES: PipelineStage[] = [...DOCUMENT_STAGES, "profile", "profile_reconsolidation", "analysis"];
 
 /**
  * Drives one stage of the onboarding pipeline.
@@ -49,6 +55,7 @@ export async function POST(request: Request) {
     if (state.step !== "completed") return NextResponse.json({ ok: false, done: false }, { status: 409 });
 
     if (stage === "profile") return NextResponse.json(await runProfileStage(supabase, user.id));
+    if (stage === "profile_reconsolidation") return NextResponse.json(await runProfileReconsolidationStage(supabase, user.id));
     return NextResponse.json(await runAnalysisStage());
   } catch (error) {
     console.error(`onboarding stage "${stage}" failed:`, error);

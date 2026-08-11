@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { ArrowLeftRight, BarChart3, ListChecks, ShieldAlert, Sparkles, TrendingUp, AlertTriangle } from "lucide-react";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
+import { getOnboardingState } from "@/features/onboarding/get-state";
 import { ACTIONS_CONFIG } from "@/config/engine/actions";
 import type { Core1Gap } from "@/config/schemas/core1";
 import { ReportHeader } from "@/features/core-1/report/report-header";
@@ -46,27 +47,29 @@ export default async function ProfileAnalysisResultPage({
   if (!analysis) redirect("/app/analise-perfil");
   if (analysis.status !== "completed") redirect(`/app/analise-perfil/processando/${analysisId}`);
 
-  const [{ data: result }, { data: dimensions }, { data: recommendations }, { data: targetContext }] = await Promise.all([
-    supabase
-      .from("profile_analysis_results")
-      .select("ipp_display_score, ipp_band, diagnosis, main_strength, main_gap, next_best_action, calculation_snapshot")
-      .eq("analysis_id", analysisId)
-      .single(),
-    supabase
-      .from("profile_dimension_results")
-      .select("dimension, rubric_level, dimension_score, reasoning")
-      .eq("analysis_id", analysisId),
-    supabase
-      .from("recommendations")
-      .select(
-        "id, recommendation_key, category, title, problem, reasoning, suggested_action, expected_outcome, completion_criteria, impact, effort, urgency, confidence, priority_order, status",
-      )
-      .eq("analysis_id", analysisId)
-      .order("priority_order", { ascending: true }),
-    analysis.target_context_version_id
-      ? supabase.from("target_context_versions").select("target_role").eq("id", analysis.target_context_version_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
+  const [{ data: result }, { data: dimensions }, { data: recommendations }, { data: targetContext }, onboardingState] =
+    await Promise.all([
+      supabase
+        .from("profile_analysis_results")
+        .select("ipp_display_score, ipp_band, diagnosis, main_strength, main_gap, next_best_action, calculation_snapshot")
+        .eq("analysis_id", analysisId)
+        .single(),
+      supabase
+        .from("profile_dimension_results")
+        .select("dimension, rubric_level, dimension_score, reasoning")
+        .eq("analysis_id", analysisId),
+      supabase
+        .from("recommendations")
+        .select(
+          "id, recommendation_key, category, title, problem, reasoning, suggested_action, expected_outcome, completion_criteria, impact, effort, urgency, confidence, priority_order, status",
+        )
+        .eq("analysis_id", analysisId)
+        .order("priority_order", { ascending: true }),
+      analysis.target_context_version_id
+        ? supabase.from("target_context_versions").select("target_role").eq("id", analysis.target_context_version_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      getOnboardingState(supabase, user.id),
+    ]);
 
   const recommendationIds = (recommendations ?? []).map((r) => r.id);
   const [{ data: actionRows }, { count: activeActionsCount }] = await Promise.all([
@@ -102,7 +105,13 @@ export default async function ProfileAnalysisResultPage({
 
   return (
     <main className="flex w-full flex-col gap-8 px-6 py-10 lg:px-10">
-      <ReportHeader completedAt={analysis.completed_at} targetRole={targetContext?.target_role ?? null} />
+      <ReportHeader
+        completedAt={analysis.completed_at}
+        targetRole={targetContext?.target_role ?? null}
+        existingResumeDocument={onboardingState.resumeDocument}
+        existingLinkedinDocument={onboardingState.linkedinDocument}
+        targetContextDefaults={onboardingState.targetContext}
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ExecutiveSummaryCard

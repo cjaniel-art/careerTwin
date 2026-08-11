@@ -23,7 +23,7 @@ import { ANALYTICS_EVENTS } from "@/infrastructure/analytics/events";
  */
 
 export type DocumentStage = "resume" | "linkedin";
-export type PipelineStage = DocumentStage | "profile" | "analysis";
+export type PipelineStage = DocumentStage | "profile" | "profile_reconsolidation" | "analysis";
 
 export interface StageResult {
   ok: boolean;
@@ -535,6 +535,21 @@ export async function runProfileStage(supabase: SupabaseClient, userId: string):
 
   await supabase.from("user_accounts").update({ onboarding_status: "completed" }).eq("user_id", userId);
   trackEvent(ANALYTICS_EVENTS.onboardingCompleted, { userId });
+  return { ok: true, done: true };
+}
+
+/**
+ * Same consolidation as runProfileStage's first branch, but unconditional —
+ * used by the "Reanalisar perfil" Sheet (src/features/core-1/report/reanalysis-sheet.tsx),
+ * where the profile is already confirmed and creating + confirming a fresh
+ * draft version from newly re-uploaded documents is exactly the point.
+ * Never called from the initial onboarding pipeline, which already gates on
+ * `status !== "confirmed"` inside runProfileStage itself — this is a
+ * separate stage precisely so that gate is never touched.
+ */
+export async function runProfileReconsolidationStage(supabase: SupabaseClient, userId: string): Promise<StageResult> {
+  await ensureProfileDraft(supabase, userId);
+  await confirmProfile(supabase, userId);
   return { ok: true, done: true };
 }
 

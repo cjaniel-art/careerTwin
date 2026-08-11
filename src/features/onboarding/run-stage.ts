@@ -1,4 +1,4 @@
-export type ClientStage = "resume" | "linkedin" | "profile" | "analysis";
+export type ClientStage = "resume" | "linkedin" | "profile" | "profile_reconsolidation" | "analysis";
 
 export interface StageResponse {
   ok: boolean;

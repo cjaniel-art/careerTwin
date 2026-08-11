@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { Calendar, ChevronDown, History, RefreshCw, Target } from "lucide-react";
+import { Calendar, ChevronDown, History, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SubmitButton } from "@/components/submit-button";
-import { startProfileAnalysisAction } from "@/features/core-1/actions";
+import { ReanalysisSheet } from "@/features/core-1/report/reanalysis-sheet";
 
 function MetaChip({ icon: Icon, children }: { icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
   return (
@@ -25,18 +24,36 @@ function TargetContextChip({ label, value }: { label: string; value: string }) {
   );
 }
 
+interface ExistingDocument {
+  originalFilename: string | null;
+}
+
+interface TargetContextDefaults {
+  targetArea: string;
+  targetRole: string;
+  desiredSeniority: string;
+}
+
 /**
  * §1 — heading + metadados leves (data, contexto-alvo, histórico, reanálise).
- * Todos os valores vêm do backend. startProfileAnalysisAction já é idempotente por versão de
- * perfil/contexto-alvo (ver ensureProfileAnalysisRow): sem uma mudança real no Thin Twin ou no
- * objetivo, reanalisar aqui volta para esta mesma análise em vez de criar uma nova.
+ * Todos os valores vêm do backend. "Reanalisar perfil" abre o ReanalysisSheet
+ * (Currículo → LinkedIn → Objetivo → processamento); ao final ele reaproveita
+ * a mesma idempotência por versão de perfil/contexto-alvo que
+ * startProfileAnalysisAction já tinha — sem uma mudança real, volta para a
+ * mesma análise em vez de criar uma nova.
  */
 export function ReportHeader({
   completedAt,
   targetRole,
+  existingResumeDocument,
+  existingLinkedinDocument,
+  targetContextDefaults,
 }: {
   completedAt: string | null;
   targetRole: string | null;
+  existingResumeDocument: ExistingDocument | null;
+  existingLinkedinDocument: ExistingDocument | null;
+  targetContextDefaults: TargetContextDefaults | null;
 }) {
   const formattedDate = completedAt
     ? new Date(completedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) +
@@ -60,12 +77,11 @@ export function ReportHeader({
             <ChevronDown className="size-3.5" aria-hidden />
           </Link>
         </Button>
-        <form action={startProfileAnalysisAction}>
-          <SubmitButton variant="secondary" size="sm">
-            <RefreshCw className="size-4" aria-hidden />
-            Reanalisar perfil
-          </SubmitButton>
-        </form>
+        <ReanalysisSheet
+          existingResumeDocument={existingResumeDocument}
+          existingLinkedinDocument={existingLinkedinDocument}
+          targetContextDefaults={targetContextDefaults}
+        />
       </div>
     </div>
   );

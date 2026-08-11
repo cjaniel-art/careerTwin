@@ -58,11 +58,13 @@ export async function savePersonalDataAction(
   redirect("/onboarding");
 }
 
-/** RF-ONB-021..038 / RF-ONB-039..051 — résumé and LinkedIn upload share one path. */
-export async function uploadDocumentAction(
-  _prev: OnboardingActionState,
-  formData: FormData,
-): Promise<OnboardingActionState> {
+/**
+ * RF-ONB-021..038 / RF-ONB-039..051 — résumé and LinkedIn upload share one path.
+ * Extracted from the Server Action below so the "Reanalisar perfil" Sheet
+ * (src/features/core-1/report/reanalysis-sheet.tsx) can reuse the exact same
+ * persistence logic without the hardcoded redirect to /onboarding.
+ */
+export async function performDocumentUpload(formData: FormData): Promise<OnboardingActionState> {
   const documentType = formData.get("documentType");
   if (documentType !== "resume" && documentType !== "linkedin") {
     return { error: "Tipo de documento inválido." };
@@ -169,14 +171,28 @@ export async function uploadDocumentAction(
   // immediately. Processing runs through features/onboarding/pipeline.ts —
   // started in the background by BackgroundPrewarm as soon as the next step
   // renders, and finished by the completion screen.
+  return {};
+}
+
+export async function uploadDocumentAction(
+  _prev: OnboardingActionState,
+  formData: FormData,
+): Promise<OnboardingActionState> {
+  const result = await performDocumentUpload(formData);
+  if (result.error) return result;
   revalidatePath("/onboarding");
   redirect("/onboarding");
 }
 
-export async function saveTargetContextAction(
-  _prev: OnboardingActionState,
-  formData: FormData,
-): Promise<OnboardingActionState> {
+/**
+ * Extracted for the same reason as performDocumentUpload above — reused by
+ * the "Reanalisar perfil" Sheet without the hardcoded redirect. Always
+ * creates a new target_context_versions row (RF pattern already relied on by
+ * the onboarding step); the caller decides whether to call this at all
+ * (skip when nothing actually changed, to avoid spamming versions and
+ * forcing an unnecessary new analysis).
+ */
+export async function performSaveTargetContext(formData: FormData): Promise<OnboardingActionState> {
   const parsed = targetContextSchema.safeParse({
     targetArea: formData.get("targetArea"),
     targetRole: formData.get("targetRole"),
@@ -236,6 +252,34 @@ export async function saveTargetContextAction(
     trackEvent(ANALYTICS_EVENTS.targetRoleDefined, { userId: user.id });
   }
 
+  return {};
+}
+
+export async function saveTargetContextAction(
+  _prev: OnboardingActionState,
+  formData: FormData,
+): Promise<OnboardingActionState> {
+  const result = await performSaveTargetContext(formData);
+  if (result.error || result.fieldErrors) return result;
   revalidatePath("/onboarding");
   redirect("/onboarding");
+}
+
+/**
+ * "Reanalisar perfil" Sheet variants — same persistence as the onboarding
+ * actions above, but no redirect, so the Sheet can advance its own internal
+ * step instead of navigating away from the report page.
+ */
+export async function uploadReanalysisDocumentAction(
+  _prev: OnboardingActionState,
+  formData: FormData,
+): Promise<OnboardingActionState> {
+  return performDocumentUpload(formData);
+}
+
+export async function saveReanalysisTargetContextAction(
+  _prev: OnboardingActionState,
+  formData: FormData,
+): Promise<OnboardingActionState> {
+  return performSaveTargetContext(formData);
 }
