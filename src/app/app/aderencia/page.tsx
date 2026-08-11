@@ -7,6 +7,12 @@ import { DeleteJobAnalysisButton } from "@/features/core-2/delete-job-analysis-b
 
 export const metadata = { title: "Aderência à Vaga — CareerTwin" };
 export const dynamic = "force-dynamic";
+// createAndRunJobAnalysisAction (invoked from CreateJobAnalysisSheet below) runs the
+// P-007 + P-009 AI calls synchronously in a single request — same ceiling risk Core 1
+// hit before it moved to a dedicated Edge Function (see runProfileAnalysisStage's
+// comment in src/features/core-1/actions.ts). Core 2 doesn't have that split yet, so
+// this is the platform-limit mitigation until it does.
+export const maxDuration = 60;
 
 export default async function JobAnalysisListPage() {
   const supabase = await createSupabaseServerClient();
