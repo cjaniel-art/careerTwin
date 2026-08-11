@@ -52,7 +52,7 @@ export default async function JobAnalysisResultPage({
   const { data: analysis } = await supabase
     .from("analyses")
     .select(
-      "id, status, confidence_band, confidence_reasons, missing_information, conflicts, profile_version_id, opportunity_version_id, completed_at",
+      "id, status, confidence_band, confidence_reasons, missing_information, conflicts, opportunity_version_id",
     )
     .eq("id", analysisId)
     .eq("user_id", user.id)
@@ -60,7 +60,7 @@ export default async function JobAnalysisResultPage({
   if (!analysis) redirect("/app/aderencia");
   if (analysis.status !== "completed") redirect(`/app/aderencia/processando/${analysisId}`);
 
-  const [{ data: result }, { data: assessments }, { data: requirements }, { data: opportunityVersion }, { data: profileVersion }, { data: limits }, history] =
+  const [{ data: result }, { data: assessments }, { data: requirements }, { data: opportunityVersion }, { data: limits }, history] =
     await Promise.all([
       supabase.from("fit_analysis_results").select("*").eq("analysis_id", analysisId).single(),
       supabase
@@ -73,10 +73,9 @@ export default async function JobAnalysisResultPage({
         .eq("opportunity_version_id", analysis.opportunity_version_id),
       supabase
         .from("opportunity_versions")
-        .select("title, company, reference_url, version_number, created_at")
+        .select("title, company, reference_url, created_at")
         .eq("id", analysis.opportunity_version_id)
         .maybeSingle(),
-      supabase.from("profile_versions").select("version_number").eq("id", analysis.profile_version_id).maybeSingle(),
       supabase.from("analysis_limits").select("limit_type").eq("analysis_id", analysisId),
       getAnalysisHistory(supabase, user.id),
     ]);
@@ -117,12 +116,7 @@ export default async function JobAnalysisResultPage({
 
   return (
     <main className="flex w-full flex-col gap-8 px-6 py-10 lg:px-10">
-      <ReportHeader
-        completedAt={analysis.completed_at}
-        profileVersionNumber={profileVersion?.version_number ?? null}
-        jobVersionNumber={opportunityVersion?.version_number ?? null}
-        historyItems={history}
-      />
+      <ReportHeader historyItems={history} />
 
       <JobSummaryCard
         job={{
@@ -130,7 +124,6 @@ export default async function JobAnalysisResultPage({
           company: opportunityVersion?.company ?? "Empresa não informada",
           url: opportunityVersion?.reference_url ?? undefined,
         }}
-        analysisTypeLabel="Vaga específica"
         date={jobDate}
       />
 

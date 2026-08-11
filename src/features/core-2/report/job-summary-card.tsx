@@ -26,7 +26,7 @@ export interface JobSummary {
  * o que existir, sem inventar dado ausente. `url` vem de
  * opportunity_versions.reference_url (nulo no fluxo de colar texto atual).
  */
-export function JobSummaryCard({ job, analysisTypeLabel, date }: { job: JobSummary; analysisTypeLabel: string; date: string | null }) {
+export function JobSummaryCard({ job, date }: { job: JobSummary; date: string | null }) {
   const subtitle = [job.location, job.workModel].filter(Boolean).join(" · ");
 
   return (
@@ -58,10 +58,6 @@ export function JobSummaryCard({ job, analysisTypeLabel, date }: { job: JobSumma
         </div>
 
         <div className="flex flex-wrap items-center gap-6">
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Tipo de análise</p>
-            <p className="text-sm font-medium text-foreground">{analysisTypeLabel}</p>
-          </div>
           {date ? (
             <div>
               <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Data da vaga</p>
