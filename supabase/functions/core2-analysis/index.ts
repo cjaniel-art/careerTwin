@@ -520,7 +520,7 @@ async function runJobAnalysis(supabase: any, apiKey: string, analysisId: string)
 
   if (!requirements || requirements.length === 0) {
     await supabase.from("analyses").update({ status: "insufficient_data" }).eq("id", analysisId);
-    await releaseReservation(supabase, analysisId, "insufficient_data", "Vaga sem requisitos estruturados — dados insuficientes.");
+    await releaseReservation(supabase, analysisId, analysis.user_id, "Vaga sem requisitos estruturados — dados insuficientes.");
     return;
   }
 
@@ -658,31 +658,46 @@ async function runJobAnalysis(supabase: any, apiKey: string, analysisId: string)
       })
       .eq("id", analysisId);
 
-    await confirmReservation(supabase, analysisId);
+    await confirmReservation(supabase, analysisId, analysis.user_id);
   } catch (err) {
     if (err instanceof InsufficientScoringDataError) {
       await supabase.from("analyses").update({ status: "insufficient_data" }).eq("id", analysisId);
-      await releaseReservation(supabase, analysisId, "insufficient_data", "Dados insuficientes para gerar um diagnóstico confiável.");
+      await releaseReservation(supabase, analysisId, analysis.user_id, "Dados insuficientes para gerar um diagnóstico confiável.");
       return;
     }
     const message = err instanceof Error ? err.message : String(err);
     console.error(`core2-analysis: stage failed for analysis ${analysisId}:`, message);
     await supabase.from("analyses").update({ status: "failed_retryable", warnings: [message] }).eq("id", analysisId);
-    await releaseReservation(supabase, analysisId, "technical_failure", "Falha técnica — crédito restaurado.");
+    await releaseReservation(supabase, analysisId, analysis.user_id, "Falha técnica — crédito restaurado.");
   }
 }
 
-/** Thin wrappers around the SECURITY DEFINER RPCs — see 20260101000021_credit_rpc_functions.sql. */
+/**
+ * Thin wrappers around the SECURITY DEFINER RPCs — see
+ * 20260101000026_credit_rpc_service_role.sql. This edge function calls
+ * Postgres via SUPABASE_SERVICE_ROLE_KEY (no end-user session), so auth.uid()
+ * is always null inside a regular RPC — these _service variants take the
+ * user id explicitly instead and are locked to service_role via GRANT.
+ */
 // deno-lint-ignore no-explicit-any
-async function confirmReservation(supabase: any, analysisId: string): Promise<void> {
-  const { error } = await supabase.rpc("ct_confirm_credit_reservation", { p_analysis_id: analysisId, p_policy_version: "core-2-config/1.0.0" });
-  if (error) console.error("confirmReservation: ct_confirm_credit_reservation failed:", error.message);
+async function confirmReservation(supabase: any, analysisId: string, userId: string): Promise<void> {
+  const { error } = await supabase.rpc("ct_confirm_credit_reservation_service", {
+    p_analysis_id: analysisId,
+    p_user_id: userId,
+    p_policy_version: "core-2-config/1.0.0",
+  });
+  if (error) console.error("confirmReservation: ct_confirm_credit_reservation_service failed:", error.message);
 }
 
 // deno-lint-ignore no-explicit-any
-async function releaseReservation(supabase: any, analysisId: string, _reasonType: string, reason: string): Promise<void> {
-  const { error } = await supabase.rpc("ct_release_credit_reservation", { p_analysis_id: analysisId, p_policy_version: "core-2-config/1.0.0", p_reason: reason });
-  if (error) console.error("releaseReservation: ct_release_credit_reservation failed:", error.message);
+async function releaseReservation(supabase: any, analysisId: string, userId: string, reason: string): Promise<void> {
+  const { error } = await supabase.rpc("ct_release_credit_reservation_service", {
+    p_analysis_id: analysisId,
+    p_user_id: userId,
+    p_policy_version: "core-2-config/1.0.0",
+    p_reason: reason,
+  });
+  if (error) console.error("releaseReservation: ct_release_credit_reservation_service failed:", error.message);
 }
 
 Deno.serve(async (req) => {
