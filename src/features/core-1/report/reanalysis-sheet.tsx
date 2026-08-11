@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Check, FileText, Loader2, RefreshCw, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
@@ -485,9 +486,23 @@ function ProcessingStepPanel({ onDone }: { onDone: (redirectTo: string) => void 
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-      <p className="text-sm text-muted-foreground">
-        Estamos atualizando seu perfil e gerando uma nova análise. Isso pode levar até 2 minutos.
-      </p>
+      <Image
+        src={failed ? "/onboarding/analysis-error-icon.svg" : "/onboarding/analysis-loading-icon.svg"}
+        alt=""
+        width={160}
+        height={156}
+        className="h-[156px] w-[160px]"
+      />
+      <div className="flex max-w-80 flex-col gap-1.5">
+        <p className="text-lg font-semibold text-foreground">
+          {failed ? "Não foi possível concluir a reanálise" : "Reanalisando seu perfil"}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {failed
+            ? "Encontramos um problema durante o processamento das suas informações."
+            : "Estamos atualizando seu perfil e gerando uma nova análise. Isso pode levar até 2 minutos."}
+        </p>
+      </div>
       <div className="w-full max-w-80 rounded-xl border border-border bg-background p-5 text-left">
         <ol className="flex flex-col gap-3">
           {PROCESSING_STEPS.map((step) => (
@@ -496,12 +511,9 @@ function ProcessingStepPanel({ onDone }: { onDone: (redirectTo: string) => void 
         </ol>
       </div>
       {failed ? (
-        <div className="flex flex-col items-center gap-3">
-          <p className="text-sm text-destructive">Não foi possível concluir a reanálise agora.</p>
-          <Button size="sm" onClick={() => void run()}>
-            Tentar novamente
-          </Button>
-        </div>
+        <Button size="sm" onClick={() => void run()}>
+          Tentar novamente
+        </Button>
       ) : null}
     </div>
   );
@@ -542,13 +554,15 @@ export function ReanalysisSheet({
         <div className="flex h-full items-start" key={sheetKey}>
           <SheetCircleClose />
           <div className="flex h-full flex-1 flex-col bg-card px-8">
-            <div className="flex items-start justify-between gap-4 border-b border-border py-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Reanalisar perfil</p>
-                <p className="text-2xl font-semibold text-foreground">{STEP_TITLES[step]}</p>
+            {step !== "processing" ? (
+              <div className="flex items-start justify-between gap-4 border-b border-border py-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Reanalisar perfil</p>
+                  <p className="text-2xl font-semibold text-foreground">{STEP_TITLES[step]}</p>
+                </div>
+                <SheetStepsRow step={step} />
               </div>
-              <SheetStepsRow step={step} />
-            </div>
+            ) : null}
 
             <div className="flex flex-1 flex-col overflow-y-auto py-6">
               {step === "resume" ? (

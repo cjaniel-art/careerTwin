@@ -18,7 +18,7 @@ export function StrengthsCard({ mainStrength }: { mainStrength: string }) {
       <CardContent className="flex flex-1 flex-col gap-3">
         <ul className="space-y-2.5">
           <li className="flex items-start gap-2 text-sm text-foreground">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
             {mainStrength}
           </li>
         </ul>
