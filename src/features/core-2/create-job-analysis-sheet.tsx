@@ -1,15 +1,16 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, ArrowLeft, CreditCard, Loader2 } from "lucide-react";
+import { Plus, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
 import { Sheet, SheetCircleClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { createAndRunJobAnalysisAction, type CreateJobAnalysisState } from "@/features/core-2/actions";
+import { JobAnalysisProcessingStepPanel } from "@/features/core-2/processing-panel";
 
 const INITIAL_STATE: CreateJobAnalysisState = {};
 
@@ -45,25 +46,26 @@ function SheetInner({ hasCredits, onClose }: { hasCredits: boolean; onClose: () 
 
   // The analysis is still "processing" once this state is set — the diagnosis
   // itself runs in a background Edge Function (core2-analysis), not inline.
-  // /app/aderencia/processando/[id] owns polling it to completion, so this
-  // just hands off there instead of showing a premature "success" screen.
-  useEffect(() => {
-    if (!state.analysisId) return;
-    onClose();
-    router.push(`/app/aderencia/processando/${state.analysisId}`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.analysisId]);
-
+  // Stay in the Sheet and poll from here (same pattern as ReanalysisSheet's
+  // ProcessingStepPanel) instead of navigating away to a full-page route.
   return (
     <div className="flex h-full items-start">
       <SheetCircleClose />
 
       {state.analysisId ? (
-        <RedirectingView />
+        <div className="flex h-full flex-1 flex-col bg-card px-8">
+          <JobAnalysisProcessingStepPanel
+            analysisId={state.analysisId}
+            onDone={(analysisId) => {
+              onClose();
+              router.push(`/app/aderencia/${analysisId}`);
+            }}
+          />
+        </div>
       ) : !hasCredits ? (
         <NoCreditsView onCancel={onClose} />
       ) : (
-        <FormView formAction={formAction} error={state.error} onCancel={onClose} />
+        <FormView formAction={formAction} error={state.error} />
       )}
     </div>
   );
@@ -72,11 +74,9 @@ function SheetInner({ hasCredits, onClose }: { hasCredits: boolean; onClose: () 
 function FormView({
   formAction,
   error,
-  onCancel,
 }: {
   formAction: (formData: FormData) => void;
   error?: string;
-  onCancel: () => void;
 }) {
   return (
     <form action={formAction} className="flex h-full flex-1 flex-col bg-card px-8">
@@ -117,11 +117,7 @@ function FormView({
         </div>
       </div>
 
-      <div className="flex items-center gap-5 border-t border-border py-4">
-        <Button type="button" variant="secondary" size="sm" className="size-9 rounded-md p-0" onClick={onCancel}>
-          <ArrowLeft className="size-4" />
-          <span className="sr-only">Cancelar</span>
-        </Button>
+      <div className="flex items-center border-t border-border py-4">
         <SubmitButton variant="success" className="h-9 flex-1 rounded-lg">
           Cria análise
         </SubmitButton>
@@ -146,15 +142,6 @@ function NoCreditsView({ onCancel }: { onCancel: () => void }) {
           <Link href="/app/assinatura">Ver planos</Link>
         </Button>
       </div>
-    </div>
-  );
-}
-
-function RedirectingView() {
-  return (
-    <div className="flex h-full flex-1 flex-col items-center justify-center gap-4 bg-card px-8 text-center">
-      <Loader2 className="size-10 animate-spin text-primary" aria-hidden />
-      <p className="text-sm text-muted-foreground">Preparando seu diagnóstico de aderência...</p>
     </div>
   );
 }
