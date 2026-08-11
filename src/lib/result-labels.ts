@@ -165,6 +165,13 @@ export const ACTION_HORIZON_LABELS: Record<string, string> = {
   long_term: "Longo prazo",
 };
 
+/** analysis_limits.limit_type (IAO safety caps applied by calculateIao). */
+export const LIMIT_TYPE_LABELS: Record<string, string> = {
+  confirmed_blocker: "Requisito impeditivo confirmado no perfil",
+  strong_seniority_mismatch: "Forte descompasso de senioridade",
+  multiple_critical_mandatory_gaps: "Múltiplas lacunas em requisitos obrigatórios",
+};
+
 /** seniorityAssessment.expected/observed. */
 export const SENIORITY_LEVEL_LABELS: Record<string, string> = {
   intern: "Estágio",

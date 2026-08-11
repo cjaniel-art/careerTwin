@@ -5,7 +5,7 @@ import { getAnalysisHistory } from "@/features/history/get-history";
 import type { Core2ActionCandidate, Core2Risk, Core2SeniorityAssessment, Core2Strength } from "@/config/schemas/core2";
 import type { GapType, RequirementCategory, RequirementCriticality } from "@/config/engine/core2";
 import type { EvidenceReference } from "@/config/schemas/evidence";
-import { RECOMMENDATION_LABELS } from "@/lib/result-labels";
+import { LIMIT_TYPE_LABELS, RECOMMENDATION_LABELS } from "@/lib/result-labels";
 import { ReportHeader } from "@/features/core-2/report/report-header";
 import { JobSummaryCard } from "@/features/core-2/report/job-summary-card";
 import { IaoScoreCard } from "@/features/core-2/report/iao-score-card";
@@ -77,7 +77,7 @@ export default async function JobAnalysisResultPage({
         .eq("id", analysis.opportunity_version_id)
         .maybeSingle(),
       supabase.from("profile_versions").select("version_number").eq("id", analysis.profile_version_id).maybeSingle(),
-      supabase.from("analysis_limits").select("limit_type, reason").eq("analysis_id", analysisId),
+      supabase.from("analysis_limits").select("limit_type").eq("analysis_id", analysisId),
       getAnalysisHistory(supabase, user.id),
     ]);
 
@@ -136,7 +136,7 @@ export default async function JobAnalysisResultPage({
 
       {limits && limits.length > 0 ? (
         <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-          Limite de segurança aplicado: {limits.map((l) => l.reason).join("; ")}
+          Limite de segurança aplicado: {limits.map((l) => LIMIT_TYPE_LABELS[l.limit_type] ?? l.limit_type).join("; ")}
         </p>
       ) : null}
 
