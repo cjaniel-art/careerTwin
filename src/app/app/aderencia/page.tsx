@@ -7,16 +7,6 @@ import { DeleteJobAnalysisButton } from "@/features/core-2/delete-job-analysis-b
 
 export const metadata = { title: "Aderência à Vaga — CareerTwin" };
 export const dynamic = "force-dynamic";
-// createAndRunJobAnalysisAction (invoked from CreateJobAnalysisSheet below) runs the
-// P-007 + P-009 AI calls synchronously in a single request — same ceiling risk Core 1
-// hit before it moved to a dedicated Edge Function (see runProfileAnalysisStage's
-// comment in src/features/core-1/actions.ts). Confirmed in production: the platform
-// killed the function mid-call, which both stranded the analysis row in "processing"
-// forever AND left its credit reservation stuck (the code's own catch block, which
-// would release it, never got to run — the platform terminated the function first).
-// 300s is a stopgap ceiling, not a fix — Core 2 needs the same Edge Function split
-// Core 1 already has before this stops being possible in the first place.
-export const maxDuration = 300;
 
 export default async function JobAnalysisListPage() {
   const supabase = await createSupabaseServerClient();

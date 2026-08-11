@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, ArrowLeft, CheckCircle2, CreditCard } from "lucide-react";
+import { Plus, ArrowLeft, CreditCard, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,17 +43,23 @@ function SheetInner({ hasCredits, onClose }: { hasCredits: boolean; onClose: () 
   const [state, formAction] = useActionState(createAndRunJobAnalysisAction, INITIAL_STATE);
   const router = useRouter();
 
+  // The analysis is still "processing" once this state is set — the diagnosis
+  // itself runs in a background Edge Function (core2-analysis), not inline.
+  // /app/aderencia/processando/[id] owns polling it to completion, so this
+  // just hands off there instead of showing a premature "success" screen.
+  useEffect(() => {
+    if (!state.analysisId) return;
+    onClose();
+    router.push(`/app/aderencia/processando/${state.analysisId}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.analysisId]);
+
   return (
     <div className="flex h-full items-start">
       <SheetCircleClose />
 
       {state.analysisId ? (
-        <SuccessView
-          onViewResult={() => {
-            onClose();
-            router.push(`/app/aderencia/${state.analysisId}`);
-          }}
-        />
+        <RedirectingView />
       ) : !hasCredits ? (
         <NoCreditsView onCancel={onClose} />
       ) : (
@@ -144,16 +150,11 @@ function NoCreditsView({ onCancel }: { onCancel: () => void }) {
   );
 }
 
-function SuccessView({ onViewResult }: { onViewResult: () => void }) {
+function RedirectingView() {
   return (
-    <div className="flex h-full flex-1 flex-col items-center justify-center gap-[30px] bg-card px-8">
-      <div className="flex flex-col items-center gap-[30px]">
-        <CheckCircle2 className="size-[172px] text-primary" strokeWidth={1.5} />
-        <p className="text-center text-2xl font-semibold text-foreground">Análise efetuada com sucesso</p>
-      </div>
-      <Button onClick={onViewResult} className="w-[186px] rounded-md">
-        Ver análise
-      </Button>
+    <div className="flex h-full flex-1 flex-col items-center justify-center gap-4 bg-card px-8 text-center">
+      <Loader2 className="size-10 animate-spin text-primary" aria-hidden />
+      <p className="text-sm text-muted-foreground">Preparando seu diagnóstico de aderência...</p>
     </div>
   );
 }
