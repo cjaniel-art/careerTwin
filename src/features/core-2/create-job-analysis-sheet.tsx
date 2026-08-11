@@ -128,10 +128,6 @@ function FormView({
 function NoCreditsView({ onCancel }: { onCancel: () => void }) {
   return (
     <div className="flex h-full flex-1 flex-col bg-card px-8">
-      <div className="border-b border-border py-4">
-        <p className="text-xs text-muted-foreground">Análise de</p>
-        <p className="text-2xl font-semibold text-foreground">Aderência à Vaga</p>
-      </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-[30px] text-center">
         <CreditCard className="size-[120px] text-muted-foreground" strokeWidth={1.5} aria-hidden />
         <div className="flex max-w-80 flex-col gap-1.5">
