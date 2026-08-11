@@ -7,6 +7,8 @@ import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { confirmPurchaseIntentAction } from "@/features/credits/actions";
+import { getCreditHistory } from "@/features/credits/get-history";
+import { CreditHistorySheet } from "@/features/credits/history-sheet";
 import { SIMULATED_OFFER } from "@/config/engine/offer";
 
 const FREE_PLAN_FEATURES = [
@@ -41,14 +43,9 @@ export default async function CreditsPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/app/assinatura");
 
-  const [{ data: account }, { data: ledger }, { data: lastIntent }] = await Promise.all([
+  const [{ data: account }, creditHistory, { data: lastIntent }] = await Promise.all([
     supabase.from("credit_accounts").select("available_credits, reserved_credits").eq("user_id", user.id).maybeSingle(),
-    supabase
-      .from("credit_ledger")
-      .select("transaction_type, amount, balance_after, reason, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(10),
+    getCreditHistory(supabase, user.id),
     supabase
       .from("purchase_intents")
       .select("status, created_at, validity_days_displayed")
@@ -91,20 +88,12 @@ export default async function CreditsPage({
           <CardHeader>
             <CardTitle>Histórico</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {ledger && ledger.length > 0 ? (
-              ledger.map((entry, i) => (
-                <div key={i} className="flex items-center justify-between border-b border-border py-2 text-sm last:border-0">
-                  <span className="text-foreground">{entry.reason}</span>
-                  <span className={entry.amount >= 0 ? "text-foreground" : "text-muted-foreground"}>
-                    {entry.amount >= 0 ? "+" : ""}
-                    {entry.amount}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">Nenhuma movimentação ainda.</p>
-            )}
+          <CardContent className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-3xl font-bold text-foreground">{creditHistory.length}</p>
+              <p className="text-sm text-muted-foreground">movimentação(ões)</p>
+            </div>
+            <CreditHistorySheet items={creditHistory} />
           </CardContent>
         </Card>
       </div>
