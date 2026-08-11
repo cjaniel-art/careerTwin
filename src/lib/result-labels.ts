@@ -99,3 +99,77 @@ export const LIKERT_LABELS: Record<number, string> = {
   4: "Alto",
   5: "Muito alto",
 };
+
+/** requirement_assessments.gap_type (English domain enum, ≠ Core 1's Portuguese-keyed GAP_TYPE_LABELS). */
+export const CORE2_GAP_TYPE_LABELS: Record<string, string> = {
+  competency: "Competência",
+  experience: "Experiência",
+  education_or_certification: "Formação/certificação",
+  communication: "Comunicação",
+  evidence: "Evidência",
+  positioning: "Posicionamento",
+  unknown: "Dados insuficientes",
+};
+
+/** requirements.category — Relatório de Aderência à Vaga. */
+export const REQUIREMENT_CATEGORY_LABELS: Record<string, string> = {
+  skill: "Competência",
+  tool: "Ferramenta",
+  experience: "Experiência",
+  responsibility: "Responsabilidade",
+  education: "Formação",
+  certification: "Certificação",
+  seniority: "Senioridade",
+  scope: "Escopo",
+  location: "Localização",
+  language: "Idioma",
+  other: "Outro",
+};
+
+/** requirements.criticality. */
+export const CRITICALITY_LABELS: Record<string, string> = {
+  mandatory: "Obrigatório",
+  desired: "Desejável",
+  differential: "Diferencial",
+  complementary: "Complementar",
+  blocking: "Impeditivo",
+};
+
+/** fit_analysis_results.calculation_snapshot.risks[].type. */
+export const RISK_TYPE_LABELS: Record<string, string> = {
+  blocking_requirement: "Requisito impeditivo",
+  mandatory_gap: "Lacuna em requisito obrigatório",
+  seniority_mismatch: "Descompasso de senioridade",
+  location_mismatch: "Descompasso de localização",
+  work_authorization: "Autorização de trabalho",
+  language_requirement: "Requisito de idioma",
+  certification_requirement: "Requisito de certificação",
+  insufficient_evidence: "Evidência insuficiente",
+  ambiguous_requirement: "Requisito ambíguo",
+  data_quality: "Qualidade dos dados",
+  target_misalignment: "Desalinhamento com o contexto-alvo",
+};
+
+/** fit_analysis_results.calculation_snapshot.risks[].severity. */
+export const RISK_SEVERITY_LABELS: Record<string, string> = {
+  low: "Baixa",
+  medium: "Média",
+  high: "Alta",
+  critical: "Crítica",
+};
+
+/** fit_analysis_results.calculation_snapshot.actionCandidates[].horizon. */
+export const ACTION_HORIZON_LABELS: Record<string, string> = {
+  before_applying: "Antes de se candidatar",
+  during_process: "Durante o processo seletivo",
+  long_term: "Longo prazo",
+};
+
+/** seniorityAssessment.expected/observed. */
+export const SENIORITY_LEVEL_LABELS: Record<string, string> = {
+  intern: "Estágio",
+  junior: "Júnior",
+  mid: "Pleno",
+  senior: "Sênior",
+  insufficient_data: "Dados insuficientes",
+};

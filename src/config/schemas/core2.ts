@@ -12,9 +12,56 @@ import { evidenceReferenceSchema } from "./evidence";
  * persisting to requirement_assessments.gap_type (English contract enum, see
  * docs/implementation/open-decisions.md #14).
  */
-export const SCHEMA_VERSION_CORE_2 = "core-2/1.1" as const;
+export const SCHEMA_VERSION_CORE_2 = "core-2/1.2" as const;
 
 const AI_GAP_TYPES_PT = ["competencia", "experiencia", "formacao_certificacao", "comunicacao", "evidencia", "posicionamento", "desconhecida"] as const;
+
+/** Mirrors core1's strengthSchema, adapted to reference the job requirements it addresses. */
+const strengthSchema = z.object({
+  description: z.string(),
+  relatedRequirementIds: z.array(z.string()),
+  evidenceRefs: z.array(evidenceReferenceSchema),
+});
+
+/**
+ * Read-only action suggestions for the "Plano de ação" tab — unlike Core 1's
+ * recommendations, these never convert into `actions` rows (no Core 2
+ * equivalent of convertRecommendationToActionAction exists yet).
+ */
+const actionCandidateSchema = z.object({
+  actionKey: z.string(),
+  title: z.string(),
+  reasoning: z.string(),
+  suggestedAction: z.string(),
+  horizon: z.enum(["before_applying", "during_process", "long_term"]),
+  impact: z.number().int().min(1).max(5),
+  effort: z.number().int().min(1).max(5),
+  successCriteria: z.string(),
+  relatedRequirementIds: z.array(z.string()),
+});
+
+const riskSchema = z.object({
+  riskKey: z.string(),
+  type: z.enum([
+    "blocking_requirement", "mandatory_gap", "seniority_mismatch", "location_mismatch",
+    "work_authorization", "language_requirement", "certification_requirement",
+    "insufficient_evidence", "ambiguous_requirement", "data_quality", "target_misalignment",
+  ]),
+  title: z.string(),
+  description: z.string(),
+  severity: z.enum(["low", "medium", "high", "critical"]),
+  requirementIds: z.array(z.string()),
+  evidenceRefs: z.array(evidenceReferenceSchema),
+  mitigableBeforeApplication: z.boolean(),
+});
+
+const seniorityAssessmentSchema = z.object({
+  expected: z.enum(["intern", "junior", "mid", "senior"]),
+  observed: z.enum(["insufficient_data", "intern", "junior", "mid", "senior"]),
+  signals: z.array(z.string()),
+  gaps: z.array(z.string()),
+  assessmentConfidence: z.number().min(0).max(1),
+});
 
 export const core2OutputSchema = z.object({
   analysisType: z.literal("job_fit_analysis"),
@@ -42,31 +89,13 @@ export const core2OutputSchema = z.object({
       assessmentConfidence: z.number().min(0).max(1),
     }),
   ),
-  seniorityAssessment: z.object({
-    expected: z.enum(["intern", "junior", "mid", "senior"]),
-    observed: z.enum(["insufficient_data", "intern", "junior", "mid", "senior"]),
-    signals: z.array(z.string()),
-    gaps: z.array(z.string()),
-    assessmentConfidence: z.number().min(0).max(1),
-  }),
-  strengths: z.array(z.unknown()),
+  seniorityAssessment: seniorityAssessmentSchema,
+  strengths: z.array(strengthSchema),
+  // Left untyped/unused: gap detail per requirement already comes from
+  // requirementAssessments[].gapType (persisted to requirement_assessments.gap_type),
+  // so this top-level array would just duplicate that — never read downstream.
   gaps: z.array(z.unknown()),
-  risks: z.array(
-    z.object({
-      riskKey: z.string(),
-      type: z.enum([
-        "blocking_requirement", "mandatory_gap", "seniority_mismatch", "location_mismatch",
-        "work_authorization", "language_requirement", "certification_requirement",
-        "insufficient_evidence", "ambiguous_requirement", "data_quality", "target_misalignment",
-      ]),
-      title: z.string(),
-      description: z.string(),
-      severity: z.enum(["low", "medium", "high", "critical"]),
-      requirementIds: z.array(z.string()),
-      evidenceRefs: z.array(evidenceReferenceSchema),
-      mitigableBeforeApplication: z.boolean(),
-    }),
-  ),
+  risks: z.array(riskSchema),
   // Candidate only — never the final, backend-validated recommendation.
   recommendationCandidate: z.object({
     scope: z.enum(["application", "target_role"]),
@@ -74,9 +103,13 @@ export const core2OutputSchema = z.object({
     reasoning: z.string(),
     relatedRequirementIds: z.array(z.string()),
   }),
-  actionCandidates: z.array(z.unknown()),
+  actionCandidates: z.array(actionCandidateSchema),
   authenticityValidation: z.object({ warnings: z.array(z.string()), blockedClaims: z.array(z.string()) }),
   warnings: z.array(z.string()),
 });
 
 export type Core2Output = z.infer<typeof core2OutputSchema>;
+export type Core2Strength = z.infer<typeof strengthSchema>;
+export type Core2Risk = z.infer<typeof riskSchema>;
+export type Core2ActionCandidate = z.infer<typeof actionCandidateSchema>;
+export type Core2SeniorityAssessment = z.infer<typeof seniorityAssessmentSchema>;

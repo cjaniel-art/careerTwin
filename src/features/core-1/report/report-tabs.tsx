@@ -67,15 +67,19 @@ export const ReportTabsContent = TabsContent;
 export function GoToTabButton({
   tab,
   className,
+  variant = "tertiary",
+  size = "sm",
   children,
 }: {
   tab: string;
   className?: string;
+  variant?: React.ComponentProps<typeof Button>["variant"];
+  size?: React.ComponentProps<typeof Button>["size"];
   children: React.ReactNode;
 }) {
   const goToTab = useGoToReportTab();
   return (
-    <Button type="button" variant="tertiary" size="sm" className={className} onClick={() => goToTab(tab)}>
+    <Button type="button" variant={variant} size={size} className={className} onClick={() => goToTab(tab)}>
       {children}
     </Button>
   );

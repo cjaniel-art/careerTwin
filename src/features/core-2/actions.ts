@@ -421,6 +421,15 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
       );
     }
 
+    // profileEvidence per requirement isn't stored as its own column on
+    // requirement_assessments — bundled here instead, same JSONB-snapshot
+    // pattern as strengths/risks/actionCandidates, all computed by the AI
+    // call above but previously discarded after scoring.
+    const evidenceByRequirement: Record<string, (typeof result.data.requirementAssessments)[number]["profileEvidence"]> = {};
+    for (const assessment of result.data.requirementAssessments) {
+      if (assessment.profileEvidence.length > 0) evidenceByRequirement[assessment.requirementId] = assessment.profileEvidence;
+    }
+
     await supabase.from("fit_analysis_results").insert({
       analysis_id: analysisId,
       iao_raw_score: iao.rawScore,
@@ -429,7 +438,15 @@ export async function runJobAnalysis(analysisId: string): Promise<{ ok: boolean 
       iao_band: mapIaoBand(iao.band),
       recommendation_type: recommendation,
       recommendation_reasoning: result.data.recommendationCandidate.reasoning,
-      calculation_snapshot: { iao, confidence },
+      calculation_snapshot: {
+        iao,
+        confidence,
+        strengths: result.data.strengths,
+        risks: result.data.risks,
+        actionCandidates: result.data.actionCandidates,
+        seniorityAssessment: result.data.seniorityAssessment,
+        evidenceByRequirement,
+      },
       risks_count: result.data.risks.length,
     });
 
@@ -557,6 +574,9 @@ function buildDiagnosisSystemPrompt(): string {
     'seniorityAssessment.expected e seniorityAssessment.observed: "intern" | "junior" | "mid" | "senior" (observed também aceita "insufficient_data").',
     'risks[].type: "blocking_requirement" | "mandatory_gap" | "seniority_mismatch" | "location_mismatch" | "work_authorization" | "language_requirement" | "certification_requirement" | "insufficient_evidence" | "ambiguous_requirement" | "data_quality" | "target_misalignment".',
     'risks[].severity: "low" | "medium" | "high" | "critical".',
+    'actionCandidates[].horizon: "before_applying" | "during_process" | "long_term".',
     'recommendationCandidate.scope: "application" | "target_role".',
+    "Em strengths, liste todos os pontos fortes reais e relevantes do perfil frente a esta vaga específica (não apenas um), cada um ligado aos requirementIds que ele endereça e com evidenceRefs reais. Se não houver pontos fortes claros, retorne um array vazio em vez de inventar um.",
+    "Em actionCandidates, gere no máximo 5 ações priorizadas e acionáveis para melhorar a candidatura, cada uma endereçando uma lacuna ou risco real identificado, com successCriteria objetivo e relatedRequirementIds preenchido quando aplicável.",
   ].join(" ");
 }
