@@ -91,7 +91,7 @@ export default async function CreditsPage({
           <CardContent className="flex items-center justify-between gap-4">
             <div>
               <p className="text-3xl font-bold text-foreground">{creditHistory.length}</p>
-              <p className="text-sm text-muted-foreground">movimentação(ões)</p>
+              <p className="text-sm text-muted-foreground">{creditHistory.length === 1 ? "movimentação" : "movimentações"}</p>
             </div>
             <CreditHistorySheet items={creditHistory} />
           </CardContent>

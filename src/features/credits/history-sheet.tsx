@@ -42,7 +42,7 @@ export function CreditHistorySheet({ items }: { items: CreditHistoryRow[] }) {
                       <TableRow key={item.id}>
                         <TableCell className="whitespace-normal py-4">
                           <p className="font-medium text-foreground">{item.title}</p>
-                          <p className="text-muted-foreground">{item.subtitle ?? "—"}</p>
+                          {item.subtitle ? <p className="text-muted-foreground">{item.subtitle}</p> : null}
                         </TableCell>
                         <TableCell className="py-4">
                           <p className="font-medium text-foreground">{item.dateLabel}</p>
