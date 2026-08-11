@@ -51,12 +51,17 @@ export default async function CreditsPage({
       .limit(10),
     supabase
       .from("purchase_intents")
-      .select("status, created_at")
+      .select("status, created_at, validity_days_displayed")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
   ]);
+
+  const intentExpiresAt =
+    lastIntent?.status === "confirmed_intent"
+      ? new Date(new Date(lastIntent.created_at).getTime() + lastIntent.validity_days_displayed * 24 * 60 * 60 * 1000)
+      : null;
 
   return (
     <main className="flex flex-col gap-6 px-8 py-6">
@@ -184,9 +189,10 @@ export default async function CreditsPage({
                 priorizar. Preço, créditos e validade são hipóteses de monetização — sem cobrança real nem
                 coleta de dados de cartão.
               </p>
-              {lastIntent?.status === "confirmed_intent" ? (
+              {lastIntent?.status === "confirmed_intent" && intentExpiresAt ? (
                 <p className="rounded-lg bg-secondary p-3 text-center text-sm text-foreground">
-                  Você já registrou intenção de compra deste pacote.
+                  Seu pacote expira no dia{" "}
+                  {intentExpiresAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}.
                 </p>
               ) : (
                 <form action={confirmPurchaseIntentAction}>
