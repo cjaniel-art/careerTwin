@@ -4,6 +4,6 @@ export const SIMULATED_OFFER = {
   offerVersion: "1.0.0",
   priceCents: 2990,
   currency: "BRL",
-  creditsDisplayed: 5,
+  creditsDisplayed: 15,
   validityDaysDisplayed: 30,
 } as const;
