@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Processando diagnóstico — CareerTwin" };
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Same synchronous P-009 call as createAndRunJobAnalysisAction — see the maxDuration
+// comment on /app/aderencia/page.tsx for why this is a stopgap, not a fix.
+export const maxDuration = 300;
 
 export default async function JobAnalysisProcessingPage({
   params,
