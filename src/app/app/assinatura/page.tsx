@@ -142,7 +142,7 @@ export default async function CreditsPage({
               </div>
             </div>
             <div className="space-y-6">
-              <p className="text-sm leading-6 text-[#514f6e]">
+              <p className="text-sm leading-6 text-foreground">
                 Entenda como seu perfil está sendo apresentado e descubra o que melhorar.
               </p>
               <Button asChild variant="secondary" className="h-auto w-full rounded-lg py-3 text-sm">
@@ -179,7 +179,7 @@ export default async function CreditsPage({
               </div>
             </div>
             <div className="space-y-4">
-              <p className="text-sm leading-6 text-[#514f6e]">
+              <p className="text-sm leading-6 text-foreground">
                 Para quem está avaliando novas vagas e quer decidir quais candidaturas realmente vale a pena
                 priorizar. Preço, créditos e validade são hipóteses de monetização — sem cobrança real nem
                 coleta de dados de cartão.
