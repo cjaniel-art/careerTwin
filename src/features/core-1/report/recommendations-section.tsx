@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubmitButton } from "@/components/submit-button";
 import { convertRecommendationToActionAction } from "@/features/actions/actions";
@@ -150,10 +149,6 @@ export function RecommendationsSection({ recommendations, analysisId }: { recomm
             </AccordionItem>
           </Accordion>
         ) : null}
-
-        <Button asChild variant="tertiary" size="sm">
-          <Link href="/app/acoes">Ver plano de ações completo</Link>
-        </Button>
       </CardContent>
     </Card>
   );

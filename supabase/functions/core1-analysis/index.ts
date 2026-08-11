@@ -75,13 +75,19 @@ const IPP_DIMENSIONS = [
   "profile_completeness",
 ] as const;
 
-const SCHEMA_VERSION_CORE_1 = "core-1/1.1" as const;
+const SCHEMA_VERSION_CORE_1 = "core-1/1.2" as const;
 
 const gapSchema = z.object({
   type: z.enum(["competencia", "comunicacao", "evidencia", "posicionamento", "desconhecida"]),
   description: z.string(),
   evidenceRefs: z.array(evidenceReferenceSchema),
   missingInformation: z.array(z.string()),
+});
+
+const strengthSchema = z.object({
+  type: z.enum(["competencia", "comunicacao", "evidencia", "posicionamento", "desconhecida"]),
+  description: z.string(),
+  evidenceRefs: z.array(evidenceReferenceSchema),
 });
 
 const core1DimensionsOutputSchema = z.object({
@@ -111,6 +117,7 @@ const core1DimensionsOutputSchema = z.object({
     mainGap: z.string(),
     nextBestAction: z.string(),
   }),
+  strengths: z.array(strengthSchema),
   gaps: z.array(gapSchema),
   warnings: z.array(z.string()),
 });
@@ -235,7 +242,8 @@ function buildDimensionsSystemPrompt(): string {
   return [
     "Você é o motor de Análise de Perfil (Core 1) do CareerTwin, etapa de classificação de dimensões.",
     "A mensagem do usuário contém o conteúdo real e completo do perfil confirmado (experiências, projetos, competências, ferramentas, evidências, formação, certificações, idiomas) e o contexto-alvo — baseie toda a análise exclusivamente nesse conteúdo, nunca em suposições.",
-    "Classifique cada uma das sete dimensões do IPP em um nível de rubrica de 0 a 4, com justificativa concreta referenciando o conteúdo fornecido, e identifique as lacunas (gaps) do perfil frente ao contexto-alvo.",
+    "Classifique cada uma das sete dimensões do IPP em um nível de rubrica de 0 a 4, com justificativa concreta referenciando o conteúdo fornecido, e identifique tanto os pontos fortes (strengths) quanto as lacunas (gaps) do perfil frente ao contexto-alvo.",
+    "Liste em strengths todos os pontos fortes reais e relevantes que encontrar (não apenas um) — cada um com sua evidência real. Se não houver pontos fortes claros, retorne um array vazio em vez de inventar um.",
     "As recomendações são geradas em uma etapa separada, com base neste diagnóstico — não as gere aqui.",
     "Você NUNCA calcula o IPP final nem a confiança final — isso é feito pelo backend.",
     "Nunca invente experiências, resultados, métricas ou competências não presentes no perfil confirmado.",
@@ -534,7 +542,7 @@ async function runDimensionsStage(supabase: any, apiKey: string, analysisId: str
     main_strength: result.diagnosis.mainStrength,
     main_gap: result.diagnosis.mainGap,
     next_best_action: result.diagnosis.nextBestAction,
-    calculation_snapshot: { ipp, confidence, gaps: result.gaps },
+    calculation_snapshot: { ipp, confidence, strengths: result.strengths, gaps: result.gaps },
   });
 
   await supabase

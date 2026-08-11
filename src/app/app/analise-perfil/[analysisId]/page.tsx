@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { ArrowLeftRight, BarChart3, ListChecks, ShieldAlert, Sparkles, TrendingUp, AlertTriangle } from "lucide-react";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { getOnboardingState } from "@/features/onboarding/get-state";
+import { getAnalysisHistory } from "@/features/history/get-history";
 import { ACTIONS_CONFIG } from "@/config/engine/actions";
-import type { Core1Gap } from "@/config/schemas/core1";
+import type { Core1Gap, Core1Strength } from "@/config/schemas/core1";
 import { ReportHeader } from "@/features/core-1/report/report-header";
 import { ExecutiveSummaryCard } from "@/features/core-1/report/executive-summary-card";
 import { IppCard } from "@/features/core-1/report/ipp-card";
@@ -47,7 +48,7 @@ export default async function ProfileAnalysisResultPage({
   if (!analysis) redirect("/app/analise-perfil");
   if (analysis.status !== "completed") redirect(`/app/analise-perfil/processando/${analysisId}`);
 
-  const [{ data: result }, { data: dimensions }, { data: recommendations }, { data: targetContext }, onboardingState] =
+  const [{ data: result }, { data: dimensions }, { data: recommendations }, { data: targetContext }, onboardingState, history] =
     await Promise.all([
       supabase
         .from("profile_analysis_results")
@@ -69,6 +70,7 @@ export default async function ProfileAnalysisResultPage({
         ? supabase.from("target_context_versions").select("target_role").eq("id", analysis.target_context_version_id).maybeSingle()
         : Promise.resolve({ data: null }),
       getOnboardingState(supabase, user.id),
+      getAnalysisHistory(supabase, user.id),
     ]);
 
   const recommendationIds = (recommendations ?? []).map((r) => r.id);
@@ -99,8 +101,9 @@ export default async function ProfileAnalysisResultPage({
     .map((r) => ({ id: r.id, title: r.title, problem: r.problem, category: r.category }));
   const atActionsLimit = (activeActionsCount ?? 0) >= ACTIONS_CONFIG.maximum;
 
-  const snapshot = (result?.calculation_snapshot ?? {}) as { gaps?: Core1Gap[] };
+  const snapshot = (result?.calculation_snapshot ?? {}) as { gaps?: Core1Gap[]; strengths?: Core1Strength[] };
   const gaps = snapshot.gaps ?? [];
+  const strengths = snapshot.strengths ?? [];
   const conflicts = (analysis.conflicts as string[] | null) ?? [];
 
   return (
@@ -111,6 +114,7 @@ export default async function ProfileAnalysisResultPage({
         existingResumeDocument={onboardingState.resumeDocument}
         existingLinkedinDocument={onboardingState.linkedinDocument}
         targetContextDefaults={onboardingState.targetContext}
+        historyItems={history}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -167,19 +171,25 @@ export default async function ProfileAnalysisResultPage({
 
         <ReportTabsContent value="visao-geral" className="flex flex-col gap-8">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <StrengthsCard mainStrength={result?.main_strength ?? ""} />
+            <StrengthsCard strengths={strengths} mainStrength={result?.main_strength ?? ""} />
             <GapsCard gaps={gaps} />
             <TopRecommendationsCard recommendations={recommendations ?? []} />
           </div>
 
-          <NextBestActionBanner action={result?.next_best_action ?? ""} />
+          <NextBestActionBanner
+            action={result?.next_best_action ?? ""}
+            analysisId={analysisId}
+            actions={actionPreviewRows}
+            candidates={candidateRecommendations}
+            atLimit={atActionsLimit}
+          />
         </ReportTabsContent>
 
         <ReportTabsContent value="dimensoes">
           <DimensionsSection dimensions={dimensions ?? []} />
         </ReportTabsContent>
         <ReportTabsContent value="forcas">
-          <StrengthsSection mainStrength={result?.main_strength ?? ""} />
+          <StrengthsSection strengths={strengths} mainStrength={result?.main_strength ?? ""} />
         </ReportTabsContent>
         {gaps.length > 0 ? (
           <ReportTabsContent value="lacunas">

@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { Calendar, ChevronDown, History, Target } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Calendar, Target } from "lucide-react";
 import { ReanalysisSheet } from "@/features/core-1/report/reanalysis-sheet";
+import { HistorySheet } from "@/features/core-1/report/history-sheet";
+import type { AnalysisHistoryRow } from "@/features/history/get-history";
 
 function MetaChip({ icon: Icon, children }: { icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
   return (
@@ -48,12 +48,14 @@ export function ReportHeader({
   existingResumeDocument,
   existingLinkedinDocument,
   targetContextDefaults,
+  historyItems,
 }: {
   completedAt: string | null;
   targetRole: string | null;
   existingResumeDocument: ExistingDocument | null;
   existingLinkedinDocument: ExistingDocument | null;
   targetContextDefaults: TargetContextDefaults | null;
+  historyItems: AnalysisHistoryRow[];
 }) {
   const formattedDate = completedAt
     ? new Date(completedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) +
@@ -70,13 +72,7 @@ export function ReportHeader({
       <div className="flex flex-wrap items-center gap-2">
         {formattedDate ? <MetaChip icon={Calendar}>{formattedDate}</MetaChip> : null}
         {targetRole ? <TargetContextChip label="Contexto-alvo" value={targetRole} /> : null}
-        <Button asChild variant="secondary" size="sm">
-          <Link href="/app/historico">
-            <History className="size-4" aria-hidden />
-            Histórico de análises
-            <ChevronDown className="size-3.5" aria-hidden />
-          </Link>
-        </Button>
+        <HistorySheet items={historyItems} />
         <ReanalysisSheet
           existingResumeDocument={existingResumeDocument}
           existingLinkedinDocument={existingLinkedinDocument}

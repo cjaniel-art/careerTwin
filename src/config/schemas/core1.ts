@@ -7,7 +7,7 @@ import { IPP_DIMENSIONS } from "@/config/engine/core1";
  * Deliberately excludes: the final IPP, confidence score, priority, and
  * priorityOrder — those are backend-only outputs (PRD 02 §19-21, Guardrails §5).
  */
-export const SCHEMA_VERSION_CORE_1 = "core-1/1.1" as const;
+export const SCHEMA_VERSION_CORE_1 = "core-1/1.2" as const;
 
 export const recommendationCandidateSchema = z.object({
   recommendationKey: z.string(),
@@ -33,6 +33,12 @@ const gapSchema = z.object({
   missingInformation: z.array(z.string()),
 });
 
+const strengthSchema = z.object({
+  type: z.enum(["competencia", "comunicacao", "evidencia", "posicionamento", "desconhecida"]),
+  description: z.string(),
+  evidenceRefs: z.array(evidenceReferenceSchema),
+});
+
 /**
  * Stage 1 of Core 1 (P-005) — dimension classification + diagnosis. Split
  * from recommendation generation (below) because the single combined call
@@ -41,9 +47,12 @@ const gapSchema = z.object({
  * is its own request, chained by the caller (mirrors the résumé/LinkedIn
  * read+extract split in features/onboarding/pipeline.ts).
  *
- * `strengths`/`experienceTranslations`/`actionCandidates`/`authenticityValidation`
- * from the original combined schema are dropped, not carried into either
- * stage: nothing downstream ever persisted or read them.
+ * `experienceTranslations`/`actionCandidates`/`authenticityValidation` from the
+ * original combined schema are dropped, not carried into either stage: nothing
+ * downstream ever persisted or read them. `strengths` (mirrors `gaps` — a
+ * structured list, not the single-sentence `diagnosis.mainStrength` headline)
+ * was re-added so the report can list every strength the model identified,
+ * not just one (see StrengthsSection).
  */
 export const core1DimensionsOutputSchema = z.object({
   analysisType: z.literal("profile_analysis"),
@@ -72,6 +81,7 @@ export const core1DimensionsOutputSchema = z.object({
     mainGap: z.string(),
     nextBestAction: z.string(),
   }),
+  strengths: z.array(strengthSchema),
   gaps: z.array(gapSchema),
   warnings: z.array(z.string()),
 });
@@ -85,3 +95,4 @@ export const core1RecommendationsOutputSchema = z.object({
 export type Core1DimensionsOutput = z.infer<typeof core1DimensionsOutputSchema>;
 export type Core1RecommendationsOutput = z.infer<typeof core1RecommendationsOutputSchema>;
 export type Core1Gap = z.infer<typeof gapSchema>;
+export type Core1Strength = z.infer<typeof strengthSchema>;

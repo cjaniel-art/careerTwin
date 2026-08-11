@@ -484,6 +484,9 @@ function ProcessingStepPanel({ onDone }: { onDone: (redirectTo: string) => void 
     void run();
   }, [run]);
 
+  const doneCount = PROCESSING_STEPS.filter((s) => steps[s.id] === "done").length;
+  const progressPercent = Math.round((doneCount / PROCESSING_STEPS.length) * 100);
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
       <Image
@@ -504,6 +507,12 @@ function ProcessingStepPanel({ onDone }: { onDone: (redirectTo: string) => void 
         </p>
       </div>
       <div className="w-full max-w-80 rounded-xl border border-border bg-background p-5 text-left">
+        <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-primary/20">
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-500"
+            style={{ width: `${failed ? progressPercent : Math.max(progressPercent, 6)}%` }}
+          />
+        </div>
         <ol className="flex flex-col gap-3">
           {PROCESSING_STEPS.map((step) => (
             <ProcessingStepRow key={step.id} label={step.label} state={steps[step.id]} />

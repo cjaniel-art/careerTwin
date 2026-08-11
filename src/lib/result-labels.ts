@@ -32,6 +32,19 @@ export const RECOMMENDATION_LABELS: Record<string, string> = {
   insufficient_data: "Dados insuficientes",
 };
 
+/** analyses.status — used by the histórico list (full page and report Sheet). */
+export const ANALYSIS_STATUS_LABELS: Record<string, string> = {
+  draft: "Rascunho",
+  queued: "Na fila",
+  processing: "Em processamento",
+  preliminary: "Preliminar",
+  completed: "Concluída",
+  insufficient_data: "Dados insuficientes",
+  failed_retryable: "Falha — pode tentar novamente",
+  failed_final: "Falha",
+  cancelled: "Cancelada",
+};
+
 export const MATCH_LABELS: Record<string, string> = {
   confirmed_match: "Atendido com evidência",
   partial_match: "Parcialmente atendido",
