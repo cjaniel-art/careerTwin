@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ArrowLeft, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { Plus, ArrowLeft, CheckCircle2, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +14,7 @@ import { createAndRunJobAnalysisAction, type CreateJobAnalysisState } from "@/fe
 const INITIAL_STATE: CreateJobAnalysisState = {};
 
 /** "Criar análise" flow — Figma nodes 156:6207 (formulário) e 164:10787 (sucesso). */
-export function CreateJobAnalysisSheet() {
+export function CreateJobAnalysisSheet({ hasCredits }: { hasCredits: boolean }) {
   const [open, setOpen] = useState(false);
   const [sheetKey, setSheetKey] = useState(0);
 
@@ -32,13 +33,13 @@ export function CreateJobAnalysisSheet() {
         </Button>
       </SheetTrigger>
       <SheetContent showCloseButton={false} className="w-full gap-0 border-none bg-transparent p-0 sm:w-[45%] sm:max-w-none">
-        <SheetInner key={sheetKey} onClose={() => setOpen(false)} />
+        <SheetInner key={sheetKey} hasCredits={hasCredits} onClose={() => setOpen(false)} />
       </SheetContent>
     </Sheet>
   );
 }
 
-function SheetInner({ onClose }: { onClose: () => void }) {
+function SheetInner({ hasCredits, onClose }: { hasCredits: boolean; onClose: () => void }) {
   const [state, formAction] = useActionState(createAndRunJobAnalysisAction, INITIAL_STATE);
   const router = useRouter();
 
@@ -53,6 +54,8 @@ function SheetInner({ onClose }: { onClose: () => void }) {
             router.push(`/app/aderencia/${state.analysisId}`);
           }}
         />
+      ) : !hasCredits ? (
+        <NoCreditsView onCancel={onClose} />
       ) : (
         <FormView formAction={formAction} error={state.error} onCancel={onClose} />
       )}
@@ -118,6 +121,30 @@ function FormView({
         </SubmitButton>
       </div>
     </form>
+  );
+}
+
+/** Mostrado assim que o Sheet abre, em vez do formulário, quando não há créditos — evita o usuário preencher tudo só para ver o erro no final. */
+function NoCreditsView({ onCancel }: { onCancel: () => void }) {
+  return (
+    <div className="flex h-full flex-1 flex-col bg-card px-8">
+      <div className="border-b border-border py-4">
+        <p className="text-xs text-muted-foreground">Análise de</p>
+        <p className="text-2xl font-semibold text-foreground">Aderência à Vaga</p>
+      </div>
+      <div className="flex flex-1 flex-col items-center justify-center gap-[30px] text-center">
+        <CreditCard className="size-[120px] text-muted-foreground" strokeWidth={1.5} aria-hidden />
+        <div className="flex max-w-80 flex-col gap-1.5">
+          <p className="text-xl font-semibold text-foreground">Você não possui créditos disponíveis</p>
+          <p className="text-sm text-muted-foreground">
+            Contrate um plano para gerar um novo Diagnóstico de Aderência à Vaga.
+          </p>
+        </div>
+        <Button asChild className="w-[206px] rounded-md" onClick={onCancel}>
+          <Link href="/app/assinatura">Ver planos</Link>
+        </Button>
+      </div>
+    </div>
   );
 }
 

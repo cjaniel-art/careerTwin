@@ -21,17 +21,21 @@ export default async function JobAnalysisListPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/app/aderencia");
 
-  const { data: analyses } = await supabase
-    .from("analyses")
-    .select(
-      `id, created_at,
-       opportunity_versions(title, company),
-       fit_analysis_results(iao_display_score, risks_count)`,
-    )
-    .eq("user_id", user.id)
-    .eq("analysis_type", "job_analysis")
-    .eq("status", "completed")
-    .order("created_at", { ascending: false });
+  const [{ data: analyses }, { data: creditAccount }] = await Promise.all([
+    supabase
+      .from("analyses")
+      .select(
+        `id, created_at,
+         opportunity_versions(title, company),
+         fit_analysis_results(iao_display_score, risks_count)`,
+      )
+      .eq("user_id", user.id)
+      .eq("analysis_type", "job_analysis")
+      .eq("status", "completed")
+      .order("created_at", { ascending: false }),
+    supabase.from("credit_accounts").select("available_credits").eq("user_id", user.id).maybeSingle(),
+  ]);
+  const hasCredits = (creditAccount?.available_credits ?? 0) > 0;
 
   const analysisIds = (analyses ?? []).map((a) => a.id);
   const { data: gapRows } = analysisIds.length
@@ -48,7 +52,7 @@ export default async function JobAnalysisListPage() {
     <main className="flex flex-col gap-[21px] px-8 py-6">
       <div className="flex items-end justify-between">
         <h1 className="text-2xl font-bold text-foreground">Aderência à Vaga</h1>
-        <CreateJobAnalysisSheet />
+        <CreateJobAnalysisSheet hasCredits={hasCredits} />
       </div>
 
       <div className="w-full">
