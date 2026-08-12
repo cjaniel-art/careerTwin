@@ -91,6 +91,14 @@ export async function createAndRunJobAnalysisAction(
       userContent: text,
       schema: opportunityStructureSchema,
       model: EXTRACTION_MODEL,
+      // No override here defaulted to 4096 output tokens (anthropic-provider.ts),
+      // nowhere near enough for a dense, multi-section job posting (many
+      // requirements, each with several fields including sourceExcerpt) — the
+      // response got truncated mid-JSON, which reads as a schema-validation
+      // failure after all 3 repair attempts (same truncation every retry,
+      // since the ceiling never changes). Scaled the same way onboarding's
+      // extraction calls already do for the same reason.
+      maxOutputTokens: Math.min(24_000, 6_000 + text.length),
     });
     structured = result.data;
   } catch (err) {
