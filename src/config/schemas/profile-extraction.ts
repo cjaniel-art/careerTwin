@@ -7,7 +7,7 @@ import { evidenceReferenceSchema } from "./evidence";
  * output is rejected and retried per the 3-stage repair strategy (§12), never
  * persisted as-is (Guardrails §5/§13).
  */
-export const SCHEMA_VERSION_PROFILE_EXTRACTION = "profile-extraction/1.2" as const;
+export const SCHEMA_VERSION_PROFILE_EXTRACTION = "profile-extraction/1.3" as const;
 
 const confirmationStatusSchema = z.enum([
   "extracted", "confirmed", "corrected", "added", "rejected", "in_conflict", "unconfirmed",
@@ -30,6 +30,24 @@ const certificationEntrySchema = z.object({
   completionDate: z.string().nullable(),
   confirmationStatus: confirmationStatusSchema,
   extractionConfidence: z.number().min(0).max(1),
+});
+
+const languageEntrySchema = z.object({
+  language: z.string(),
+  declaredLevel: z.string().nullable(),
+  certification: z.string().nullable(),
+  confirmationStatus: confirmationStatusSchema,
+});
+
+const independentProjectEntrySchema = z.object({
+  name: z.string(),
+  context: z.string().nullable(),
+  objective: z.string().nullable(),
+  userRole: z.string().nullable(),
+  activities: z.array(z.string()),
+  deliverables: z.array(z.string()),
+  results: z.array(z.string()),
+  confirmationStatus: confirmationStatusSchema,
 });
 
 export const profileExtractionSchema = z.object({
@@ -62,6 +80,7 @@ export const profileExtractionSchema = z.object({
       confirmationStatus: confirmationStatusSchema,
     }),
   ),
+  independentProjects: z.array(independentProjectEntrySchema),
   competencies: z.array(
     z.object({
       originalTerm: z.string(),
@@ -88,6 +107,7 @@ export const profileExtractionSchema = z.object({
   ),
   education: z.array(educationEntrySchema),
   certifications: z.array(certificationEntrySchema),
+  languages: z.array(languageEntrySchema),
   conflicts: z.array(
     z.object({
       conflictKey: z.string(),
@@ -120,6 +140,7 @@ export const profileExperiencesExtractionSchema = profileExtractionSchema.pick({
   extractionStatus: true,
   professionalIdentity: true,
   experiences: true,
+  independentProjects: true,
   warnings: true,
 });
 export type ProfileExperiencesExtraction = z.infer<typeof profileExperiencesExtractionSchema>;
@@ -134,6 +155,7 @@ export const profileSkillsExtractionSchema = profileExtractionSchema.pick({
   tools: true,
   education: true,
   certifications: true,
+  languages: true,
   conflicts: true,
   warnings: true,
 });

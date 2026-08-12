@@ -75,7 +75,7 @@ function synthesizeProfileExtraction(content: string, documentType: "resume" | "
   const insufficientContent = usefulChars < 300;
 
   return {
-    schemaVersion: "profile-extraction/1.1",
+    schemaVersion: "profile-extraction/1.3",
     documentType,
     sourceId: "synthetic-source",
     language: "pt-BR",
@@ -102,10 +102,12 @@ function synthesizeProfileExtraction(content: string, documentType: "resume" | "
             confirmationStatus: "extracted",
           },
         ],
+    independentProjects: [],
     competencies: [],
     tools: [],
     education: [],
     certifications: [],
+    languages: [],
     conflicts: [],
     warnings: insufficientContent
       ? ["Conteúdo insuficiente para extração (adapter sintético de desenvolvimento)."]

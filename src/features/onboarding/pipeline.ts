@@ -142,9 +142,9 @@ async function ensureDocumentText(supabase: SupabaseClient, userId: string, docu
 function buildExperiencesExtractionSystemPrompt(documentType: string): string {
   return [
     "Você é o motor de extração profissional do CareerTwin, etapa de experiências.",
-    "Extraia apenas a identidade profissional e as experiências presentes no documento fornecido, com evidência e confiança de extração.",
-    "Ignore competências, ferramentas, formação e certificações — isso é extraído em uma etapa separada.",
-    "Nunca invente experiências, métricas ou resultados não presentes no material.",
+    "Extraia a identidade profissional, as experiências e os projetos independentes (não ligados a um emprego listado — pessoais, freelance, open source, acadêmicos) presentes no documento fornecido, com evidência e confiança de extração.",
+    "Ignore competências, ferramentas, formação, certificações e idiomas — isso é extraído em uma etapa separada.",
+    "Nunca invente experiências, projetos, métricas ou resultados não presentes no material.",
     "Marque inferências como inferência/hipótese, nunca como fato confirmado.",
     `Tipo de documento: ${documentType}.`,
     // Measured directly against a real 13-experience profile: extracting
@@ -154,6 +154,7 @@ function buildExperiencesExtractionSystemPrompt(documentType: string): string {
     // actually closed the gap.
     "Seja direto e conciso em cada campo de texto (1-2 frases por item, nunca um parágrafo longo).",
     "Para cada experiência, extraia no máximo 3 responsabilidades e no máximo 2 resultados/evidências — escolha os mais relevantes e quantificáveis, nunca liste tudo que houver no documento.",
+    "Em independentProjects, use exatamente os campos: name, context (ou null), objective (ou null), userRole (ou null), activities, deliverables, results (arrays de strings, no máximo 3 itens cada) e confirmationStatus. Se não houver projeto independente claro, retorne um array vazio em vez de inventar um.",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
   ].join(" ");
 }
@@ -161,14 +162,15 @@ function buildExperiencesExtractionSystemPrompt(documentType: string): string {
 function buildSkillsExtractionSystemPrompt(documentType: string): string {
   return [
     "Você é o motor de extração profissional do CareerTwin, etapa de competências.",
-    "Extraia apenas competências, ferramentas, formação, certificações e conflitos entre fontes presentes no documento fornecido, com evidência e confiança de extração.",
-    "Ignore experiências e identidade profissional — isso é extraído em uma etapa separada.",
-    "Nunca invente competências, ferramentas, formação ou certificações não presentes no material.",
+    "Extraia apenas competências, ferramentas, formação, certificações, idiomas e conflitos entre fontes presentes no documento fornecido, com evidência e confiança de extração.",
+    "Ignore experiências, projetos e identidade profissional — isso é extraído em uma etapa separada.",
+    "Nunca invente competências, ferramentas, formação, certificações ou idiomas não presentes no material.",
     "Marque inferências como inferência/hipótese, nunca como fato confirmado.",
     `Tipo de documento: ${documentType}.`,
     "Seja direto e conciso em cada campo de texto (1-2 frases por item, nunca um parágrafo longo).",
     "Em education, para cada item de formação use exatamente os campos: institution (nome da instituição), course (nome do curso/programa), degreeType (ex.: \"Bacharelado\", \"Tecnólogo\", \"Pós-Graduação\", \"Curso de Extensão\"), startDate e endDate no formato \"AAAA-MM\" (ou null se desconhecido), status (\"completed\" | \"in_progress\" | \"incomplete\"), confirmationStatus e extractionConfidence.",
     "Em certifications, para cada certificação use exatamente os campos: name, issuer (ou null se não identificado — nunca invente um emissor), completionDate no formato \"AAAA-MM\" (ou null), confirmationStatus e extractionConfidence.",
+    "Em languages, para cada idioma (além do idioma nativo, se explicitado) use exatamente os campos: language, declaredLevel (ex.: \"Básico\", \"Intermediário\", \"Avançado\", \"Fluente\", \"Nativo\" — ou null se não informado), certification (ex.: \"TOEFL\", \"IELTS\" — ou null) e confirmationStatus.",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
   ].join(" ");
 }
@@ -258,10 +260,12 @@ async function processDocument(supabase: SupabaseClient, userId: string, documen
       extractionStatus,
       professionalIdentity: experiencesResult.data.professionalIdentity,
       experiences: experiencesResult.data.experiences,
+      independentProjects: experiencesResult.data.independentProjects,
       competencies: skillsResult.data.competencies,
       tools: skillsResult.data.tools,
       education: skillsResult.data.education,
       certifications: skillsResult.data.certifications,
+      languages: skillsResult.data.languages,
       conflicts: skillsResult.data.conflicts,
       warnings: [...experiencesResult.data.warnings, ...skillsResult.data.warnings],
     };
@@ -451,15 +455,15 @@ async function ensureProfileDraft(supabase: SupabaseClient, userId: string): Pro
 }
 
 /**
- * Copies each successfully extracted document's experiences/results/
- * education/certifications into `experiences`/`evidences`/`education_records`/
- * `certifications` on the new draft version. Only the most recent ready
- * extraction per document type is used. `profile_skills`/`profile_tools`
- * are NOT populated here: they reference the shared `skills`/`tools` catalog
- * tables, which only allow curator/service-role writes — there is no
- * client-safe way to create a new skill/tool entry on demand in this
- * environment. `education_records`/`certifications` have no such
- * restriction (owner-scoped RLS, same as `experiences`), so they belong here.
+ * Copies every category a successfully extracted document produced into its
+ * matching table on the new draft version: experiences/evidences,
+ * education_records, certifications, languages, projects (independent ones
+ * only — the free-text `projects` nested inside each experience stays folded
+ * into that experience's description, as before), and profile_skills/
+ * profile_tools (via the ct_upsert_profile_skill/ct_upsert_profile_tool RPCs,
+ * since the shared skills/tools catalog tables are read-only to authenticated
+ * users — see 20260101000029_profile_skill_tool_rpc.sql). Only the most
+ * recent ready extraction per document type is used.
  */
 async function consolidateExtractedExperiences(
   supabase: SupabaseClient,
@@ -484,7 +488,10 @@ async function consolidateExtractedExperiences(
   }
 
   for (const doc of latestByType.values()) {
-    const payload = doc.validated_payload as Pick<ProfileExtraction, "experiences" | "education" | "certifications"> | null;
+    const payload = doc.validated_payload as Pick<
+      ProfileExtraction,
+      "experiences" | "education" | "certifications" | "languages" | "independentProjects" | "competencies" | "tools"
+    > | null;
     if (!payload) continue;
 
     for (const exp of payload.experiences ?? []) {
@@ -540,6 +547,67 @@ async function consolidateExtractedExperiences(
           confirmation_status: "extracted",
         })),
       );
+    }
+
+    if (payload.languages?.length) {
+      await supabase.from("languages").insert(
+        payload.languages.map((lang) => ({
+          profile_version_id: profileVersionId,
+          language_name: lang.language,
+          declared_level: lang.declaredLevel,
+          certification: lang.certification,
+          confirmation_status: "extracted",
+        })),
+      );
+    }
+
+    if (payload.independentProjects?.length) {
+      await supabase.from("projects").insert(
+        payload.independentProjects.map((proj) => ({
+          profile_version_id: profileVersionId,
+          name: proj.name,
+          context: proj.context,
+          objective: proj.objective,
+          user_role: proj.userRole,
+          activities: proj.activities,
+          deliverables: proj.deliverables,
+          results: proj.results,
+          confirmation_status: "extracted",
+        })),
+      );
+    }
+
+    // skills/tools go through a SECURITY DEFINER RPC (find-or-create on the
+    // shared catalog + owner-scoped profile_skills/profile_tools insert) —
+    // see 20260101000029_profile_skill_tool_rpc.sql for why a plain insert
+    // can't do this (the skills/tools tables are read-only to authenticated
+    // users). One RPC call per item, not a batch — Postgres RPC calls don't
+    // take arrays of composite rows well, and this only runs once per
+    // onboarding/reanalysis, not on a hot path.
+    for (const skill of payload.competencies ?? []) {
+      const { error } = await supabase.rpc("ct_upsert_profile_skill", {
+        p_profile_version_id: profileVersionId,
+        p_original_term: skill.originalTerm,
+        p_normalized_name: skill.normalizedTerm,
+        p_skill_type: skill.skillType,
+        p_skill_domain: skill.skillDomain,
+        p_declared_level: null,
+        p_extraction_confidence: skill.extractionConfidence,
+      });
+      if (error) console.error("consolidateExtractedExperiences: ct_upsert_profile_skill failed:", error.message);
+    }
+
+    for (const tool of payload.tools ?? []) {
+      const { error } = await supabase.rpc("ct_upsert_profile_tool", {
+        p_profile_version_id: profileVersionId,
+        p_original_term: tool.originalTerm,
+        p_normalized_name: tool.normalizedTerm,
+        p_tool_category: tool.toolCategory,
+        p_usage_context: null,
+        p_declared_level: null,
+        p_extraction_confidence: tool.extractionConfidence,
+      });
+      if (error) console.error("consolidateExtractedExperiences: ct_upsert_profile_tool failed:", error.message);
     }
   }
 }
