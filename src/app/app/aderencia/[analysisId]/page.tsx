@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { AlertTriangle, Eye, FileText, LayoutGrid, ListChecks, Settings2, ShieldAlert, Sparkles } from "lucide-react";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { getAnalysisHistory } from "@/features/history/get-history";
 import type { Core2ActionCandidate, Core2Risk, Core2SeniorityAssessment, Core2Strength } from "@/config/schemas/core2";
 import type { GapType, RequirementCategory, RequirementCriticality } from "@/config/engine/core2";
 import type { EvidenceReference } from "@/config/schemas/evidence";
@@ -60,7 +59,7 @@ export default async function JobAnalysisResultPage({
   if (!analysis) redirect("/app/aderencia");
   if (analysis.status !== "completed") redirect(`/app/aderencia/processando/${analysisId}`);
 
-  const [{ data: result }, { data: assessments }, { data: requirements }, { data: opportunityVersion }, { data: limits }, history] =
+  const [{ data: result }, { data: assessments }, { data: requirements }, { data: opportunityVersion }, { data: limits }] =
     await Promise.all([
       supabase.from("fit_analysis_results").select("*").eq("analysis_id", analysisId).single(),
       supabase
@@ -77,7 +76,6 @@ export default async function JobAnalysisResultPage({
         .eq("id", analysis.opportunity_version_id)
         .maybeSingle(),
       supabase.from("analysis_limits").select("limit_type").eq("analysis_id", analysisId),
-      getAnalysisHistory(supabase, user.id),
     ]);
 
   const snapshot = (result?.calculation_snapshot ?? {}) as CalculationSnapshot;
@@ -116,7 +114,7 @@ export default async function JobAnalysisResultPage({
 
   return (
     <main className="flex w-full flex-col gap-8 px-6 py-10 lg:px-10">
-      <ReportHeader historyItems={history} />
+      <ReportHeader />
 
       <JobSummaryCard
         job={{

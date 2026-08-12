@@ -70,7 +70,7 @@ export default async function ProfileAnalysisResultPage({
         ? supabase.from("target_context_versions").select("target_role").eq("id", analysis.target_context_version_id).maybeSingle()
         : Promise.resolve({ data: null }),
       getOnboardingState(supabase, user.id),
-      getAnalysisHistory(supabase, user.id),
+      getAnalysisHistory(supabase, user.id, "profile_analysis"),
     ]);
 
   const recommendationIds = (recommendations ?? []).map((r) => r.id);

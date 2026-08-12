@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <main className="mx-auto min-h-screen max-w-2xl px-6 py-10">
+    <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-2xl px-6 py-10">
       <Card>
         <CardContent className="space-y-4 pt-6">
           <Skeleton className="h-5 w-40" />

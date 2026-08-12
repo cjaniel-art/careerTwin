@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
 import { Sheet, SheetCircleClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { createAndRunJobAnalysisAction, type CreateJobAnalysisState } from "@/features/core-2/actions";
-import { JobAnalysisProcessingStepPanel, JobAnalysisStructuringPanel } from "@/features/core-2/processing-panel";
+import { JobAnalysisCreateProgressPanel } from "@/features/core-2/processing-panel";
 
 const INITIAL_STATE: CreateJobAnalysisState = {};
 
@@ -51,34 +51,31 @@ function SheetInner({ hasCredits, onClose }: { hasCredits: boolean; onClose: () 
   const router = useRouter();
   // Captured on submit so a structuring failure can re-show the form with
   // what the user already typed instead of a blank one — see
-  // JobAnalysisStructuringPanel's docstring for why the form unmounts as
+  // JobAnalysisCreateProgressPanel's docstring for why the form unmounts as
   // soon as the button is clicked (the whole point of this panel).
   const [lastValues, setLastValues] = useState<FormValues | null>(null);
   // Once submitted, never show the form again for this Sheet instance even
-  // after the action settles with an error — JobAnalysisStructuringPanel's
+  // after the action settles with an error — JobAnalysisCreateProgressPanel's
   // own "Tentar novamente" button is what brings the form back (via
   // setSubmitted(false)), not the action settling.
   const [submitted, setSubmitted] = useState(false);
-
-  const submittedThisRound = submitted && !state.analysisId;
 
   return (
     <div className="flex h-full items-start">
       <SheetCircleClose />
 
-      {state.analysisId ? (
+      {submitted ? (
         <div className="flex h-full flex-1 flex-col bg-card px-8">
-          <JobAnalysisProcessingStepPanel
-            analysisId={state.analysisId}
+          <JobAnalysisCreateProgressPanel
+            structuringPending={isPending}
+            structuringError={state.error}
+            analysisId={state.analysisId ?? null}
             onDone={(analysisId) => {
               onClose();
               router.push(`/app/aderencia/${analysisId}`);
             }}
+            onRetryStructuring={() => setSubmitted(false)}
           />
-        </div>
-      ) : submittedThisRound ? (
-        <div className="flex h-full flex-1 flex-col bg-card px-8">
-          <JobAnalysisStructuringPanel pending={isPending} error={state.error} onRetry={() => setSubmitted(false)} />
         </div>
       ) : !hasCredits ? (
         <NoCreditsView onCancel={onClose} />

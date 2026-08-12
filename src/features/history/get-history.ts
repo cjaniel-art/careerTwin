@@ -11,9 +11,18 @@ export interface AnalysisHistoryRow {
   isCompleted: boolean;
 }
 
-/** Shared by /app/historico (full page) and HistorySheet (report Sheet) so both list the exact same rows. */
-export async function getAnalysisHistory(supabase: SupabaseClient, userId: string): Promise<AnalysisHistoryRow[]> {
-  const { data: analyses } = await supabase
+/**
+ * Shared by /app/historico (full page, todos os tipos) e HistorySheet (Sheet
+ * embutido no relatório). `analysisType` filtra para o Sheet de cada Core
+ * mostrar apenas as análises do mesmo tipo do relatório em que está — Core 1
+ * não deve listar diagnósticos de aderência a vaga, e vice-versa.
+ */
+export async function getAnalysisHistory(
+  supabase: SupabaseClient,
+  userId: string,
+  analysisType?: "profile_analysis" | "job_analysis" | "target_role_analysis",
+): Promise<AnalysisHistoryRow[]> {
+  let query = supabase
     .from("analyses")
     .select(
       `id, analysis_type, status, created_at,
@@ -23,6 +32,8 @@ export async function getAnalysisHistory(supabase: SupabaseClient, userId: strin
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
+  if (analysisType) query = query.eq("analysis_type", analysisType);
+  const { data: analyses } = await query;
 
   return (analyses ?? []).map((a) => {
     const profileResult = Array.isArray(a.profile_analysis_results) ? a.profile_analysis_results[0] : a.profile_analysis_results;
