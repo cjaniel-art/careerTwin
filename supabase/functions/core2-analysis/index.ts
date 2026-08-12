@@ -645,6 +645,27 @@ async function runJobAnalysis(supabase: any, apiKey: string, analysisId: string)
       risks_count: result.risks.length,
     });
 
+    // Materializa os action candidates como linhas reais (mirror de
+    // `recommendations` do Core 1), para que possam ser convertidos em
+    // `actions` rastreáveis via convertCore2ActionCandidateToActionAction —
+    // ver 20260101000030_core2_action_candidates.sql.
+    if (result.actionCandidates.length > 0) {
+      await supabase.from("core2_action_candidates").insert(
+        result.actionCandidates.map((a) => ({
+          analysis_id: analysisId,
+          action_key: a.actionKey,
+          title: a.title,
+          reasoning: a.reasoning,
+          suggested_action: a.suggestedAction,
+          horizon: a.horizon,
+          impact: a.impact,
+          effort: a.effort,
+          success_criteria: a.successCriteria,
+          related_requirement_ids: a.relatedRequirementIds,
+        })),
+      );
+    }
+
     await supabase
       .from("analyses")
       .update({

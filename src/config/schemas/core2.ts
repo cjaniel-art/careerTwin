@@ -25,9 +25,10 @@ const strengthSchema = z.object({
 });
 
 /**
- * Read-only action suggestions for the "Plano de ação" tab — unlike Core 1's
- * recommendations, these never convert into `actions` rows (no Core 2
- * equivalent of convertRecommendationToActionAction exists yet).
+ * Action suggestions for the "Plano de ação" tab. Materialized as rows in
+ * `core2_action_candidates` (see 20260101000030_core2_action_candidates.sql)
+ * so they can be converted into trackable `actions` rows the same way Core
+ * 1's recommendations already are, via convertCore2ActionCandidateToActionAction.
  */
 const actionCandidateSchema = z.object({
   actionKey: z.string(),

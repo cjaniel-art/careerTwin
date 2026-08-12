@@ -60,6 +60,50 @@ export async function convertRecommendationToActionAction(formData: FormData): P
   if (typeof redirectTo === "string") revalidatePath(redirectTo);
 }
 
+/**
+ * Core 2 equivalent of convertRecommendationToActionAction, above — converts
+ * a core2_action_candidates row instead of a recommendations row. Shares the
+ * same `actions` table, the same global ACTIONS_CONFIG.maximum cap (Core 1
+ * and Core 2 actions count against the same 5-action limit — see the
+ * docstring on ACTIONS_CONFIG), and the same status state machine, so
+ * advanceActionStatusAction below works unmodified for either origin.
+ */
+export async function convertCore2ActionCandidateToActionAction(formData: FormData): Promise<void> {
+  const actionCandidateId = formData.get("actionCandidateId");
+  const redirectTo = formData.get("redirectTo");
+  if (typeof actionCandidateId !== "string") return;
+
+  const { supabase, user } = await requireUser();
+
+  const { count } = await supabase
+    .from("actions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .in("status", ACTIVE_STATUSES);
+
+  if ((count ?? 0) >= ACTIONS_CONFIG.maximum) {
+    if (typeof redirectTo === "string") redirect(`${redirectTo}?erro=limite-acoes`);
+    return;
+  }
+
+  const { error } = await supabase.from("actions").insert({
+    user_id: user.id,
+    core2_action_candidate_id: actionCandidateId,
+    status: "pending",
+  });
+  if (error) {
+    console.error("convertCore2ActionCandidateToActionAction: insert failed:", error.message);
+    return;
+  }
+
+  await supabase.from("core2_action_candidates").update({ status: "converted_to_action" }).eq("id", actionCandidateId);
+
+  trackEvent(ANALYTICS_EVENTS.recommendationSelected, { userId: user.id });
+
+  revalidatePath("/app/acoes");
+  if (typeof redirectTo === "string") revalidatePath(redirectTo);
+}
+
 const ACTION_STATUS_TRANSITIONS: Record<string, string> = {
   pending: "selected",
   selected: "in_progress",

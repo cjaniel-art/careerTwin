@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { AlertTriangle, Eye, FileText, LayoutGrid, ListChecks, Settings2, ShieldAlert, Sparkles } from "lucide-react";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import type { Core2ActionCandidate, Core2Risk, Core2SeniorityAssessment, Core2Strength } from "@/config/schemas/core2";
+import type { Core2Risk, Core2SeniorityAssessment, Core2Strength } from "@/config/schemas/core2";
 import type { GapType, RequirementCategory, RequirementCriticality } from "@/config/engine/core2";
 import type { EvidenceReference } from "@/config/schemas/evidence";
 import { LIMIT_TYPE_LABELS, RECOMMENDATION_LABELS } from "@/lib/result-labels";
+import { ACTIONS_CONFIG } from "@/config/engine/actions";
 import { ReportHeader } from "@/features/core-2/report/report-header";
 import { JobSummaryCard } from "@/features/core-2/report/job-summary-card";
 import { IaoScoreCard } from "@/features/core-2/report/iao-score-card";
@@ -31,7 +32,6 @@ export const dynamic = "force-dynamic";
 interface CalculationSnapshot {
   strengths?: Core2Strength[];
   risks?: Core2Risk[];
-  actionCandidates?: Core2ActionCandidate[];
   seniorityAssessment?: Core2SeniorityAssessment;
   evidenceByRequirement?: Record<string, EvidenceReference[]>;
 }
@@ -81,9 +81,42 @@ export default async function JobAnalysisResultPage({
   const snapshot = (result?.calculation_snapshot ?? {}) as CalculationSnapshot;
   const strengths = snapshot.strengths ?? [];
   const risks = snapshot.risks ?? [];
-  const actionCandidates = snapshot.actionCandidates ?? [];
   const seniorityAssessment = snapshot.seniorityAssessment ?? null;
   const evidenceByRequirement = snapshot.evidenceByRequirement ?? {};
+
+  const { data: actionCandidateRows } = await supabase
+    .from("core2_action_candidates")
+    .select("id, title, reasoning, suggested_action, horizon, impact, effort, status")
+    .eq("analysis_id", analysisId)
+    .order("created_at", { ascending: true });
+
+  const actionCandidateIds = (actionCandidateRows ?? []).map((c) => c.id);
+  const [{ data: actionRows }, { count: activeActionsCount }] = await Promise.all([
+    actionCandidateIds.length
+      ? supabase
+          .from("actions")
+          .select("id, status, core2_action_candidate_id")
+          .eq("user_id", user.id)
+          .in("core2_action_candidate_id", actionCandidateIds)
+      : Promise.resolve({ data: [] as { id: string; status: string; core2_action_candidate_id: string }[] }),
+    supabase
+      .from("actions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .in("status", ["pending", "selected", "in_progress"]),
+  ]);
+
+  const actionCandidateById = new Map((actionCandidateRows ?? []).map((c) => [c.id, c]));
+  const actionPreviewRows = (actionRows ?? []).map((a) => ({
+    id: a.id,
+    status: a.status,
+    title: actionCandidateById.get(a.core2_action_candidate_id)?.title ?? "",
+    suggestedAction: actionCandidateById.get(a.core2_action_candidate_id)?.suggested_action ?? "",
+  }));
+  const availableActionCandidates = (actionCandidateRows ?? [])
+    .filter((c) => c.status === "generated")
+    .map((c) => ({ id: c.id, title: c.title, reasoning: c.reasoning, horizon: c.horizon, impact: c.impact, effort: c.effort }));
+  const atActionsLimit = (activeActionsCount ?? 0) >= ACTIONS_CONFIG.maximum;
 
   const assessmentByRequirement = new Map((assessments ?? []).map((a) => [a.requirement_id, a]));
   const rows: RequirementRow[] = (requirements ?? []).map((r) => {
@@ -209,7 +242,12 @@ export default async function JobAnalysisResultPage({
           <RisksSection risks={risks} seniority={seniorityAssessment} rows={rows} />
         </ReportTabsContent>
         <ReportTabsContent value="plano-de-acao">
-          <ActionPlanSection actions={actionCandidates} rows={rows} />
+          <ActionPlanSection
+            analysisId={analysisId}
+            actions={actionPreviewRows}
+            candidates={availableActionCandidates}
+            atLimit={atActionsLimit}
+          />
         </ReportTabsContent>
         <ReportTabsContent value="evidencias">
           <EvidenceSection rows={rows} />
