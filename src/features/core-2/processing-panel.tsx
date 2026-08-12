@@ -187,6 +187,56 @@ export function JobAnalysisProcessingPanel({ analysisId }: { analysisId: string 
 }
 
 /**
+ * Shown the instant the "Cria análise" form is submitted, before the server
+ * action has even resolved with an analysisId — the P-007 structuring call
+ * (extracting requirements from the pasted job text) runs synchronously and
+ * can take several seconds, or fail outright, so the Sheet must switch away
+ * from the form immediately on submit rather than leave the user staring at
+ * a static form with just a button spinner. `pending` comes straight from
+ * useActionState's third return value. On failure (structuring itself threw,
+ * no analysisId ever produced) this renders the same failed-state look as
+ * JobAnalysisProcessingStepPanel, with a retry that goes back to the form.
+ */
+export function JobAnalysisStructuringPanel({ pending, error, onRetry }: { pending: boolean; error?: string; onRetry: () => void }) {
+  const failed = !pending && Boolean(error);
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
+      <Image
+        src={failed ? "/onboarding/analysis-error-icon.svg" : "/onboarding/analysis-loading-icon.svg"}
+        alt=""
+        width={160}
+        height={156}
+        className="h-[156px] w-[160px]"
+      />
+      <div className="flex max-w-80 flex-col gap-1.5">
+        <p className="text-lg font-semibold text-foreground">
+          {failed ? "Não foi possível estruturar a vaga" : "Preparando sua análise"}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {failed ? (error ?? "Tente novamente.") : "Estamos lendo e estruturando os requisitos da vaga com IA."}
+        </p>
+      </div>
+      <div className="w-full max-w-80 rounded-xl border border-border bg-background p-5 text-left">
+        <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-primary/20">
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-500"
+            style={{ width: failed ? "0%" : "20%" }}
+          />
+        </div>
+        <ol className="flex flex-col gap-3">
+          <StepRow label="Estruturando a vaga com IA" state={failed ? "error" : "active"} />
+        </ol>
+      </div>
+      {failed ? (
+        <Button size="sm" onClick={onRetry}>
+          Tentar novamente
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * Embedded variant — rendered inside CreateJobAnalysisSheet right after
  * submit, matching ProcessingStepPanel's sizing in reanalysis-sheet.tsx
  * (compact, no full-page background) instead of navigating away immediately.

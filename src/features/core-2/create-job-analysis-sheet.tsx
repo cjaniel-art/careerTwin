@@ -10,9 +10,15 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
 import { Sheet, SheetCircleClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { createAndRunJobAnalysisAction, type CreateJobAnalysisState } from "@/features/core-2/actions";
-import { JobAnalysisProcessingStepPanel } from "@/features/core-2/processing-panel";
+import { JobAnalysisProcessingStepPanel, JobAnalysisStructuringPanel } from "@/features/core-2/processing-panel";
 
 const INITIAL_STATE: CreateJobAnalysisState = {};
+
+interface FormValues {
+  title: string;
+  company: string;
+  pastedText: string;
+}
 
 /** "Criar análise" flow — Figma nodes 156:6207 (formulário) e 164:10787 (sucesso). */
 export function CreateJobAnalysisSheet({ hasCredits }: { hasCredits: boolean }) {
@@ -41,13 +47,21 @@ export function CreateJobAnalysisSheet({ hasCredits }: { hasCredits: boolean }) 
 }
 
 function SheetInner({ hasCredits, onClose }: { hasCredits: boolean; onClose: () => void }) {
-  const [state, formAction] = useActionState(createAndRunJobAnalysisAction, INITIAL_STATE);
+  const [state, formAction, isPending] = useActionState(createAndRunJobAnalysisAction, INITIAL_STATE);
   const router = useRouter();
+  // Captured on submit so a structuring failure can re-show the form with
+  // what the user already typed instead of a blank one — see
+  // JobAnalysisStructuringPanel's docstring for why the form unmounts as
+  // soon as the button is clicked (the whole point of this panel).
+  const [lastValues, setLastValues] = useState<FormValues | null>(null);
+  // Once submitted, never show the form again for this Sheet instance even
+  // after the action settles with an error — JobAnalysisStructuringPanel's
+  // own "Tentar novamente" button is what brings the form back (via
+  // setSubmitted(false)), not the action settling.
+  const [submitted, setSubmitted] = useState(false);
 
-  // The analysis is still "processing" once this state is set — the diagnosis
-  // itself runs in a background Edge Function (core2-analysis), not inline.
-  // Stay in the Sheet and poll from here (same pattern as ReanalysisSheet's
-  // ProcessingStepPanel) instead of navigating away to a full-page route.
+  const submittedThisRound = submitted && !state.analysisId;
+
   return (
     <div className="flex h-full items-start">
       <SheetCircleClose />
@@ -62,10 +76,21 @@ function SheetInner({ hasCredits, onClose }: { hasCredits: boolean; onClose: () 
             }}
           />
         </div>
+      ) : submittedThisRound ? (
+        <div className="flex h-full flex-1 flex-col bg-card px-8">
+          <JobAnalysisStructuringPanel pending={isPending} error={state.error} onRetry={() => setSubmitted(false)} />
+        </div>
       ) : !hasCredits ? (
         <NoCreditsView onCancel={onClose} />
       ) : (
-        <FormView formAction={formAction} error={state.error} />
+        <FormView
+          formAction={formAction}
+          defaults={lastValues}
+          onSubmit={(values) => {
+            setLastValues(values);
+            setSubmitted(true);
+          }}
+        />
       )}
     </div>
   );
@@ -73,33 +98,40 @@ function SheetInner({ hasCredits, onClose }: { hasCredits: boolean; onClose: () 
 
 function FormView({
   formAction,
-  error,
+  defaults,
+  onSubmit,
 }: {
   formAction: (formData: FormData) => void;
-  error?: string;
+  defaults: FormValues | null;
+  onSubmit: (values: FormValues) => void;
 }) {
   return (
-    <form action={formAction} className="flex h-full flex-1 flex-col bg-card px-8">
+    <form
+      action={formAction}
+      onSubmit={(e) => {
+        const formData = new FormData(e.currentTarget);
+        onSubmit({
+          title: String(formData.get("title") ?? ""),
+          company: String(formData.get("company") ?? ""),
+          pastedText: String(formData.get("pastedText") ?? ""),
+        });
+      }}
+      className="flex h-full flex-1 flex-col bg-card px-8"
+    >
       <div className="border-b border-border py-4">
         <p className="text-xs text-muted-foreground">Análise de</p>
         <p className="text-2xl font-semibold text-foreground">Aderência à Vaga</p>
       </div>
 
       <div className="flex flex-1 flex-col gap-7 overflow-y-auto py-6">
-        {error ? (
-          <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
-            {error}
-          </p>
-        ) : null}
-
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-3">
             <Label htmlFor="title">Cargo-alvo</Label>
-            <Input id="title" name="title" />
+            <Input id="title" name="title" defaultValue={defaults?.title} />
           </div>
           <div className="space-y-3">
             <Label htmlFor="company">Empresa (opcional)</Label>
-            <Input id="company" name="company" />
+            <Input id="company" name="company" defaultValue={defaults?.company} />
           </div>
         </div>
 
@@ -111,6 +143,7 @@ function FormView({
             rows={8}
             maxLength={100_000}
             required
+            defaultValue={defaults?.pastedText}
             className="flex h-[180px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             placeholder="Cole aqui a descrição completa da vaga"
           />
