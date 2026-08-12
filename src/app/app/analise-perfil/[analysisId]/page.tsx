@@ -118,13 +118,13 @@ export default async function ProfileAnalysisResultPage({
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <IppCard score={result?.ipp_display_score ?? 0} band={result?.ipp_band ?? ""} />
         <ExecutiveSummaryCard
           summary={result?.diagnosis ?? ""}
           mainStrength={result?.main_strength ?? ""}
           mainGap={result?.main_gap ?? ""}
           nextBestAction={result?.next_best_action ?? ""}
         />
-        <IppCard score={result?.ipp_display_score ?? 0} band={result?.ipp_band ?? ""} />
         <ConfidenceCard
           level={analysis.confidence_band ?? ""}
           reasons={(analysis.confidence_reasons as string[] | null) ?? []}
