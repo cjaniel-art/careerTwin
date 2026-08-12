@@ -15,13 +15,14 @@ export default function Loading() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {Array.from({ length: 2 }).map((_, i) => (
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
           <Card key={i}>
             <CardContent className="space-y-3 pt-6">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-9 w-16" />
               <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3.5 w-5/6" />
             </CardContent>
           </Card>
         ))}
@@ -33,11 +34,26 @@ export default function Loading() {
         ))}
       </div>
 
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="space-y-3 pt-6">
+              <Skeleton className="h-4 w-32" />
+              {Array.from({ length: 4 }).map((_, j) => (
+                <Skeleton key={j} className="h-3.5 w-full" />
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       <Card>
-        <CardContent className="space-y-3 pt-6">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-4 w-full" />
-          ))}
+        <CardContent className="flex items-center justify-between gap-4 pt-6">
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3.5 w-full" />
+          </div>
+          <Skeleton className="h-9 w-36 shrink-0 rounded-md" />
         </CardContent>
       </Card>
     </main>
