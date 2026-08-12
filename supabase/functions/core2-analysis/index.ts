@@ -70,6 +70,7 @@ const AI_GAP_TYPES_PT = ["competencia", "experiencia", "formacao_certificacao", 
 const SCHEMA_VERSION_CORE_2 = "core-2/1.2" as const;
 
 const strengthSchema = z.object({
+  title: z.string(),
   description: z.string(),
   relatedRequirementIds: z.array(z.string()),
   evidenceRefs: z.array(evidenceReferenceSchema),
@@ -336,7 +337,7 @@ function buildDiagnosisSystemPrompt(): string {
     'risks[].severity: "low" | "medium" | "high" | "critical".',
     'actionCandidates[].horizon: "before_applying" | "during_process" | "long_term".',
     'recommendationCandidate.scope: "application" | "target_role".',
-    "Em strengths, liste todos os pontos fortes reais e relevantes do perfil frente a esta vaga específica (não apenas um), cada um ligado aos requirementIds que ele endereça e com evidenceRefs reais. Se não houver pontos fortes claros, retorne um array vazio em vez de inventar um.",
+    "Em strengths, liste todos os pontos fortes reais e relevantes do perfil frente a esta vaga específica (não apenas um), cada um ligado aos requirementIds que ele endereça e com evidenceRefs reais. Se não houver pontos fortes claros, retorne um array vazio em vez de inventar um. Cada item tem title (rótulo curto, 3-6 palavras, ex: \"Experiência sólida em metodologias ágeis\") e description (explicação completa em 1-2 frases) — nunca repita o title dentro do description nem use o texto completo como title.",
     "Em actionCandidates, gere no máximo 5 ações priorizadas e acionáveis para melhorar a candidatura, cada uma endereçando uma lacuna ou risco real identificado, com successCriteria objetivo e relatedRequirementIds preenchido quando aplicável.",
   ].join(" ");
 }

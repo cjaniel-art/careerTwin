@@ -18,6 +18,7 @@ const AI_GAP_TYPES_PT = ["competencia", "experiencia", "formacao_certificacao", 
 
 /** Mirrors core1's strengthSchema, adapted to reference the job requirements it addresses. */
 const strengthSchema = z.object({
+  title: z.string(),
   description: z.string(),
   relatedRequirementIds: z.array(z.string()),
   evidenceRefs: z.array(evidenceReferenceSchema),

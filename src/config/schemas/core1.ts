@@ -28,6 +28,7 @@ export const recommendationCandidateSchema = z.object({
 
 const gapSchema = z.object({
   type: z.enum(["competencia", "comunicacao", "evidencia", "posicionamento", "desconhecida"]),
+  title: z.string(),
   description: z.string(),
   evidenceRefs: z.array(evidenceReferenceSchema),
   missingInformation: z.array(z.string()),
@@ -35,6 +36,7 @@ const gapSchema = z.object({
 
 const strengthSchema = z.object({
   type: z.enum(["competencia", "comunicacao", "evidencia", "posicionamento", "desconhecida"]),
+  title: z.string(),
   description: z.string(),
   evidenceRefs: z.array(evidenceReferenceSchema),
 });

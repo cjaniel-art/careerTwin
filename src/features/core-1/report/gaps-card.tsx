@@ -5,6 +5,13 @@ import type { Core1Gap } from "@/config/schemas/core1";
 import { GAP_TYPE_LABELS } from "@/lib/result-labels";
 import { GoToTabButton } from "./report-tabs";
 
+/** Análises geradas antes do campo `title` existir não têm rótulo curto — deriva um a partir do início da descrição. */
+function shortTitle(item: { title?: string; description: string }): string {
+  if (item.title) return item.title;
+  const firstSentence = item.description.split(/(?<=[.;])\s/)[0] ?? item.description;
+  return firstSentence.length > 70 ? `${firstSentence.slice(0, 70).trimEnd()}…` : firstSentence;
+}
+
 /** §7 (Card-resumo B) — prévia das lacunas reais (calculation_snapshot.gaps), com tag de categoria. */
 export function GapsCard({ gaps }: { gaps: Core1Gap[] }) {
   const preview = gaps.slice(0, 4);
@@ -20,7 +27,7 @@ export function GapsCard({ gaps }: { gaps: Core1Gap[] }) {
           preview.map((gap, i) => (
             <div key={i} className="flex items-center gap-2.5">
               <AlertCircle className="size-4 shrink-0 text-primary" aria-hidden />
-              <span className="min-w-0 flex-1 truncate text-sm text-foreground">{gap.description}</span>
+              <span className="min-w-0 flex-1 truncate text-sm text-foreground">{shortTitle(gap)}</span>
               <Badge variant="outline" className="shrink-0">
                 {GAP_TYPE_LABELS[gap.type] ?? gap.type}
               </Badge>

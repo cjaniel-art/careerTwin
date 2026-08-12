@@ -5,6 +5,13 @@ import type { Core2Strength } from "@/config/schemas/core2";
 import { EvidenceList } from "@/features/core-1/report/evidence-list";
 import type { RequirementRow } from "./derive";
 
+/** Análises geradas antes do campo `title` existir não têm rótulo curto — deriva um a partir do início da descrição. */
+function shortTitle(strength: Core2Strength): string {
+  if (strength.title) return strength.title;
+  const firstSentence = strength.description.split(/(?<=[.;])\s/)[0] ?? strength.description;
+  return firstSentence.length > 70 ? `${firstSentence.slice(0, 70).trimEnd()}…` : firstSentence;
+}
+
 /** §7 (Forças) — pontos fortes reais (calculation_snapshot.strengths), ligados aos requisitos que endereçam. */
 export function StrengthsSection({ strengths, rows }: { strengths: Core2Strength[]; rows: RequirementRow[] }) {
   if (strengths.length === 0) {
@@ -38,12 +45,13 @@ export function StrengthsSection({ strengths, rows }: { strengths: Core2Strength
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-success/10 text-success">
                       <CheckCircle2 className="size-3.5" aria-hidden />
                     </span>
-                    <span className="min-w-0 flex-1 text-sm text-foreground">{strength.description}</span>
+                    <span className="min-w-0 flex-1 text-sm text-foreground">{shortTitle(strength)}</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
+                  <p className="text-sm text-foreground">{strength.description}</p>
                   {relatedDescriptions.length > 0 ? (
-                    <div>
+                    <div className="mt-2">
                       <p className="text-xs font-medium uppercase text-muted-foreground">Requisitos relacionados</p>
                       <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-foreground">
                         {relatedDescriptions.map((d, idx) => (

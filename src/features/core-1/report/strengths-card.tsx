@@ -5,6 +5,13 @@ import type { Core1Strength } from "@/config/schemas/core1";
 import { GAP_TYPE_LABELS } from "@/lib/result-labels";
 import { GoToTabButton } from "./report-tabs";
 
+/** Análises geradas antes do campo `title` existir não têm rótulo curto — deriva um a partir do início da descrição. */
+function shortTitle(item: { title?: string; description: string }): string {
+  if (item.title) return item.title;
+  const firstSentence = item.description.split(/(?<=[.;])\s/)[0] ?? item.description;
+  return firstSentence.length > 70 ? `${firstSentence.slice(0, 70).trimEnd()}…` : firstSentence;
+}
+
 /**
  * §6 (Card-resumo A) — prévia dos pontos fortes reais (calculation_snapshot.strengths,
  * mesmo enum de tipo que gap.type — daí reaproveitar GAP_TYPE_LABELS aqui). Análises
@@ -26,7 +33,7 @@ export function StrengthsCard({ strengths, mainStrength }: { strengths: Core1Str
           preview.map((strength, i) => (
             <div key={i} className="flex items-center gap-2.5">
               <CheckCircle2 className="size-4 shrink-0 text-success" aria-hidden />
-              <span className="min-w-0 flex-1 truncate text-sm text-foreground">{strength.description}</span>
+              <span className="min-w-0 flex-1 truncate text-sm text-foreground">{shortTitle(strength)}</span>
               <Badge variant="outline" className="shrink-0">
                 {GAP_TYPE_LABELS[strength.type] ?? strength.type}
               </Badge>

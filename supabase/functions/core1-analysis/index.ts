@@ -79,6 +79,7 @@ const SCHEMA_VERSION_CORE_1 = "core-1/1.2" as const;
 
 const gapSchema = z.object({
   type: z.enum(["competencia", "comunicacao", "evidencia", "posicionamento", "desconhecida"]),
+  title: z.string(),
   description: z.string(),
   evidenceRefs: z.array(evidenceReferenceSchema),
   missingInformation: z.array(z.string()),
@@ -86,6 +87,7 @@ const gapSchema = z.object({
 
 const strengthSchema = z.object({
   type: z.enum(["competencia", "comunicacao", "evidencia", "posicionamento", "desconhecida"]),
+  title: z.string(),
   description: z.string(),
   evidenceRefs: z.array(evidenceReferenceSchema),
 });
@@ -244,12 +246,14 @@ function buildDimensionsSystemPrompt(): string {
     "A mensagem do usuário contém o conteúdo real e completo do perfil confirmado (experiências, projetos, competências, ferramentas, evidências, formação, certificações, idiomas) e o contexto-alvo — baseie toda a análise exclusivamente nesse conteúdo, nunca em suposições.",
     "Classifique cada uma das sete dimensões do IPP em um nível de rubrica de 0 a 4, com justificativa concreta referenciando o conteúdo fornecido, e identifique tanto os pontos fortes (strengths) quanto as lacunas (gaps) do perfil frente ao contexto-alvo.",
     "Liste em strengths todos os pontos fortes reais e relevantes que encontrar (não apenas um) — cada um com sua evidência real. Se não houver pontos fortes claros, retorne um array vazio em vez de inventar um.",
+    "Em cada item de strengths e de gaps, preencha title (rótulo curto, 3-6 palavras, resume o ponto em si) e description (explicação completa em 1-2 frases, com os detalhes concretos) — nunca repita o title dentro do description nem use o texto completo como title.",
     "As recomendações são geradas em uma etapa separada, com base neste diagnóstico — não as gere aqui.",
     "Você NUNCA calcula o IPP final nem a confiança final — isso é feito pelo backend.",
     "Nunca invente experiências, resultados, métricas ou competências não presentes no perfil confirmado.",
     'Em evidenceRefs, use sourceId = o id real do item citado (experience/evidence/skill/tool) exatamente como veio na entrada, sourceType conforme a origem (resume/linkedin/user), e excerpt com um trecho real do conteúdo — nunca invente ids ou trechos.',
     "Se o perfil fornecido estiver vazio ou quase vazio em uma dimensão, reflita isso honestamente com rubricLevel baixo, em vez de gerar texto genérico como se houvesse conteúdo.",
     "Seja direto e conciso em cada campo de texto (1-2 frases por campo, nunca um parágrafo longo).",
+    "Em diagnosis.nextBestAction, escreva um texto corrido em tom de diagnóstico executivo — como um consultor sênior resumindo o próximo passo mais importante em 2-3 frases interligadas, priorizando a ação de maior impacto. Nunca use lista numerada, marcadores, ou frases fragmentadas separadas por ponto e vírgula.",
     "Em cada dimensão, cite no máximo 2 evidenceRefs — as mais representativas, não todas as aplicáveis.",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
   ].join(" ");
