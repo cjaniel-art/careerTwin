@@ -121,10 +121,10 @@ function useJobAnalysisPolling(analysisId: string | null, onDone: (analysisId: s
   }, [analysisId]);
 
   useEffect(() => {
-    if (startedRef.current) return;
+    if (!analysisId || startedRef.current) return;
     startedRef.current = true;
     void run();
-  }, [run]);
+  }, [analysisId, run]);
 
   const doneCount = STEPS.filter((s) => steps[s.id] === "done").length;
   const progressPercent = Math.round((doneCount / STEPS.length) * 100);
