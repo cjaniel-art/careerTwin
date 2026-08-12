@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -48,10 +47,6 @@ export function AppHeader() {
       </div>
       <div className="flex items-center gap-4">
         <ThemeToggle />
-        <button type="button" aria-label="Notificações" className="relative text-foreground hover:text-primary">
-          <Bell className="size-6" />
-          <span className="absolute right-0 top-0 size-2 rounded-full bg-destructive" />
-        </button>
       </div>
     </header>
   );
