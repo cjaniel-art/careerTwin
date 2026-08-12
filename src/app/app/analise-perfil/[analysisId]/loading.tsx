@@ -56,6 +56,9 @@ export default function Loading() {
           <Skeleton className="h-9 w-36 shrink-0 rounded-md" />
         </CardContent>
       </Card>
+
+      {/* Preenche o restante da viewport quando o conteúdo acima termina antes do fim da tela. */}
+      <Skeleton className="min-h-24 w-full flex-1 rounded-2xl" />
     </main>
   );
 }

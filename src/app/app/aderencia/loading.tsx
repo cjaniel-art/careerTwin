@@ -52,6 +52,8 @@ export default function Loading() {
           </TableBody>
         </Table>
       </div>
+
+      <Skeleton className="min-h-24 w-full flex-1 rounded-2xl" />
     </main>
   );
 }

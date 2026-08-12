@@ -31,10 +31,10 @@ export default function Loading() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row">
-        <Skeleton className="h-[488px] w-full shrink-0 rounded-2xl lg:w-[299px]" />
-        <Skeleton className="h-[488px] min-w-0 flex-1 rounded-2xl" />
-        <Skeleton className="h-[488px] min-w-0 flex-1 rounded-2xl" />
+      <div className="flex flex-1 flex-col gap-6 lg:flex-row">
+        <Skeleton className="h-[488px] w-full shrink-0 rounded-2xl lg:h-auto lg:w-[299px]" />
+        <Skeleton className="h-[488px] min-w-0 flex-1 rounded-2xl lg:h-auto" />
+        <Skeleton className="h-[488px] min-w-0 flex-1 rounded-2xl lg:h-auto" />
       </div>
     </main>
   );

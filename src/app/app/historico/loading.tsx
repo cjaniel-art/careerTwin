@@ -3,11 +3,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-3xl px-6 py-10">
+    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col px-6 py-10">
       <Skeleton className="h-8 w-64" />
       <Skeleton className="mt-2 h-4 w-full max-w-xl" />
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-6 flex flex-1 flex-col gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <Card key={i}>
             <CardContent className="flex items-center justify-between gap-4 py-4">
@@ -19,6 +19,7 @@ export default function Loading() {
             </CardContent>
           </Card>
         ))}
+        <Skeleton className="min-h-24 w-full flex-1 rounded-2xl" />
       </div>
     </main>
   );
