@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-2xl flex-col px-6 py-10">
+    <main className="mx-auto max-w-2xl px-6 py-10">
       <Skeleton className="h-8 w-40" />
 
       <Card className="mt-6">
@@ -27,8 +27,6 @@ export default function Loading() {
           <Skeleton className="h-9 w-40 rounded-md" />
         </CardContent>
       </Card>
-
-      <Skeleton className="mt-6 min-h-24 w-full flex-1 rounded-2xl" />
     </main>
   );
 }

@@ -3,9 +3,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-1 flex-col">
+    <div className="flex flex-1 flex-col">
       <div className="flex flex-1 flex-col gap-2">
-        <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
           <div className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 lg:px-6 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <Card key={i}>
@@ -32,13 +32,12 @@ export default function Loading() {
             </Card>
           </div>
 
-          <div className="flex flex-1 flex-col px-4 lg:px-6">
-            <Card className="flex flex-1 flex-col">
-              <CardContent className="flex flex-1 flex-col space-y-3 pt-6">
+          <div className="px-4 lg:px-6">
+            <Card>
+              <CardContent className="space-y-3 pt-6">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton key={i} className="h-10 w-full" />
                 ))}
-                <Skeleton className="min-h-16 w-full flex-1 rounded-xl" />
               </CardContent>
             </Card>
           </div>

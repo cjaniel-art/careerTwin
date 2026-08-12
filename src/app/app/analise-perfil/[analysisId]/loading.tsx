@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-6 py-10">
+    <main className="flex w-full flex-col gap-8 px-6 py-10 lg:px-10">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <Skeleton className="h-8 w-72" />
@@ -56,9 +56,6 @@ export default function Loading() {
           <Skeleton className="h-9 w-36 shrink-0 rounded-md" />
         </CardContent>
       </Card>
-
-      {/* Preenche o restante da viewport quando o conteúdo acima termina antes do fim da tela. */}
-      <Skeleton className="min-h-24 w-full flex-1 rounded-2xl" />
     </main>
   );
 }

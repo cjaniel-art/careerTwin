@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-6 py-10">
+    <main className="flex w-full flex-col gap-8 px-6 py-10 lg:px-10">
       <div>
         <Skeleton className="h-8 w-80" />
         <Skeleton className="mt-2 h-4 w-96" />
@@ -61,9 +61,6 @@ export default function Loading() {
           </Card>
         ))}
       </div>
-
-      {/* Preenche o restante da viewport quando o conteúdo acima termina antes do fim da tela — sem isso, o container fica com a altura certa mas parece "cortado" visualmente. */}
-      <Skeleton className="min-h-24 w-full flex-1 rounded-2xl" />
     </main>
   );
 }
