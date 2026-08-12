@@ -163,10 +163,12 @@ function buildSkillsExtractionSystemPrompt(documentType: string): string {
     "Você é o motor de extração profissional do CareerTwin, etapa de competências.",
     "Extraia apenas competências, ferramentas, formação, certificações e conflitos entre fontes presentes no documento fornecido, com evidência e confiança de extração.",
     "Ignore experiências e identidade profissional — isso é extraído em uma etapa separada.",
-    "Nunca invente competências, ferramentas ou certificações não presentes no material.",
+    "Nunca invente competências, ferramentas, formação ou certificações não presentes no material.",
     "Marque inferências como inferência/hipótese, nunca como fato confirmado.",
     `Tipo de documento: ${documentType}.`,
     "Seja direto e conciso em cada campo de texto (1-2 frases por item, nunca um parágrafo longo).",
+    "Em education, para cada item de formação use exatamente os campos: institution (nome da instituição), course (nome do curso/programa), degreeType (ex.: \"Bacharelado\", \"Tecnólogo\", \"Pós-Graduação\", \"Curso de Extensão\"), startDate e endDate no formato \"AAAA-MM\" (ou null se desconhecido), status (\"completed\" | \"in_progress\" | \"incomplete\"), confirmationStatus e extractionConfidence.",
+    "Em certifications, para cada certificação use exatamente os campos: name, issuer (ou null se não identificado — nunca invente um emissor), completionDate no formato \"AAAA-MM\" (ou null), confirmationStatus e extractionConfidence.",
     "Retorne exclusivamente um JSON válido no formato do schema fornecido, sem texto adicional.",
   ].join(" ");
 }
@@ -449,13 +451,15 @@ async function ensureProfileDraft(supabase: SupabaseClient, userId: string): Pro
 }
 
 /**
- * Copies each successfully extracted document's experiences/results into
- * `experiences`/`evidences` on the new draft version. Only the most recent
- * ready extraction per document type is used. `profile_skills`/`profile_tools`
+ * Copies each successfully extracted document's experiences/results/
+ * education/certifications into `experiences`/`evidences`/`education_records`/
+ * `certifications` on the new draft version. Only the most recent ready
+ * extraction per document type is used. `profile_skills`/`profile_tools`
  * are NOT populated here: they reference the shared `skills`/`tools` catalog
  * tables, which only allow curator/service-role writes — there is no
  * client-safe way to create a new skill/tool entry on demand in this
- * environment.
+ * environment. `education_records`/`certifications` have no such
+ * restriction (owner-scoped RLS, same as `experiences`), so they belong here.
  */
 async function consolidateExtractedExperiences(
   supabase: SupabaseClient,
@@ -480,10 +484,10 @@ async function consolidateExtractedExperiences(
   }
 
   for (const doc of latestByType.values()) {
-    const payload = doc.validated_payload as Pick<ProfileExtraction, "experiences"> | null;
-    if (!payload?.experiences?.length) continue;
+    const payload = doc.validated_payload as Pick<ProfileExtraction, "experiences" | "education" | "certifications"> | null;
+    if (!payload) continue;
 
-    for (const exp of payload.experiences) {
+    for (const exp of payload.experiences ?? []) {
       const { data: insertedExperience } = await supabase
         .from("experiences")
         .insert({
@@ -509,6 +513,33 @@ async function consolidateExtractedExperiences(
         confirmation_status: "extracted",
       }));
       if (results.length > 0) await supabase.from("evidences").insert(results);
+    }
+
+    if (payload.education?.length) {
+      await supabase.from("education_records").insert(
+        payload.education.map((edu) => ({
+          profile_version_id: profileVersionId,
+          institution: edu.institution,
+          course: edu.course,
+          degree_type: edu.degreeType,
+          start_date: toSqlDate(edu.startDate),
+          end_date: toSqlDate(edu.endDate),
+          status: edu.status,
+          confirmation_status: "extracted",
+        })),
+      );
+    }
+
+    if (payload.certifications?.length) {
+      await supabase.from("certifications").insert(
+        payload.certifications.map((cert) => ({
+          profile_version_id: profileVersionId,
+          name: cert.name,
+          issuer: cert.issuer,
+          issued_at: toSqlDate(cert.completionDate),
+          confirmation_status: "extracted",
+        })),
+      );
     }
   }
 }

@@ -7,11 +7,30 @@ import { evidenceReferenceSchema } from "./evidence";
  * output is rejected and retried per the 3-stage repair strategy (§12), never
  * persisted as-is (Guardrails §5/§13).
  */
-export const SCHEMA_VERSION_PROFILE_EXTRACTION = "profile-extraction/1.1" as const;
+export const SCHEMA_VERSION_PROFILE_EXTRACTION = "profile-extraction/1.2" as const;
 
 const confirmationStatusSchema = z.enum([
   "extracted", "confirmed", "corrected", "added", "rejected", "in_conflict", "unconfirmed",
 ]);
+
+const educationEntrySchema = z.object({
+  institution: z.string(),
+  course: z.string(),
+  degreeType: z.string(),
+  startDate: z.string().nullable(),
+  endDate: z.string().nullable(),
+  status: z.enum(["completed", "in_progress", "incomplete"]),
+  confirmationStatus: confirmationStatusSchema,
+  extractionConfidence: z.number().min(0).max(1),
+});
+
+const certificationEntrySchema = z.object({
+  name: z.string(),
+  issuer: z.string().nullable(),
+  completionDate: z.string().nullable(),
+  confirmationStatus: confirmationStatusSchema,
+  extractionConfidence: z.number().min(0).max(1),
+});
 
 export const profileExtractionSchema = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION_PROFILE_EXTRACTION),
@@ -67,8 +86,8 @@ export const profileExtractionSchema = z.object({
       confirmationStatus: confirmationStatusSchema,
     }),
   ),
-  education: z.array(z.unknown()),
-  certifications: z.array(z.unknown()),
+  education: z.array(educationEntrySchema),
+  certifications: z.array(certificationEntrySchema),
   conflicts: z.array(
     z.object({
       conflictKey: z.string(),
