@@ -132,6 +132,7 @@ export function ActionPlanBody({
                 <p className="mt-1 text-sm text-muted-foreground">{r.problem}</p>
                 <form action={convertRecommendationToActionAction} className="mt-2">
                   <input type="hidden" name="recommendationId" value={r.id} />
+                  <input type="hidden" name="analysisId" value={analysisId} />
                   <input type="hidden" name="redirectTo" value={currentPath} />
                   <SubmitButton size="sm" disabled={atLimit}>
                     Converter em ação
@@ -142,7 +143,7 @@ export function ActionPlanBody({
           </ul>
           {atLimit ? (
             <p className="mt-2 text-xs text-destructive">
-              Você já tem {ACTIONS_CONFIG.maximum} ações ativas. Conclua uma para converter outra recomendação.
+              Esta análise já tem {ACTIONS_CONFIG.maximum} ações ativas. Conclua uma para converter outra recomendação.
             </p>
           ) : null}
         </div>

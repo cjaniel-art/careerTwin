@@ -41,7 +41,7 @@ export default async function ActionsPage({
     supabase
       .from("actions")
       .select(
-        "id, status, user_notes, created_at, recommendations(title, problem, suggested_action, category), core2_action_candidates(title, reasoning, suggested_action)",
+        "id, status, user_notes, created_at, recommendations(title, problem, suggested_action, category, analysis_id), core2_action_candidates(title, reasoning, suggested_action, analysis_id)",
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
@@ -59,34 +59,48 @@ export default async function ActionsPage({
 
   const activeActions = (actions ?? []).filter((a) => a.status !== "completed");
   const completedActions = (actions ?? []).filter((a) => a.status === "completed");
-  const atLimit = activeActions.length >= ACTIONS_CONFIG.maximum;
 
   // Cada `actions` row vem de uma origem só (recommendation_id XOR
   // core2_action_candidate_id — ver 20260101000030_core2_action_candidates.sql),
   // então só um dos dois embeds abaixo vem preenchido por linha.
-  function titleAndAction(a: { recommendations: unknown; core2_action_candidates: unknown }) {
+  function origin(a: { recommendations: unknown; core2_action_candidates: unknown }) {
     const rec = Array.isArray(a.recommendations) ? a.recommendations[0] : a.recommendations;
     const candidate = Array.isArray(a.core2_action_candidates) ? a.core2_action_candidates[0] : a.core2_action_candidates;
-    const source = (rec ?? candidate) as { title?: string; suggested_action?: string } | null;
+    return (rec ?? candidate) as { title?: string; suggested_action?: string; analysis_id?: string } | null;
+  }
+  function titleAndAction(a: { recommendations: unknown; core2_action_candidates: unknown }) {
+    const source = origin(a);
     return { title: source?.title ?? "", suggestedAction: source?.suggested_action ?? "" };
   }
 
+  // O limite de 5 ações é por análise (cada análise tem sua própria lista
+  // independente, não uma conta-toda) — conta as ações ativas agrupadas
+  // pela analysis_id de origem, para desabilitar só os botões "Converter em
+  // ação" das análises que já bateram o limite, não todos de uma vez.
+  const activeCountByAnalysis = new Map<string, number>();
+  for (const a of activeActions) {
+    const analysisId = origin(a)?.analysis_id;
+    if (!analysisId) continue;
+    activeCountByAnalysis.set(analysisId, (activeCountByAnalysis.get(analysisId) ?? 0) + 1);
+  }
+
   const conversionCandidates = [
-    ...(candidates ?? []).map((r) => ({ origin: "core1" as const, id: r.id, title: r.title, description: r.problem })),
-    ...(core2Candidates ?? []).map((c) => ({ origin: "core2" as const, id: c.id, title: c.title, description: c.reasoning })),
+    ...(candidates ?? []).map((r) => ({ origin: "core1" as const, id: r.id, title: r.title, description: r.problem, analysisId: r.analysis_id })),
+    ...(core2Candidates ?? []).map((c) => ({ origin: "core2" as const, id: c.id, title: c.title, description: c.reasoning, analysisId: c.analysis_id })),
   ];
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
       <h1 className="text-2xl font-semibold text-foreground">Plano de ações</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Até {ACTIONS_CONFIG.maximum} ações simultâneas. Selecionar, iniciar ou concluir uma ação não altera o
-        score já calculado — para atualizar o resultado, faça uma nova análise.
+        Até {ACTIONS_CONFIG.maximum} ações simultâneas por análise — cada análise tem sua própria lista
+        independente. Selecionar, iniciar ou concluir uma ação não altera o score já calculado — para
+        atualizar o resultado, faça uma nova análise.
       </p>
 
       {erro === "limite-acoes" ? (
         <p className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-          Você já tem {ACTIONS_CONFIG.maximum} ações ativas. Conclua ou aguarde antes de adicionar outra.
+          Esta análise já tem {ACTIONS_CONFIG.maximum} ações ativas. Conclua ou aguarde antes de adicionar outra.
         </p>
       ) : null}
 
@@ -131,22 +145,29 @@ export default async function ActionsPage({
             <CardTitle className="text-base">Recomendações disponíveis para conversão</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {conversionCandidates.map((c) => (
-              <div key={`${c.origin}-${c.id}`} className="rounded-md border border-border p-3">
-                <p className="text-sm font-medium text-foreground">{c.title}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{c.description}</p>
-                <form
-                  action={c.origin === "core1" ? convertRecommendationToActionAction : convertCore2ActionCandidateToActionAction}
-                  className="mt-2"
-                >
-                  <input type="hidden" name={c.origin === "core1" ? "recommendationId" : "actionCandidateId"} value={c.id} />
-                  <input type="hidden" name="redirectTo" value="/app/acoes" />
-                  <SubmitButton size="sm" disabled={atLimit}>
-                    Converter em ação
-                  </SubmitButton>
-                </form>
-              </div>
-            ))}
+            {conversionCandidates.map((c) => {
+              const candidateAtLimit = (activeCountByAnalysis.get(c.analysisId) ?? 0) >= ACTIONS_CONFIG.maximum;
+              return (
+                <div key={`${c.origin}-${c.id}`} className="rounded-md border border-border p-3">
+                  <p className="text-sm font-medium text-foreground">{c.title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{c.description}</p>
+                  <form
+                    action={c.origin === "core1" ? convertRecommendationToActionAction : convertCore2ActionCandidateToActionAction}
+                    className="mt-2"
+                  >
+                    <input type="hidden" name={c.origin === "core1" ? "recommendationId" : "actionCandidateId"} value={c.id} />
+                    <input type="hidden" name="analysisId" value={c.analysisId} />
+                    <input type="hidden" name="redirectTo" value="/app/acoes" />
+                    <SubmitButton size="sm" disabled={candidateAtLimit}>
+                      Converter em ação
+                    </SubmitButton>
+                  </form>
+                  {candidateAtLimit ? (
+                    <p className="mt-1 text-xs text-destructive">Esta análise já tem {ACTIONS_CONFIG.maximum} ações ativas.</p>
+                  ) : null}
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       ) : null}

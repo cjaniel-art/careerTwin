@@ -141,6 +141,7 @@ export function ActionPlanSection({
                   <p className="mt-1 text-sm text-muted-foreground">{c.reasoning}</p>
                   <form action={convertCore2ActionCandidateToActionAction} className="mt-2">
                     <input type="hidden" name="actionCandidateId" value={c.id} />
+                    <input type="hidden" name="analysisId" value={analysisId} />
                     <input type="hidden" name="redirectTo" value={currentPath} />
                     <SubmitButton size="sm" disabled={atLimit}>
                       Converter em ação
@@ -151,7 +152,7 @@ export function ActionPlanSection({
             </ul>
             {atLimit ? (
               <p className="mt-2 text-xs text-destructive">
-                Você já tem {ACTIONS_CONFIG.maximum} ações ativas. Conclua uma para converter outra sugestão.
+                Esta análise já tem {ACTIONS_CONFIG.maximum} ações ativas. Conclua uma para converter outra sugestão.
               </p>
             ) : null}
           </div>

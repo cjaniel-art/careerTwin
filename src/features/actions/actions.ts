@@ -22,20 +22,28 @@ const ACTIVE_STATUSES = ["pending", "selected", "in_progress"] as const;
  * Converts a recommendation into a tracked action (RF-C1-051..056 / PRD 03
  * "Limite do plano: até 5 ações"). Selecting/starting/completing an action
  * never recalculates IPP/IAO — those stay frozen on the analysis that
- * produced the recommendation.
+ * produced the recommendation. The 5-action cap is per analysis (each
+ * analysis has its own independent action list), not account-wide — so the
+ * count below is scoped to only the recommendations belonging to `analysisId`.
  */
 export async function convertRecommendationToActionAction(formData: FormData): Promise<void> {
   const recommendationId = formData.get("recommendationId");
+  const analysisId = formData.get("analysisId");
   const redirectTo = formData.get("redirectTo");
-  if (typeof recommendationId !== "string") return;
+  if (typeof recommendationId !== "string" || typeof analysisId !== "string") return;
 
   const { supabase, user } = await requireUser();
 
-  const { count } = await supabase
-    .from("actions")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .in("status", ACTIVE_STATUSES);
+  const { data: analysisRecommendations } = await supabase.from("recommendations").select("id").eq("analysis_id", analysisId);
+  const analysisRecommendationIds = (analysisRecommendations ?? []).map((r) => r.id);
+  const { count } = analysisRecommendationIds.length
+    ? await supabase
+        .from("actions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .in("status", ACTIVE_STATUSES)
+        .in("recommendation_id", analysisRecommendationIds)
+    : { count: 0 };
 
   if ((count ?? 0) >= ACTIONS_CONFIG.maximum) {
     if (typeof redirectTo === "string") redirect(`${redirectTo}?erro=limite-acoes`);
@@ -63,23 +71,29 @@ export async function convertRecommendationToActionAction(formData: FormData): P
 /**
  * Core 2 equivalent of convertRecommendationToActionAction, above — converts
  * a core2_action_candidates row instead of a recommendations row. Shares the
- * same `actions` table, the same global ACTIONS_CONFIG.maximum cap (Core 1
- * and Core 2 actions count against the same 5-action limit — see the
- * docstring on ACTIONS_CONFIG), and the same status state machine, so
- * advanceActionStatusAction below works unmodified for either origin.
+ * same `actions` table and the same status state machine, so
+ * advanceActionStatusAction below works unmodified for either origin. The
+ * 5-action cap is per analysis (see ACTIONS_CONFIG's docstring), so the
+ * count is scoped to only the action candidates belonging to `analysisId`.
  */
 export async function convertCore2ActionCandidateToActionAction(formData: FormData): Promise<void> {
   const actionCandidateId = formData.get("actionCandidateId");
+  const analysisId = formData.get("analysisId");
   const redirectTo = formData.get("redirectTo");
-  if (typeof actionCandidateId !== "string") return;
+  if (typeof actionCandidateId !== "string" || typeof analysisId !== "string") return;
 
   const { supabase, user } = await requireUser();
 
-  const { count } = await supabase
-    .from("actions")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .in("status", ACTIVE_STATUSES);
+  const { data: analysisCandidates } = await supabase.from("core2_action_candidates").select("id").eq("analysis_id", analysisId);
+  const analysisCandidateIds = (analysisCandidates ?? []).map((c) => c.id);
+  const { count } = analysisCandidateIds.length
+    ? await supabase
+        .from("actions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .in("status", ACTIVE_STATUSES)
+        .in("core2_action_candidate_id", analysisCandidateIds)
+    : { count: 0 };
 
   if ((count ?? 0) >= ACTIONS_CONFIG.maximum) {
     if (typeof redirectTo === "string") redirect(`${redirectTo}?erro=limite-acoes`);

@@ -1,7 +1,10 @@
 /**
- * Plano de ações — shared between Core 1 and Core 2 (both PRDs state "até 5
- * ações"; the `actions` table has no core-specific column, so the limit is
- * a single account-wide cap on concurrently active actions, not per-core).
+ * Plano de ações — up to 5 concurrently active actions PER ANALYSIS (Core 1
+ * or Core 2), not account-wide: each analysis has its own independent
+ * action list and its own cap. convertRecommendationToActionAction /
+ * convertCore2ActionCandidateToActionAction count only the actions whose
+ * origin (recommendation/action candidate) belongs to that specific
+ * analysis before allowing another conversion.
  */
 export const ACTIONS_CONFIG = {
   maximum: 5,

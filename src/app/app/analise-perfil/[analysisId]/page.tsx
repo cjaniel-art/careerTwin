@@ -73,21 +73,17 @@ export default async function ProfileAnalysisResultPage({
       getAnalysisHistory(supabase, user.id, "profile_analysis"),
     ]);
 
+  // O limite de ações é por análise (cada análise tem sua própria lista
+  // independente), então basta contar as próprias linhas já escopadas a
+  // recommendationIds abaixo — sem query global à parte.
   const recommendationIds = (recommendations ?? []).map((r) => r.id);
-  const [{ data: actionRows }, { count: activeActionsCount }] = await Promise.all([
-    recommendationIds.length
-      ? supabase
-          .from("actions")
-          .select("id, status, recommendation_id")
-          .eq("user_id", user.id)
-          .in("recommendation_id", recommendationIds)
-      : Promise.resolve({ data: [] as { id: string; status: string; recommendation_id: string }[] }),
-    supabase
-      .from("actions")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .in("status", ["pending", "selected", "in_progress"]),
-  ]);
+  const { data: actionRows } = recommendationIds.length
+    ? await supabase
+        .from("actions")
+        .select("id, status, recommendation_id")
+        .eq("user_id", user.id)
+        .in("recommendation_id", recommendationIds)
+    : { data: [] as { id: string; status: string; recommendation_id: string }[] };
 
   const recommendationById = new Map((recommendations ?? []).map((r) => [r.id, r]));
   const actionPreviewRows = (actionRows ?? []).map((a) => ({
@@ -99,7 +95,8 @@ export default async function ProfileAnalysisResultPage({
   const candidateRecommendations = (recommendations ?? [])
     .filter((r) => r.status === "generated" || r.status === "highlighted")
     .map((r) => ({ id: r.id, title: r.title, problem: r.problem, category: r.category }));
-  const atActionsLimit = (activeActionsCount ?? 0) >= ACTIONS_CONFIG.maximum;
+  const ACTIVE_STATUSES = ["pending", "selected", "in_progress"];
+  const atActionsLimit = (actionRows ?? []).filter((a) => ACTIVE_STATUSES.includes(a.status)).length >= ACTIONS_CONFIG.maximum;
 
   const snapshot = (result?.calculation_snapshot ?? {}) as { gaps?: Core1Gap[]; strengths?: Core1Strength[] };
   const gaps = snapshot.gaps ?? [];

@@ -90,21 +90,17 @@ export default async function JobAnalysisResultPage({
     .eq("analysis_id", analysisId)
     .order("created_at", { ascending: true });
 
+  // O limite de ações é por análise (cada análise tem sua própria lista
+  // independente), então basta contar as próprias linhas já escopadas a
+  // actionCandidateIds abaixo — sem query global à parte.
   const actionCandidateIds = (actionCandidateRows ?? []).map((c) => c.id);
-  const [{ data: actionRows }, { count: activeActionsCount }] = await Promise.all([
-    actionCandidateIds.length
-      ? supabase
-          .from("actions")
-          .select("id, status, core2_action_candidate_id")
-          .eq("user_id", user.id)
-          .in("core2_action_candidate_id", actionCandidateIds)
-      : Promise.resolve({ data: [] as { id: string; status: string; core2_action_candidate_id: string }[] }),
-    supabase
-      .from("actions")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .in("status", ["pending", "selected", "in_progress"]),
-  ]);
+  const { data: actionRows } = actionCandidateIds.length
+    ? await supabase
+        .from("actions")
+        .select("id, status, core2_action_candidate_id")
+        .eq("user_id", user.id)
+        .in("core2_action_candidate_id", actionCandidateIds)
+    : { data: [] as { id: string; status: string; core2_action_candidate_id: string }[] };
 
   const actionCandidateById = new Map((actionCandidateRows ?? []).map((c) => [c.id, c]));
   const actionPreviewRows = (actionRows ?? []).map((a) => ({
@@ -116,7 +112,8 @@ export default async function JobAnalysisResultPage({
   const availableActionCandidates = (actionCandidateRows ?? [])
     .filter((c) => c.status === "generated")
     .map((c) => ({ id: c.id, title: c.title, reasoning: c.reasoning, horizon: c.horizon, impact: c.impact, effort: c.effort }));
-  const atActionsLimit = (activeActionsCount ?? 0) >= ACTIONS_CONFIG.maximum;
+  const ACTIVE_STATUSES = ["pending", "selected", "in_progress"];
+  const atActionsLimit = (actionRows ?? []).filter((a) => ACTIVE_STATUSES.includes(a.status)).length >= ACTIONS_CONFIG.maximum;
 
   const assessmentByRequirement = new Map((assessments ?? []).map((a) => [a.requirement_id, a]));
   const rows: RequirementRow[] = (requirements ?? []).map((r) => {
