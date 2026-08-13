@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Home } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -11,7 +12,9 @@ const TITLES: Record<string, string> = {
   "/app/dashboard": "Dashboard",
   "/app/analise-perfil": "Análise de perfil",
   "/app/aderencia": "Aderência à Vaga",
-  "/app/assinatura": "Assinatura",
+  "/app/acoes": "Plano de ação",
+  "/app/historico": "Histórico",
+  "/app/assinatura": "Créditos",
   "/app/conta": "Minha conta",
 };
 
@@ -34,8 +37,10 @@ export function AppHeader() {
       <div className="flex flex-1 items-center gap-2 text-sm">
         <Link
           href="/app/dashboard"
-          className={cn("font-medium", isDashboard ? "text-primary" : "text-foreground hover:text-primary")}
+          aria-label="Ir para o Dashboard"
+          className={cn("flex items-center gap-1.5 font-medium", isDashboard ? "text-primary" : "text-foreground hover:text-primary")}
         >
+          <Home className="size-4" aria-hidden />
           Dashboard
         </Link>
         {!isDashboard ? (

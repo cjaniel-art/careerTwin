@@ -22,7 +22,7 @@ const NAV_ITEMS = [
   { href: "/app/dashboard", label: "Dashboard", icon: Home },
   { href: "/app/analise-perfil", label: "Análise de perfil", icon: FileText },
   { href: "/app/aderencia", label: "Aderência à Vaga", icon: Briefcase },
-  { href: "/app/assinatura", label: "Assinatura", icon: DollarSign },
+  { href: "/app/assinatura", label: "Créditos", icon: DollarSign },
   { href: "/app/conta", label: "Minha conta", icon: Settings },
 ];
 

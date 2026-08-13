@@ -1,70 +1,68 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartAreaAnalyses, type DailyAnalysesPoint } from "@/features/dashboard/chart-area-analyses";
-import { AnalysesDataTable, type AnalysisRow } from "@/features/dashboard/analyses-data-table";
-import { IAO_BAND_LABELS, IPP_BAND_LABELS } from "@/lib/result-labels";
+import type { Core1Gap, Core1Strength } from "@/config/schemas/core1";
+import { CORE_1_CONFIG, IPP_DIMENSIONS, IPP_DIMENSION_WEIGHT_KEY } from "@/config/engine/core1";
+import { CORE_2_CONFIG } from "@/config/engine/core2";
+import { ACTIONS_CONFIG } from "@/config/engine/actions";
+import { DIMENSION_LABELS, IAO_BAND_LABELS, IPP_BAND_LABELS, RUBRIC_LEVEL_LABELS } from "@/lib/result-labels";
+import { ScoreCard } from "@/features/dashboard/score-card";
+import { ContextAndTargetCard } from "@/features/dashboard/context-and-target-card";
+import { OpportunitiesCard } from "@/features/dashboard/opportunities-card";
+import { IppEvolutionCard } from "@/features/dashboard/ipp-evolution-card";
+import { PrioritizedActionsCard } from "@/features/dashboard/prioritized-actions-card";
+import { StrengthsGapsCard } from "@/features/dashboard/strengths-gaps-card";
+import { DashboardPageHeader } from "@/features/dashboard/dashboard-page-header";
+import type { IppDimensionRow, Opportunity, PrioritizedAction, SeverityLevel } from "@/lib/mock/dashboard";
 
 export const metadata = { title: "Dashboard — CareerTwin" };
 export const dynamic = "force-dynamic";
 
-interface RawAnalysis {
-  id: string;
-  analysis_type: string;
-  status: string;
-  created_at: string;
-  profile_analysis_results: { ipp_display_score: number; ipp_band: string } | { ipp_display_score: number; ipp_band: string }[] | null;
-  fit_analysis_results: { iao_display_score: number; iao_band: string } | { iao_display_score: number; iao_band: string }[] | null;
-  opportunity_versions: { title: string; company: string | null } | { title: string; company: string | null }[] | null;
+interface ProfileCalculationSnapshot {
+  strengths?: Core1Strength[];
+  gaps?: Core1Gap[];
 }
 
-function first<T>(value: T | T[] | null): T | null {
-  return Array.isArray(value) ? (value[0] ?? null) : value;
+/** Análises geradas antes do campo `title` existir não têm rótulo curto — deriva um a partir do início da descrição. */
+function shortTitle(item: { title?: string; description: string }): string {
+  if (item.title) return item.title;
+  const firstSentence = item.description.split(/(?<=[.;])\s/)[0] ?? item.description;
+  return firstSentence.length > 70 ? `${firstSentence.slice(0, 70).trimEnd()}…` : firstSentence;
 }
 
-function buildDailySeries(analyses: RawAnalysis[], days: number): DailyAnalysesPoint[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const buckets = new Map<string, { perfil: number; aderencia: number }>();
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    buckets.set(d.toISOString().slice(0, 10), { perfil: 0, aderencia: 0 });
-  }
-  for (const a of analyses) {
-    const key = a.created_at.slice(0, 10);
-    const bucket = buckets.get(key);
-    if (!bucket) continue;
-    if (a.analysis_type === "profile_analysis") bucket.perfil += 1;
-    else bucket.aderencia += 1;
-  }
-  return Array.from(buckets.entries()).map(([date, v]) => ({ date, ...v }));
+function severityFromUrgency(urgency: number): SeverityLevel {
+  if (urgency >= 4) return "Alta";
+  if (urgency >= 3) return "Média";
+  return "Baixa";
 }
 
-function toRows(analyses: RawAnalysis[]): AnalysisRow[] {
-  return analyses.map((a) => {
-    const isProfile = a.analysis_type === "profile_analysis";
-    const profileResult = first(a.profile_analysis_results);
-    const fitResult = first(a.fit_analysis_results);
-    const opportunity = first(a.opportunity_versions);
-
-    return {
-      id: a.id,
-      type: isProfile ? "profile_analysis" : "job_analysis",
-      title: isProfile ? "Análise de Perfil" : opportunity?.title ? `Vaga: ${opportunity.title}` : "Diagnóstico de Aderência",
-      createdAt: a.created_at,
-      status: a.status,
-      score: a.status === "completed" ? (isProfile ? profileResult?.ipp_display_score : fitResult?.iao_display_score) ?? null : null,
-      band: a.status === "completed" ? (isProfile ? profileResult?.ipp_band : fitResult?.iao_band) ?? null : null,
-      href: a.status === "completed" ? (isProfile ? `/app/analise-perfil/${a.id}` : `/app/aderencia/${a.id}`) : null,
-    };
-  });
+/** good_observable_fit conta como "Alta" (boa aderência) na leitura resumida de 3 níveis do dashboard. */
+function adherenceFromIaoBand(band: string | null): SeverityLevel {
+  if (band === "high_observable_fit" || band === "good_observable_fit") return "Alta";
+  if (band === "partial_fit") return "Média";
+  return "Baixa";
 }
 
-/** Reads real aggregated state (credits, last Core 1/Core 2 analyses, full history for chart/table) without recalculating anything client-side (Sitemap §4). */
+function iaoBandLabelForAverage(average: number): string {
+  const { bands } = CORE_2_CONFIG.iao;
+  if (average >= bands.high[0]) return IAO_BAND_LABELS.high_observable_fit ?? "";
+  if (average >= bands.good[0]) return IAO_BAND_LABELS.good_observable_fit ?? "";
+  if (average >= bands.partial[0]) return IAO_BAND_LABELS.partial_fit ?? "";
+  return IAO_BAND_LABELS.low_observable_fit ?? "";
+}
+
+function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+}
+
+/**
+ * Dashboard com dados reais do Supabase (não mock) — os 7 pilares do IPP
+ * (nomes/pesos de src/config/engine/core1.ts, scores de profile_dimension_results),
+ * IPP/IAO da última análise concluída, oportunidades recentes, evolução do IPP,
+ * plano de ação priorizado (recommendations, com Sheet de ações reais desta
+ * análise) e forças/lacunas (calculation_snapshot). A auth já é garantida pelo
+ * layout de /app (src/app/app/layout.tsx); repetimos aqui só para ter o
+ * user.id nas queries.
+ */
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -72,125 +70,197 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/app/dashboard");
 
-  const analysesSelect = `id, analysis_type, status, created_at,
-     profile_analysis_results(ipp_display_score, ipp_band),
-     fit_analysis_results(iao_display_score, iao_band),
-     opportunity_versions(title, company)`;
+  const [{ data: profileAnalyses }, { data: jobAnalyses }] = await Promise.all([
+    supabase
+      .from("analyses")
+      .select("id, created_at, target_context_version_id, profile_analysis_results(ipp_display_score, ipp_band, calculation_snapshot)")
+      .eq("user_id", user.id)
+      .eq("analysis_type", "profile_analysis")
+      .eq("status", "completed")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("analyses")
+      .select("id, created_at, fit_analysis_results(iao_display_score, iao_band, calculation_snapshot), opportunity_versions(title)")
+      .eq("user_id", user.id)
+      .eq("analysis_type", "job_analysis")
+      .eq("status", "completed")
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
 
-  const [{ data: creditAccount }, { data: lastProfileAnalysis }, { data: lastJobAnalysis }, { count: completedCount }, { data: allAnalyses }] =
-    await Promise.all([
-      supabase.from("credit_accounts").select("available_credits, reserved_credits").eq("user_id", user.id).maybeSingle(),
-      supabase
-        .from("analyses")
-        .select("id, status, profile_analysis_results(ipp_display_score, ipp_band)")
-        .eq("user_id", user.id)
-        .eq("analysis_type", "profile_analysis")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("analyses")
-        .select("id, status, fit_analysis_results(iao_display_score, iao_band)")
-        .eq("user_id", user.id)
-        .eq("analysis_type", "job_analysis")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase.from("analyses").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "completed"),
-      supabase.from("analyses").select(analysesSelect).eq("user_id", user.id).order("created_at", { ascending: false }).limit(500),
-    ]);
+  function first<T>(value: T | T[] | null | undefined): T | null {
+    return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
+  }
 
-  const profileResult = first(lastProfileAnalysis?.profile_analysis_results ?? null);
-  const jobResult = first(lastJobAnalysis?.fit_analysis_results ?? null);
-  const rawAnalyses = (allAnalyses ?? []) as RawAnalysis[];
-  const chartData = buildDailySeries(rawAnalyses, 90);
-  const tableRows = toRows(rawAnalyses);
+  const latestProfileAnalysis = profileAnalyses?.[0] ?? null;
+  const previousProfileAnalysis = profileAnalyses?.[1] ?? null;
+  const latestProfileResult = first(latestProfileAnalysis?.profile_analysis_results);
+  const previousProfileResult = first(previousProfileAnalysis?.profile_analysis_results);
+
+  const [{ data: dimensionRows }, { data: targetContext }, { data: recommendations }] = await Promise.all([
+    latestProfileAnalysis
+      ? supabase
+          .from("profile_dimension_results")
+          .select("dimension, rubric_level, dimension_score")
+          .eq("analysis_id", latestProfileAnalysis.id)
+      : Promise.resolve({ data: [] as { dimension: string; rubric_level: number; dimension_score: number }[] }),
+    latestProfileAnalysis?.target_context_version_id
+      ? supabase.from("target_context_versions").select("target_area, target_role").eq("id", latestProfileAnalysis.target_context_version_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    latestProfileAnalysis
+      ? supabase
+          .from("recommendations")
+          .select("id, title, problem, category, suggested_action, urgency, priority_order, status")
+          .eq("analysis_id", latestProfileAnalysis.id)
+          .order("priority_order", { ascending: true })
+      : Promise.resolve({
+          data: [] as {
+            id: string;
+            title: string;
+            problem: string;
+            category: string;
+            suggested_action: string;
+            urgency: number;
+            priority_order: number;
+            status: string;
+          }[],
+        }),
+  ]);
+
+  // Mesmo padrão de /app/analise-perfil/[analysisId]: o plano de ação do Sheet
+  // usa as ações REAIS e rastreáveis desta análise (tabela `actions`), não a
+  // lista de recomendações crua — cada análise tem sua própria lista.
+  const recommendationIds = (recommendations ?? []).map((r) => r.id);
+  const { data: actionRowsRaw } = recommendationIds.length
+    ? await supabase.from("actions").select("id, status, recommendation_id").eq("user_id", user.id).in("recommendation_id", recommendationIds)
+    : { data: [] as { id: string; status: string; recommendation_id: string }[] };
+
+  const recommendationById = new Map((recommendations ?? []).map((r) => [r.id, r]));
+  const actionRows = (actionRowsRaw ?? []).map((a) => ({
+    id: a.id,
+    status: a.status,
+    title: recommendationById.get(a.recommendation_id)?.title ?? "",
+    suggestedAction: recommendationById.get(a.recommendation_id)?.suggested_action ?? "",
+  }));
+  const candidateRecommendations = (recommendations ?? [])
+    .filter((r) => r.status === "generated" || r.status === "highlighted")
+    .map((r) => ({ id: r.id, title: r.title, problem: r.problem, category: r.category }));
+  const ACTIVE_ACTION_STATUSES = ["pending", "selected", "in_progress"];
+  const atActionsLimit = (actionRowsRaw ?? []).filter((a) => ACTIVE_ACTION_STATUSES.includes(a.status)).length >= ACTIONS_CONFIG.maximum;
+
+  const dimensionByKey = new Map((dimensionRows ?? []).map((row) => [row.dimension, row]));
+  const ippDimensions: IppDimensionRow[] = latestProfileAnalysis
+    ? IPP_DIMENSIONS.map((key) => {
+        const row = dimensionByKey.get(key);
+        const rubricLevel = row?.rubric_level ?? 0;
+        return {
+          key,
+          name: DIMENSION_LABELS[key] ?? key,
+          weight: CORE_1_CONFIG.ipp.weights[IPP_DIMENSION_WEIGHT_KEY[key]],
+          score: Math.round(row?.dimension_score ?? 0),
+          rubricLevel,
+          levelLabel: RUBRIC_LEVEL_LABELS[rubricLevel] ?? "—",
+        };
+      })
+    : [];
+
+  const ippSnapshot = (latestProfileResult?.calculation_snapshot ?? {}) as ProfileCalculationSnapshot;
+  const strengths = (ippSnapshot.strengths ?? []).slice(0, 5).map(shortTitle);
+  const gaps = (ippSnapshot.gaps ?? []).slice(0, 5).map(shortTitle);
+
+  const prioritizedActions: PrioritizedAction[] = (recommendations ?? []).slice(0, 3).map((r, index) => ({
+    priority: index + 1,
+    title: r.title,
+    severity: severityFromUrgency(r.urgency),
+  }));
+
+  const ippCurrent = latestProfileResult?.ipp_display_score ?? 0;
+  const ippPrevious = previousProfileResult?.ipp_display_score ?? ippCurrent;
+  const ippHistory = [...(profileAnalyses ?? [])]
+    .reverse()
+    .map((a) => ({ date: formatShortDate(a.created_at), value: first(a.profile_analysis_results)?.ipp_display_score ?? 0 }));
+
+  const latestJobAnalysis = jobAnalyses?.[0] ?? null;
+  const latestJobResult = first(latestJobAnalysis?.fit_analysis_results);
+  const iaoScores = (jobAnalyses ?? []).map((a) => first(a.fit_analysis_results)?.iao_display_score ?? 0);
+  const iaoAverage = iaoScores.length > 0 ? Math.round(iaoScores.reduce((sum, v) => sum + v, 0) / iaoScores.length) : 0;
+
+  const opportunities: Opportunity[] = (jobAnalyses ?? []).slice(0, 3).map((a) => {
+    const result = first(a.fit_analysis_results);
+    const opportunity = first(a.opportunity_versions);
+    return {
+      role: opportunity?.title ?? "Vaga sem título",
+      iao: result?.iao_display_score ?? 0,
+      adherence: adherenceFromIaoBand(result?.iao_band ?? null),
+      reportUrl: `/app/aderencia/${a.id}`,
+    };
+  });
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="flex flex-1 flex-col gap-2">
-        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-          <div className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 lg:px-6 xl:grid-cols-4">
-              <Card>
-                <CardHeader>
-                  <CardDescription>Créditos disponíveis</CardDescription>
-                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]:text-3xl">
-                    {creditAccount?.available_credits ?? 0}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between gap-2">
-                  <p className="text-sm text-muted-foreground">
-                    {creditAccount?.reserved_credits ? `${creditAccount.reserved_credits} reservado(s)` : "Para novas análises"}
-                  </p>
-                  <Button asChild size="sm" variant="secondary">
-                    <Link href="/app/assinatura">Ver</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+    <main className="flex flex-1 flex-col gap-6 px-4 py-6 lg:px-6">
+      <DashboardPageHeader />
 
-              <Card>
-                <CardHeader>
-                  <CardDescription>Análise de Perfil</CardDescription>
-                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]:text-3xl">
-                    {lastProfileAnalysis?.status === "completed" ? profileResult?.ipp_display_score : "—"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between gap-2">
-                  {lastProfileAnalysis?.status === "completed" && profileResult ? (
-                    <Badge variant="secondary">{IPP_BAND_LABELS[profileResult.ipp_band]}</Badge>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Ainda não realizada</p>
-                  )}
-                  <Button asChild size="sm" variant="secondary">
-                    <Link href={lastProfileAnalysis?.status === "completed" ? `/app/analise-perfil/${lastProfileAnalysis.id}` : "/app/analise-perfil"}>
-                      {lastProfileAnalysis?.status === "completed" ? "Ver" : "Fazer"}
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardDescription>Diagnóstico de Aderência</CardDescription>
-                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]:text-3xl">
-                    {lastJobAnalysis?.status === "completed" ? jobResult?.iao_display_score : "—"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between gap-2">
-                  {lastJobAnalysis?.status === "completed" && jobResult ? (
-                    <Badge variant="secondary">{IAO_BAND_LABELS[jobResult.iao_band]}</Badge>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Ainda não realizado</p>
-                  )}
-                  <Button asChild size="sm" variant="secondary">
-                    <Link href={lastJobAnalysis?.status === "completed" ? `/app/aderencia/${lastJobAnalysis.id}` : "/app/aderencia"}>
-                      {lastJobAnalysis?.status === "completed" ? "Ver" : "Fazer"}
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardDescription>Análises concluídas</CardDescription>
-                  <CardTitle className="text-2xl font-semibold tabular-nums @[250px]:text-3xl">{completedCount ?? 0}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">No total, desde o início</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="px-4 lg:px-6">
-              <ChartAreaAnalyses data={chartData} />
-            </div>
-
-            <div className="px-4 lg:px-6">
-              <AnalysesDataTable data={tableRows} />
-            </div>
-          </div>
-        </div>
+      {/*
+        Breakpoints alinhados ao threshold de 1280px da spec (Tailwind `xl`),
+        não `lg` (1024px) — a sidebar fixa de 226px consome espaço real do
+        conteúdo, então uma grade de 4/5 colunas em viewports de ~1024-1279px
+        fica espremida (ex.: botão "Ver relatório" truncado). Nessa faixa
+        (768-1279) as linhas ficam em 1-2 colunas, como a spec pede.
+      */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <ScoreCard
+          title="IPP atual"
+          value={Math.round(ippCurrent)}
+          max={100}
+          label={latestProfileResult ? (IPP_BAND_LABELS[latestProfileResult.ipp_band] ?? "—") : "Ainda não realizada"}
+          description="Índice de Prontidão do Perfil"
+          delta={Math.round(ippCurrent - ippPrevious)}
+          deltaPeriodLabel="vs análise anterior"
+          className="xl:h-[380px]"
+        />
+        <ScoreCard
+          title="IAO médio"
+          value={iaoAverage}
+          max={100}
+          label={jobAnalyses && jobAnalyses.length > 0 ? iaoBandLabelForAverage(iaoAverage) : "Ainda não realizado"}
+          description="Índice de Aderência Observável"
+          delta={Math.round((latestJobResult?.iao_display_score ?? iaoAverage) - iaoAverage)}
+          deltaPeriodLabel="vs análise anterior"
+          className="xl:h-[380px]"
+        />
+        <ContextAndTargetCard
+          context={targetContext ? { area: targetContext.target_area, level: targetContext.target_role } : null}
+          dimensions={ippDimensions}
+          className="md:col-span-2 xl:col-span-2 xl:h-[380px]"
+        />
       </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+        <OpportunitiesCard opportunities={opportunities} className="xl:col-span-3" />
+        <IppEvolutionCard
+          evolution={{
+            current: Math.round(ippCurrent),
+            previous: Math.round(ippPrevious),
+            delta: Math.round(ippCurrent - ippPrevious),
+            deltaPeriodLabel: "vs análise anterior",
+            history: ippHistory,
+          }}
+          className="xl:col-span-2"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+        <StrengthsGapsCard strengths={strengths} gaps={gaps} className="xl:col-span-3" />
+        <PrioritizedActionsCard
+          summary={prioritizedActions}
+          analysisId={latestProfileAnalysis?.id ?? null}
+          actionRows={actionRows}
+          candidates={candidateRecommendations}
+          atLimit={atActionsLimit}
+          className="xl:col-span-2"
+        />
+      </div>
+    </main>
   );
 }
-
