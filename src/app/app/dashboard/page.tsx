@@ -165,7 +165,7 @@ export default async function DashboardPage() {
   const strengths = ippSnapshot.strengths ?? [];
   const gaps = ippSnapshot.gaps ?? [];
 
-  const prioritizedActions: PrioritizedAction[] = (recommendations ?? []).slice(0, 3).map((r, index) => ({
+  const prioritizedActions: PrioritizedAction[] = (recommendations ?? []).slice(0, 5).map((r, index) => ({
     priority: index + 1,
     title: r.title,
     severity: severityFromUrgency(r.urgency),

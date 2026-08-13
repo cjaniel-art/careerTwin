@@ -15,7 +15,7 @@ const SEVERITY_BADGE_VARIANT: Record<SeverityLevel, "destructive" | "warning" | 
 };
 
 /**
- * Resumo (top 3 por prioridade) só com título + severidade — sem barra de
+ * Resumo (top 5 por prioridade) só com título + severidade — sem barra de
  * progresso/percentual (proibido pela spec). O CTA abre o mesmo Sheet de
  * plano de ação real (ActionPlanBody, com ações rastreáveis desta análise
  * de perfil) já usado no NextBestActionBanner do relatório — não navega
