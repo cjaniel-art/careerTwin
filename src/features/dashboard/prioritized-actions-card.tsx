@@ -3,8 +3,8 @@ import { ArrowRight, ListChecks } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sheet, SheetCircleClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { ActionPlanBody, type ActionPreviewRow, type RecommendationCandidateRow } from "@/features/core-1/report/action-plan-preview";
+import { ActionPlanSheetButton } from "@/features/dashboard/action-plan-sheet-button";
+import type { ActionPreviewRow, RecommendationCandidateRow } from "@/features/core-1/report/action-plan-preview";
 import type { PrioritizedAction, SeverityLevel } from "@/lib/mock/dashboard";
 import { cn } from "@/lib/utils";
 
@@ -60,28 +60,13 @@ export function PrioritizedActionsCard({
         )}
 
         {analysisId ? (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="secondary" className="mt-auto h-auto py-2">
-                Ver plano de ação completo
-                <ArrowRight className="size-3.5" aria-hidden />
-              </Button>
-            </SheetTrigger>
-            <SheetContent showCloseButton={false} className="w-full gap-0 border-none bg-transparent p-0 sm:w-[45%] sm:max-w-none">
-              <div className="flex h-full items-start">
-                <SheetCircleClose />
-                <div className="flex h-full flex-1 flex-col bg-card px-8">
-                  <div className="border-b border-border py-4">
-                    <p className="text-xs text-muted-foreground">Desta análise</p>
-                    <p className="text-2xl font-semibold text-foreground">Plano de ação</p>
-                  </div>
-                  <div className="flex flex-1 flex-col overflow-y-auto py-6">
-                    <ActionPlanBody analysisId={analysisId} actions={actionRows} candidates={candidates} atLimit={atLimit} />
-                  </div>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+          <ActionPlanSheetButton
+            label="Ver plano de ação completo"
+            analysisId={analysisId}
+            actionRows={actionRows}
+            candidates={candidates}
+            atLimit={atLimit}
+          />
         ) : (
           <Button asChild variant="secondary" className="mt-auto h-auto py-2">
             <Link href="/app/analise-perfil">

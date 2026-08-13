@@ -10,7 +10,8 @@ import { ContextAndTargetCard } from "@/features/dashboard/context-and-target-ca
 import { OpportunitiesCard } from "@/features/dashboard/opportunities-card";
 import { IppEvolutionCard } from "@/features/dashboard/ipp-evolution-card";
 import { PrioritizedActionsCard } from "@/features/dashboard/prioritized-actions-card";
-import { StrengthsGapsCard } from "@/features/dashboard/strengths-gaps-card";
+import { StrengthsCard } from "@/features/dashboard/strengths-card";
+import { GapsCard } from "@/features/dashboard/gaps-card";
 import { DashboardPageHeader } from "@/features/dashboard/dashboard-page-header";
 import type { IppDimensionRow, Opportunity, PrioritizedAction, SeverityLevel } from "@/lib/mock/dashboard";
 
@@ -20,13 +21,6 @@ export const dynamic = "force-dynamic";
 interface ProfileCalculationSnapshot {
   strengths?: Core1Strength[];
   gaps?: Core1Gap[];
-}
-
-/** Análises geradas antes do campo `title` existir não têm rótulo curto — deriva um a partir do início da descrição. */
-function shortTitle(item: { title?: string; description: string }): string {
-  if (item.title) return item.title;
-  const firstSentence = item.description.split(/(?<=[.;])\s/)[0] ?? item.description;
-  return firstSentence.length > 70 ? `${firstSentence.slice(0, 70).trimEnd()}…` : firstSentence;
 }
 
 function severityFromUrgency(urgency: number): SeverityLevel {
@@ -73,7 +67,7 @@ export default async function DashboardPage() {
   const [{ data: profileAnalyses }, { data: jobAnalyses }] = await Promise.all([
     supabase
       .from("analyses")
-      .select("id, created_at, target_context_version_id, profile_analysis_results(ipp_display_score, ipp_band, calculation_snapshot)")
+      .select("id, created_at, target_context_version_id, profile_analysis_results(ipp_display_score, ipp_band, main_strength, calculation_snapshot)")
       .eq("user_id", user.id)
       .eq("analysis_type", "profile_analysis")
       .eq("status", "completed")
@@ -166,8 +160,8 @@ export default async function DashboardPage() {
     : [];
 
   const ippSnapshot = (latestProfileResult?.calculation_snapshot ?? {}) as ProfileCalculationSnapshot;
-  const strengths = (ippSnapshot.strengths ?? []).slice(0, 5).map(shortTitle);
-  const gaps = (ippSnapshot.gaps ?? []).slice(0, 5).map(shortTitle);
+  const strengths = ippSnapshot.strengths ?? [];
+  const gaps = ippSnapshot.gaps ?? [];
 
   const prioritizedActions: PrioritizedAction[] = (recommendations ?? []).slice(0, 3).map((r, index) => ({
     priority: index + 1,
@@ -250,15 +244,15 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <StrengthsGapsCard strengths={strengths} gaps={gaps} className="xl:col-span-3" />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <StrengthsCard strengths={strengths} mainStrength={latestProfileResult?.main_strength ?? ""} />
+        <GapsCard gaps={gaps} />
         <PrioritizedActionsCard
           summary={prioritizedActions}
           analysisId={latestProfileAnalysis?.id ?? null}
           actionRows={actionRows}
           candidates={candidateRecommendations}
           atLimit={atActionsLimit}
-          className="xl:col-span-2"
         />
       </div>
     </main>
