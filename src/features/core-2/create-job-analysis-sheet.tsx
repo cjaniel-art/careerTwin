@@ -20,8 +20,13 @@ interface FormValues {
   pastedText: string;
 }
 
-/** "Criar análise" flow — Figma nodes 156:6207 (formulário) e 164:10787 (sucesso). */
-export function CreateJobAnalysisSheet({ hasCredits }: { hasCredits: boolean }) {
+/**
+ * "Criar análise" flow — Figma nodes 156:6207 (formulário) e 164:10787 (sucesso).
+ * `triggerLabel` existe para o gatilho "Analisar nova vaga" da Dashboard
+ * reaproveitar o mesmo Sheet (mesmo fluxo, mesmo componente) sem duplicar
+ * nada — só o texto do botão muda por contexto de origem.
+ */
+export function CreateJobAnalysisSheet({ hasCredits, triggerLabel = "Nova análise" }: { hasCredits: boolean; triggerLabel?: string }) {
   const [open, setOpen] = useState(false);
   const [sheetKey, setSheetKey] = useState(0);
 
@@ -36,7 +41,7 @@ export function CreateJobAnalysisSheet({ hasCredits }: { hasCredits: boolean }) 
       <SheetTrigger asChild>
         <Button className="h-8 gap-1.5 rounded-[10px] px-[10px] text-sm">
           <Plus className="size-4" />
-          Nova análise
+          {triggerLabel}
         </Button>
       </SheetTrigger>
       <SheetContent showCloseButton={false} className="w-full gap-0 border-none bg-transparent p-0 sm:w-[45%] sm:max-w-none">

@@ -64,7 +64,7 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/app/dashboard");
 
-  const [{ data: profileAnalyses }, { data: jobAnalyses }] = await Promise.all([
+  const [{ data: profileAnalyses }, { data: jobAnalyses }, { data: creditAccount }] = await Promise.all([
     supabase
       .from("analyses")
       .select("id, created_at, target_context_version_id, profile_analysis_results(ipp_display_score, ipp_band, main_strength, calculation_snapshot)")
@@ -81,7 +81,9 @@ export default async function DashboardPage() {
       .eq("status", "completed")
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase.from("credit_accounts").select("available_credits").eq("user_id", user.id).maybeSingle(),
   ]);
+  const hasCredits = (creditAccount?.available_credits ?? 0) > 0;
 
   function first<T>(value: T | T[] | null | undefined): T | null {
     return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
@@ -193,7 +195,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-6 px-4 py-6 lg:px-6">
-      <DashboardPageHeader />
+      <DashboardPageHeader hasCredits={hasCredits} />
 
       {/*
         Breakpoints alinhados ao threshold de 1280px da spec (Tailwind `xl`),
