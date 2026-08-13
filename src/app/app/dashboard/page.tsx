@@ -165,11 +165,25 @@ export default async function DashboardPage() {
   const strengths = ippSnapshot.strengths ?? [];
   const gaps = ippSnapshot.gaps ?? [];
 
-  const prioritizedActions: PrioritizedAction[] = (recommendations ?? []).slice(0, 5).map((r, index) => ({
-    priority: index + 1,
-    title: r.title,
-    severity: severityFromUrgency(r.urgency),
-  }));
+  // Recomendações já convertidas em ação (Suas ações) sobem para o topo do
+  // resumo — "Iniciado" (in_progress) primeiro, depois pending/selected,
+  // só então as ainda não convertidas — preservando priority_order dentro
+  // de cada grupo (o array `recommendations` já vem ordenado por ele).
+  const actionStatusByRecommendationId = new Map((actionRowsRaw ?? []).map((a) => [a.recommendation_id, a.status]));
+  function recommendationRank(recommendationId: string): number {
+    const status = actionStatusByRecommendationId.get(recommendationId);
+    if (status === "in_progress") return 0;
+    if (status === "pending" || status === "selected") return 1;
+    return 2;
+  }
+  const prioritizedActions: PrioritizedAction[] = [...(recommendations ?? [])]
+    .sort((a, b) => recommendationRank(a.id) - recommendationRank(b.id))
+    .slice(0, 5)
+    .map((r, index) => ({
+      priority: index + 1,
+      title: r.title,
+      severity: severityFromUrgency(r.urgency),
+    }));
 
   const ippCurrent = latestProfileResult?.ipp_display_score ?? 0;
   const ippPrevious = previousProfileResult?.ipp_display_score ?? ippCurrent;
