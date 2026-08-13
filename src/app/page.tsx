@@ -95,11 +95,11 @@ export default function HomePage() {
             <div className="absolute inset-0 px-6 pt-[158px]">
               <div className="max-w-xl">
                 <h1 className="whitespace-nowrap text-[11vw] font-medium leading-[normal] tracking-normal">
-                  Evolua.
+                  Seu futuro
                   <br />
-                  Reposicione-se.
+                  merece <span className="text-primary">mais do</span>
                   <br />
-                  <span className="text-primary">Conquiste</span>
+                  <span className="text-primary">que sorte</span>
                 </h1>
                 <p className="mt-[3.7vw] text-[3.1vw] font-semibold leading-[4.3vw] tracking-[-0.0657px] text-white">
                   Clareza sobre seu perfil, direção para sua carreira e decisões melhores antes de se candidatar.
@@ -121,11 +121,11 @@ export default function HomePage() {
               />
               <div className="relative max-w-xl">
                 <h1 className="text-7xl font-medium leading-[normal] tracking-normal">
-                  Evolua.
+                  Seu futuro
                   <br />
-                  Reposicione-se.
+                  merece <span className="text-primary">mais do</span>
                   <br />
-                  <span className="text-primary">Conquiste</span>
+                  <span className="text-primary">que sorte</span>
                 </h1>
                 <p className="mt-6 text-xl font-semibold leading-7 tracking-[-0.1px] text-white">
                   Clareza sobre seu perfil, direção para sua carreira e decisões melhores antes de se candidatar.
