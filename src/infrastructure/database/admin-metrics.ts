@@ -85,3 +85,106 @@ export async function getExecutiveDashboardMetrics(): Promise<ExecutiveDashboard
     failures: { last30DaysByType },
   };
 }
+
+export interface OnboardingDashboardMetrics {
+  byOnboardingStatus: Record<string, number>;
+  thinTwinConfirmed: number;
+  targetContextConfirmed: number;
+  documentsByStatus: Record<string, number>;
+}
+
+/** Conversão por etapa + confirmações — banco operacional (user_accounts/professional_profiles/target_contexts/documents). */
+export async function getOnboardingDashboardMetrics(): Promise<OnboardingDashboardMetrics> {
+  const supabase = createSupabaseServiceClient();
+
+  const [{ data: accounts }, { count: thinTwinConfirmed }, { count: targetContextConfirmed }, { data: documents }] = await Promise.all([
+    supabase.from("user_accounts").select("onboarding_status"),
+    supabase.from("professional_profiles").select("*", { count: "exact", head: true }).eq("status", "confirmed"),
+    supabase.from("target_contexts").select("*", { count: "exact", head: true }).eq("status", "confirmed"),
+    supabase.from("documents").select("status"),
+  ]);
+
+  return {
+    byOnboardingStatus: countBy((accounts ?? []).map((a) => ({ key: a.onboarding_status as string }))),
+    thinTwinConfirmed: thinTwinConfirmed ?? 0,
+    targetContextConfirmed: targetContextConfirmed ?? 0,
+    documentsByStatus: countBy((documents ?? []).map((d) => ({ key: d.status as string }))),
+  };
+}
+
+export interface ProductDashboardMetrics {
+  completedByType: Record<string, number>;
+  usefulnessAverage: number | null;
+  usefulnessDistribution: Record<string, number>;
+  specificityDistribution: Record<string, number>;
+  confidenceDistribution: Record<string, number>;
+  recommendationsSelected: number;
+  actionsStarted: number;
+  actionsCompleted: number;
+  feedbackCount: number;
+}
+
+/** Qualidade percebida e uso das análises concluídas — banco operacional (analyses/analysis_feedback/recommendations/actions). */
+export async function getProductDashboardMetrics(): Promise<ProductDashboardMetrics> {
+  const supabase = createSupabaseServiceClient();
+
+  const [{ data: completedAnalyses }, { data: feedbackRows }, { count: recommendationsSelected }, { count: actionsStarted }, { count: actionsCompleted }] =
+    await Promise.all([
+      supabase.from("analyses").select("analysis_type, confidence_band").eq("status", "completed"),
+      supabase.from("analysis_feedback").select("usefulness_score, specificity"),
+      supabase.from("recommendations").select("*", { count: "exact", head: true }).eq("status", "selected"),
+      supabase.from("actions").select("*", { count: "exact", head: true }).eq("status", "in_progress"),
+      supabase.from("actions").select("*", { count: "exact", head: true }).eq("status", "completed"),
+    ]);
+
+  const feedback = feedbackRows ?? [];
+  const usefulnessAverage = feedback.length > 0 ? feedback.reduce((sum, f) => sum + f.usefulness_score, 0) / feedback.length : null;
+
+  return {
+    completedByType: countBy((completedAnalyses ?? []).map((a) => ({ key: a.analysis_type as string }))),
+    usefulnessAverage,
+    usefulnessDistribution: countBy(feedback.map((f) => ({ key: String(f.usefulness_score) }))),
+    specificityDistribution: countBy(feedback.map((f) => ({ key: f.specificity as string }))),
+    confidenceDistribution: countBy((completedAnalyses ?? []).filter((a) => a.confidence_band).map((a) => ({ key: a.confidence_band as string }))),
+    recommendationsSelected: recommendationsSelected ?? 0,
+    actionsStarted: actionsStarted ?? 0,
+    actionsCompleted: actionsCompleted ?? 0,
+    feedbackCount: feedback.length,
+  };
+}
+
+export interface TechnicalDashboardMetrics {
+  jobsByStatus30Days: Record<string, number>;
+  stuckJobs: number;
+  failedJobsByErrorCategory30Days: Record<string, number>;
+  documentIssues30Days: Record<string, number>;
+  pendingAccountDeletions: number;
+}
+
+/**
+ * Sinais técnicos que já existem no banco operacional. Disponibilidade, latência,
+ * fila em tempo real e custo por token exigem observabilidade dedicada (Analytics
+ * §16 "Dashboard técnico" — fonte principal deveria ser essa, não este banco) e
+ * ainda não existem no projeto — não inventados aqui.
+ */
+export async function getTechnicalDashboardMetrics(): Promise<TechnicalDashboardMetrics> {
+  const supabase = createSupabaseServiceClient();
+  const since30Days = new Date(Date.now() - 30 * DAY_MS).toISOString();
+  const stuckSince = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+  const [{ data: jobs }, { count: stuckJobs }, { data: failedJobs }, { data: documents }, { count: pendingAccountDeletions }] = await Promise.all([
+    supabase.from("processing_jobs").select("status").gte("created_at", since30Days),
+    supabase.from("processing_jobs").select("*", { count: "exact", head: true }).eq("status", "processing").lt("started_at", stuckSince),
+    supabase.from("processing_jobs").select("error_category").eq("status", "failed").gte("created_at", since30Days),
+    supabase.from("documents").select("status").in("status", ["failed_retryable", "failed_final", "insufficient_content"]).gte("created_at", since30Days),
+    supabase.from("user_accounts").select("*", { count: "exact", head: true }).eq("status", "deletion_pending"),
+  ]);
+
+  return {
+    jobsByStatus30Days: countBy((jobs ?? []).map((j) => ({ key: j.status as string }))),
+    stuckJobs: stuckJobs ?? 0,
+    failedJobsByErrorCategory30Days: countBy((failedJobs ?? []).map((j) => ({ key: (j.error_category as string) ?? "unknown" }))),
+    documentIssues30Days: countBy((documents ?? []).map((d) => ({ key: d.status as string }))),
+    pendingAccountDeletions: pendingAccountDeletions ?? 0,
+  };
+}
