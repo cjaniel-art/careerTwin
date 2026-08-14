@@ -28,6 +28,14 @@ function proPlanFeatures(): string[] {
   ];
 }
 
+/** Plano Full — só o card visual por enquanto, sem oferta/RPC própria (preço fixo, sem SIMULATED_OFFER). */
+const FULL_PLAN_FEATURES = [
+  "Análises de vaga ilimitadas",
+  "Sem contador de créditos enquanto o plano estiver ativo",
+  "Diagnóstico de aderência e lacunas",
+  "Lacunas e recomendações",
+];
+
 export const metadata = { title: "Assinatura — CareerTwin" };
 export const dynamic = "force-dynamic";
 
@@ -98,9 +106,9 @@ export default async function CreditsPage({
         </Card>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row">
+      <div className="flex flex-col gap-6 xl:flex-row">
         {/* Card de destaque com foto — tamanho fixo (299x488), igual ao Figma */}
-        <div className="relative h-[488px] w-full shrink-0 overflow-hidden rounded-2xl bg-black lg:w-[299px]">
+        <div className="relative h-[488px] w-full shrink-0 overflow-hidden rounded-2xl bg-black xl:w-[299px]">
           <Image
             src="/landing/pricing-card-photo.svg"
             alt=""
@@ -194,6 +202,43 @@ export default async function CreditsPage({
             <p className="text-sm font-medium text-foreground">Features:</p>
             <ul className="space-y-3">
               {proPlanFeatures().map((feature) => (
+                <li key={feature} className="flex items-center gap-2">
+                  <CheckCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  <span className="text-xs text-muted-foreground">{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Plano Full — só o card visual por enquanto, sem oferta/RPC própria (ver FULL_PLAN_FEATURES) */}
+        <div className="flex h-[488px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border shadow-sm">
+          <div className="flex flex-1 flex-col justify-between gap-8 bg-gradient-to-b from-primary/10 to-card px-6 pb-6 pt-7">
+            <div className="space-y-2">
+              <p className="text-base font-medium text-foreground">plano full</p>
+              <div className="flex items-end gap-1.5">
+                <p className="text-4xl font-semibold text-foreground">R$ 59,99</p>
+                <div className="flex flex-col text-xs leading-tight text-muted-foreground">
+                  <span>Por</span>
+                  <span>mês</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <p className="text-sm leading-6 text-foreground">
+                Para quem está em busca ativa e faz várias candidaturas em paralelo — analise quantas
+                vagas precisar, sem se preocupar com o contador de créditos. Preço e condições são
+                hipóteses de monetização — sem cobrança real nem coleta de dados de cartão.
+              </p>
+              <Button type="button" className="h-auto w-full rounded-lg py-3 text-sm">
+                Tenho interesse
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-5 border-t border-border bg-card px-6 py-6">
+            <p className="text-sm font-medium text-foreground">Features:</p>
+            <ul className="space-y-3">
+              {FULL_PLAN_FEATURES.map((feature) => (
                 <li key={feature} className="flex items-center gap-2">
                   <CheckCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                   <span className="text-xs text-muted-foreground">{feature}</span>
