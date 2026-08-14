@@ -107,8 +107,8 @@ export default async function CreditsPage({
       </div>
 
       <div className="flex flex-col gap-6 xl:flex-row">
-        {/* Card de destaque com foto — tamanho fixo (299x488), igual ao Figma */}
-        <div className="relative h-[488px] w-full shrink-0 overflow-hidden rounded-2xl bg-black xl:w-[299px]">
+        {/* Card de destaque com foto — largura fixa (299px), altura acompanha os cards de plano ao lado */}
+        <div className="relative w-full shrink-0 overflow-hidden rounded-2xl bg-black xl:w-[299px]">
           <Image
             src="/landing/pricing-card-photo.svg"
             alt=""
@@ -131,7 +131,7 @@ export default async function CreditsPage({
         </div>
 
         {/* Plano gratuito — expansivo, ocupa o espaço restante */}
-        <div className="flex h-[488px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border shadow-sm">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border shadow-sm">
           <div className="flex flex-1 flex-col justify-between gap-8 bg-card px-6 pb-6 pt-7">
             <div className="space-y-2">
               <p className="text-base font-medium text-foreground">experiência gratuita</p>
@@ -166,10 +166,10 @@ export default async function CreditsPage({
         </div>
 
         {/* Pacote em destaque — expansivo, ocupa o espaço restante */}
-        <div className="flex h-[488px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border shadow-sm">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border shadow-sm">
           <div className="flex flex-1 flex-col justify-between gap-8 bg-gradient-to-b from-[#f1f0fb] to-card dark:from-[#2a2440] px-6 pb-6 pt-7">
             <div className="space-y-2">
-              <p className="text-base font-medium text-foreground">pacote em destaque</p>
+              <p className="text-base font-medium text-foreground">Plano recarga</p>
               <div className="flex items-end gap-1.5">
                 <p className="text-4xl font-semibold text-foreground">
                   R$ {(SIMULATED_OFFER.priceCents / 100).toFixed(2).replace(".", ",")}
@@ -211,7 +211,7 @@ export default async function CreditsPage({
         </div>
 
         {/* Plano Full — só o card visual por enquanto, sem oferta/RPC própria (ver FULL_PLAN_FEATURES) */}
-        <div className="flex h-[488px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border shadow-sm">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border shadow-sm">
           <div className="flex flex-1 flex-col justify-between gap-8 bg-gradient-to-b from-primary/10 to-card px-6 pb-6 pt-7">
             <div className="space-y-2">
               <p className="text-base font-medium text-foreground">plano full</p>
