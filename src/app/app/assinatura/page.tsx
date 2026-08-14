@@ -183,8 +183,7 @@ export default async function CreditsPage({
             <div className="space-y-4">
               <p className="text-sm leading-6 text-foreground">
                 Para quem está avaliando novas vagas e quer decidir quais candidaturas realmente vale a pena
-                priorizar. Preço, créditos e validade são hipóteses de monetização — sem cobrança real nem
-                coleta de dados de cartão.
+                priorizar. Preço, créditos e validade são hipóteses de monetização.
               </p>
               {lastIntent?.status === "confirmed_intent" && intentExpiresAt ? (
                 <p className="rounded-lg bg-secondary p-3 text-center text-sm text-foreground">
@@ -228,7 +227,7 @@ export default async function CreditsPage({
               <p className="text-sm leading-6 text-foreground">
                 Para quem está em busca ativa e faz várias candidaturas em paralelo — analise quantas
                 vagas precisar, sem se preocupar com o contador de créditos. Preço e condições são
-                hipóteses de monetização — sem cobrança real nem coleta de dados de cartão.
+                hipóteses de monetização.
               </p>
               <Button type="button" className="h-auto w-full rounded-lg py-3 text-sm">
                 Tenho interesse
