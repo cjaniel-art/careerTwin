@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ExecutiveDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, BreakdownList } from "./admin-ui";
+import { StatCard, BreakdownChart } from "./admin-ui";
+import { UsersChart } from "./users-chart";
 
 const ONBOARDING_STATUS_LABELS: Record<string, string> = {
   not_started: "Não iniciado",
@@ -26,11 +27,11 @@ const ANALYSIS_TYPE_LABELS: Record<string, string> = {
 export function ExecutiveTab({ metrics }: { metrics: ExecutiveDashboardMetrics }) {
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard label="Usuários" value={metrics.users.total} />
-        <StatCard label="Novos usuários (7 dias)" value={metrics.users.newLast7Days} />
-        <StatCard label="Novos usuários (30 dias)" value={metrics.users.newLast30Days} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard label="Usuários (total)" value={metrics.users.total} />
       </div>
+
+      <UsersChart data={metrics.users.daily} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
@@ -41,7 +42,7 @@ export function ExecutiveTab({ metrics }: { metrics: ExecutiveDashboardMetrics }
             <StatCard label="Análises de Perfil concluídas" value={metrics.activation.profileAnalysesCompleted} />
             <div>
               <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Por etapa do onboarding</p>
-              <BreakdownList counts={metrics.activation.byOnboardingStatus} labels={ONBOARDING_STATUS_LABELS} />
+              <BreakdownChart counts={metrics.activation.byOnboardingStatus} labels={ONBOARDING_STATUS_LABELS} />
             </div>
           </CardContent>
         </Card>
@@ -85,7 +86,7 @@ export function ExecutiveTab({ metrics }: { metrics: ExecutiveDashboardMetrics }
             <CardTitle className="text-base">Intenção de compra</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownList counts={metrics.purchaseIntent.byStatus} labels={PURCHASE_INTENT_STATUS_LABELS} />
+            <BreakdownChart counts={metrics.purchaseIntent.byStatus} labels={PURCHASE_INTENT_STATUS_LABELS} />
           </CardContent>
         </Card>
 
@@ -94,7 +95,7 @@ export function ExecutiveTab({ metrics }: { metrics: ExecutiveDashboardMetrics }
             <CardTitle className="text-base">Falhas críticas (30 dias)</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownList counts={metrics.failures.last30DaysByType} labels={ANALYSIS_TYPE_LABELS} />
+            <BreakdownChart counts={metrics.failures.last30DaysByType} labels={ANALYSIS_TYPE_LABELS} />
           </CardContent>
         </Card>
       </div>

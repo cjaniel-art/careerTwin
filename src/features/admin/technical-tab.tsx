@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TechnicalDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, BreakdownList } from "./admin-ui";
+import { StatCard, BreakdownChart } from "./admin-ui";
 
 const JOB_STATUS_LABELS: Record<string, string> = {
   queued: "Na fila",
@@ -46,7 +46,7 @@ export function TechnicalTab({ metrics }: { metrics: TechnicalDashboardMetrics }
             <CardTitle className="text-base">Jobs por status (30 dias)</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownList counts={metrics.jobsByStatus30Days} labels={JOB_STATUS_LABELS} />
+            <BreakdownChart counts={metrics.jobsByStatus30Days} labels={JOB_STATUS_LABELS} />
           </CardContent>
         </Card>
 
@@ -55,7 +55,7 @@ export function TechnicalTab({ metrics }: { metrics: TechnicalDashboardMetrics }
             <CardTitle className="text-base">Jobs com falha, por categoria (30 dias)</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownList counts={metrics.failedJobsByErrorCategory30Days} labels={ERROR_CATEGORY_LABELS} />
+            <BreakdownChart counts={metrics.failedJobsByErrorCategory30Days} labels={ERROR_CATEGORY_LABELS} />
           </CardContent>
         </Card>
       </div>
@@ -65,7 +65,7 @@ export function TechnicalTab({ metrics }: { metrics: TechnicalDashboardMetrics }
           <CardTitle className="text-base">Problemas de documento (30 dias)</CardTitle>
         </CardHeader>
         <CardContent>
-          <BreakdownList counts={metrics.documentIssues30Days} labels={DOCUMENT_ISSUE_LABELS} />
+          <BreakdownChart counts={metrics.documentIssues30Days} labels={DOCUMENT_ISSUE_LABELS} />
         </CardContent>
       </Card>
 

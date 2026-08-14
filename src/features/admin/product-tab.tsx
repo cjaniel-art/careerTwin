@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ProductDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, BreakdownList } from "./admin-ui";
+import { StatCard, BreakdownChart } from "./admin-ui";
 
 const ANALYSIS_TYPE_LABELS: Record<string, string> = {
   profile_analysis: "Análise de Perfil",
@@ -41,7 +41,7 @@ export function ProductTab({ metrics }: { metrics: ProductDashboardMetrics }) {
           <CardTitle className="text-base">Análises concluídas por tipo</CardTitle>
         </CardHeader>
         <CardContent>
-          <BreakdownList counts={metrics.completedByType} labels={ANALYSIS_TYPE_LABELS} />
+          <BreakdownChart counts={metrics.completedByType} labels={ANALYSIS_TYPE_LABELS} />
         </CardContent>
       </Card>
 
@@ -51,7 +51,7 @@ export function ProductTab({ metrics }: { metrics: ProductDashboardMetrics }) {
             <CardTitle className="text-base">Utilidade (nota 1-5)</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownList counts={metrics.usefulnessDistribution} labels={USEFULNESS_LABELS} />
+            <BreakdownChart counts={metrics.usefulnessDistribution} labels={USEFULNESS_LABELS} />
           </CardContent>
         </Card>
 
@@ -60,7 +60,7 @@ export function ProductTab({ metrics }: { metrics: ProductDashboardMetrics }) {
             <CardTitle className="text-base">Especificidade percebida</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownList counts={metrics.specificityDistribution} labels={SPECIFICITY_LABELS} />
+            <BreakdownChart counts={metrics.specificityDistribution} labels={SPECIFICITY_LABELS} />
           </CardContent>
         </Card>
 
@@ -69,7 +69,7 @@ export function ProductTab({ metrics }: { metrics: ProductDashboardMetrics }) {
             <CardTitle className="text-base">Confiança agregada</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownList counts={metrics.confidenceDistribution} labels={CONFIDENCE_LABELS} />
+            <BreakdownChart counts={metrics.confidenceDistribution} labels={CONFIDENCE_LABELS} />
           </CardContent>
         </Card>
       </div>

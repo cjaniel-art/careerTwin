@@ -1,4 +1,8 @@
+"use client";
+
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 
 /** Mesmo padrão visual do ReportTabsList/ReportTabsTrigger (core-1/report/report-tabs.tsx) — abas sublinhadas em vez de pílula. */
@@ -38,17 +42,25 @@ export function StatCard({ label, value, hint }: { label: string; value: number 
   );
 }
 
-export function BreakdownList({ counts, labels }: { counts: Record<string, number>; labels: Record<string, string> }) {
-  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  if (entries.length === 0) return <p className="text-sm text-muted-foreground">Sem dados ainda.</p>;
+const breakdownChartConfig = { count: { label: "Quantidade", color: "hsl(var(--primary))" } } satisfies ChartConfig;
+
+/** Substitui a antiga lista em texto por uma barra horizontal (ui.shadcn ChartContainer + recharts). */
+export function BreakdownChart({ counts, labels }: { counts: Record<string, number>; labels: Record<string, string> }) {
+  const data = Object.entries(counts)
+    .map(([key, count]) => ({ label: labels[key] ?? key, count }))
+    .sort((a, b) => b.count - a.count);
+
+  if (data.length === 0) return <p className="text-sm text-muted-foreground">Sem dados ainda.</p>;
+
   return (
-    <ul className="space-y-2">
-      {entries.map(([key, count]) => (
-        <li key={key} className="flex items-center justify-between text-sm">
-          <span className="text-foreground">{labels[key] ?? key}</span>
-          <span className="font-medium text-foreground">{count}</span>
-        </li>
-      ))}
-    </ul>
+    <ChartContainer config={breakdownChartConfig} className="aspect-auto w-full" style={{ height: Math.max(72, data.length * 36) }}>
+      <BarChart data={data} layout="vertical" margin={{ left: 0, right: 12, top: 4, bottom: 4 }} accessibilityLayer>
+        <CartesianGrid horizontal={false} strokeOpacity={0.3} />
+        <XAxis type="number" hide />
+        <YAxis dataKey="label" type="category" tickLine={false} axisLine={false} width={150} tick={{ fontSize: 12 }} />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+        <Bar dataKey="count" fill="var(--color-count)" radius={4} barSize={16} />
+      </BarChart>
+    </ChartContainer>
   );
 }

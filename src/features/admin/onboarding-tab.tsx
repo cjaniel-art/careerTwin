@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OnboardingDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, BreakdownList } from "./admin-ui";
+import { StatCard, BreakdownChart } from "./admin-ui";
 
 const ONBOARDING_STATUS_LABELS: Record<string, string> = {
   not_started: "Não iniciado",
@@ -37,7 +37,7 @@ export function OnboardingTab({ metrics }: { metrics: OnboardingDashboardMetrics
             <CardTitle className="text-base">Conversão por etapa do onboarding</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownList counts={metrics.byOnboardingStatus} labels={ONBOARDING_STATUS_LABELS} />
+            <BreakdownChart counts={metrics.byOnboardingStatus} labels={ONBOARDING_STATUS_LABELS} />
           </CardContent>
         </Card>
 
@@ -46,7 +46,7 @@ export function OnboardingTab({ metrics }: { metrics: OnboardingDashboardMetrics
             <CardTitle className="text-base">Documentos por status</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownList counts={metrics.documentsByStatus} labels={DOCUMENT_STATUS_LABELS} />
+            <BreakdownChart counts={metrics.documentsByStatus} labels={DOCUMENT_STATUS_LABELS} />
           </CardContent>
         </Card>
       </div>

@@ -3,7 +3,7 @@ import { createSupabaseServiceClient } from "./supabase-service-client";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface ExecutiveDashboardMetrics {
-  users: { total: number; newLast7Days: number; newLast30Days: number };
+  users: { total: number; newLast7Days: number; newLast30Days: number; daily: { date: string; signups: number; active: number }[] };
   activation: { byOnboardingStatus: Record<string, number>; profileAnalysesCompleted: number };
   /**
    * Analytics §14 (Taxa de Análise Acionável): a janela de observação ainda
@@ -22,6 +22,11 @@ function countBy<T extends string>(rows: { key: T }[]): Record<string, number> {
   return counts;
 }
 
+/** Últimos N dias (incluindo hoje), como "AAAA-MM-DD", em ordem cronológica. */
+function dailyBuckets(days: number): string[] {
+  return Array.from({ length: days }, (_, i) => new Date(Date.now() - (days - 1 - i) * DAY_MS).toISOString().slice(0, 10));
+}
+
 /** Fonte é sempre o banco operacional (analyses/user_accounts/purchase_intents), nunca eventos de analytics — ver Analytics §2 "fonte de verdade". */
 export async function getExecutiveDashboardMetrics(): Promise<ExecutiveDashboardMetrics> {
   const supabase = createSupabaseServiceClient();
@@ -31,8 +36,6 @@ export async function getExecutiveDashboardMetrics(): Promise<ExecutiveDashboard
 
   const [
     { count: totalUsers },
-    { count: newLast7Days },
-    { count: newLast30Days },
     { data: accounts },
     { count: profileAnalysesCompleted },
     { count: analysesCompleted },
@@ -45,9 +48,7 @@ export async function getExecutiveDashboardMetrics(): Promise<ExecutiveDashboard
     { data: authUsersPage },
   ] = await Promise.all([
     supabase.from("user_accounts").select("*", { count: "exact", head: true }),
-    supabase.from("user_accounts").select("*", { count: "exact", head: true }).gte("created_at", since7Days),
-    supabase.from("user_accounts").select("*", { count: "exact", head: true }).gte("created_at", since30Days),
-    supabase.from("user_accounts").select("onboarding_status"),
+    supabase.from("user_accounts").select("onboarding_status, created_at"),
     supabase.from("analyses").select("*", { count: "exact", head: true }).eq("analysis_type", "profile_analysis").eq("status", "completed"),
     supabase.from("analyses").select("*", { count: "exact", head: true }).eq("status", "completed"),
     supabase.from("analysis_feedback").select("usefulness_score"),
@@ -68,9 +69,24 @@ export async function getExecutiveDashboardMetrics(): Promise<ExecutiveDashboard
   const authUsers = authUsersPage?.users ?? [];
   const activeLast7Days = authUsers.filter((u) => u.last_sign_in_at && u.last_sign_in_at >= since7Days).length;
   const activeLast30Days = authUsers.filter((u) => u.last_sign_in_at && u.last_sign_in_at >= since30Days).length;
+  const newLast7Days = (accounts ?? []).filter((a) => (a.created_at as string) >= since7Days).length;
+  const newLast30Days = (accounts ?? []).filter((a) => (a.created_at as string) >= since30Days).length;
+
+  const days = dailyBuckets(30);
+  const signupsByDay = new Map(days.map((d) => [d, 0]));
+  for (const a of accounts ?? []) {
+    const day = (a.created_at as string).slice(0, 10);
+    if (signupsByDay.has(day)) signupsByDay.set(day, (signupsByDay.get(day) ?? 0) + 1);
+  }
+  const activeByDay = new Map(days.map((d) => [d, 0]));
+  for (const u of authUsers) {
+    const day = u.last_sign_in_at?.slice(0, 10);
+    if (day && activeByDay.has(day)) activeByDay.set(day, (activeByDay.get(day) ?? 0) + 1);
+  }
+  const daily = days.map((date) => ({ date, signups: signupsByDay.get(date) ?? 0, active: activeByDay.get(date) ?? 0 }));
 
   return {
-    users: { total: totalUsers ?? 0, newLast7Days: newLast7Days ?? 0, newLast30Days: newLast30Days ?? 0 },
+    users: { total: totalUsers ?? 0, newLast7Days, newLast30Days, daily },
     activation: { byOnboardingStatus, profileAnalysesCompleted: profileAnalysesCompleted ?? 0 },
     value: {
       analysesCompleted: analysesCompleted ?? 0,
