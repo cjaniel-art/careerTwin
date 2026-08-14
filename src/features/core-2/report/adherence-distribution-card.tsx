@@ -11,6 +11,19 @@ const BUCKET_COLORS: Record<DistributionBucket, string> = {
   not_applicable: "bg-muted-foreground/30",
 };
 
+/**
+ * Mesmo mapeamento de cor da barra/legenda acima, em tom de texto — exportado
+ * para RequirementsSection colorir o status de cada requisito na aba
+ * "Requisitos da vaga", permitindo correlação visual com este card.
+ */
+export const BUCKET_TEXT_COLORS: Record<DistributionBucket, string> = {
+  matched: "text-success",
+  partial: "text-success",
+  low_evidence: "text-amber-600 dark:text-amber-400",
+  unmatched: "text-destructive",
+  not_applicable: "text-muted-foreground",
+};
+
 export interface DistributionEntry {
   bucket: DistributionBucket;
   count: number;

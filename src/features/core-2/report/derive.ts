@@ -33,7 +33,8 @@ export const DISTRIBUTION_BUCKET_LABELS: Record<DistributionBucket, string> = {
   not_applicable: "Não aplicável",
 };
 
-function bucketFor(row: RequirementRow): DistributionBucket {
+/** Exportado para RequirementsSection colorir o status de cada requisito com o mesmo balde do card "Distribuição de aderência". */
+export function bucketFor(row: RequirementRow): DistributionBucket {
   if (row.applicability === "not_applicable") return "not_applicable";
   switch (row.matchStatus) {
     case "confirmed_match":

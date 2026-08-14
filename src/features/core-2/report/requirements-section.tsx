@@ -3,20 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EvidenceList } from "@/features/core-1/report/evidence-list";
 import { CRITICALITY_LABELS, MATCH_LABELS, REQUIREMENT_CATEGORY_LABELS } from "@/lib/result-labels";
-import type { RequirementRow } from "./derive";
+import { bucketFor, type RequirementRow } from "./derive";
+import { CRITICALITY_TONE } from "./criticality-summary-card";
+import { BUCKET_TEXT_COLORS } from "./adherence-distribution-card";
 import { cn } from "@/lib/utils";
 
 const CRITICALITY_ORDER = ["blocking", "mandatory", "desired", "differential", "complementary"] as const;
-
-const MATCH_TONE: Record<string, string> = {
-  confirmed_match: "text-success",
-  partial_match: "text-success",
-  communication_gap: "text-amber-600 dark:text-amber-400",
-  evidence_gap: "text-amber-600 dark:text-amber-400",
-  unknown: "text-muted-foreground",
-  not_observed: "text-destructive",
-  confirmed_mismatch: "text-destructive",
-};
 
 /** §7 (Requisitos da vaga) — todos os requisitos reais, agrupados por criticidade, com status/confiança/evidências/justificativa. */
 export function RequirementsSection({ rows }: { rows: RequirementRow[] }) {
@@ -42,9 +34,16 @@ export function RequirementsSection({ rows }: { rows: RequirementRow[] }) {
         {CRITICALITY_ORDER.map((criticality) => {
           const group = rows.filter((r) => r.criticality === criticality);
           if (group.length === 0) return null;
+          const tone = CRITICALITY_TONE[criticality] ?? CRITICALITY_TONE.blocking!;
           return (
             <div key={criticality}>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p
+                className={cn(
+                  "mb-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-wide",
+                  tone.bg,
+                  tone.number,
+                )}
+              >
                 {CRITICALITY_LABELS[criticality] ?? criticality} ({group.length})
               </p>
               <Accordion type="single" collapsible className="w-full">
@@ -56,7 +55,7 @@ export function RequirementsSection({ rows }: { rows: RequirementRow[] }) {
                         <Badge variant="outline" className="shrink-0">
                           {REQUIREMENT_CATEGORY_LABELS[row.category] ?? row.category}
                         </Badge>
-                        <span className={cn("shrink-0 text-xs font-medium", MATCH_TONE[row.matchStatus])}>
+                        <span className={cn("shrink-0 text-xs font-medium", BUCKET_TEXT_COLORS[bucketFor(row)])}>
                           {MATCH_LABELS[row.matchStatus] ?? row.matchStatus}
                         </span>
                       </div>

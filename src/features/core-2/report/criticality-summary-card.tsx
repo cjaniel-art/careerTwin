@@ -11,8 +11,14 @@ const PLURAL_LABELS: Record<string, string> = {
   blocking: "Impeditivo",
 };
 
-/** Uma cor de acento por criticidade — só o número e o fundo do card mudam, nunca transmitido só pela cor (o rótulo textual está sempre visível). */
-const CRITICALITY_TONE: Record<string, { number: string; bg: string }> = {
+/**
+ * Uma cor de acento por criticidade — só o número e o fundo do card mudam,
+ * nunca transmitido só pela cor (o rótulo textual está sempre visível).
+ * Exportado para RequirementsSection reaproveitar a mesma paleta nos
+ * cabeçalhos de grupo da aba "Requisitos da vaga", permitindo correlação
+ * visual direta com este card.
+ */
+export const CRITICALITY_TONE: Record<string, { number: string; bg: string }> = {
   mandatory: { number: "text-red-600 dark:text-red-400", bg: "bg-red-500/10" },
   desired: { number: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500/10" },
   differential: { number: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/10" },
