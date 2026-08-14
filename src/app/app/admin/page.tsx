@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { BarChart3, UserPlus, Sparkles, Wrench } from "lucide-react";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
 import { isAdminEmail } from "@/lib/admin";
 import {
@@ -7,7 +8,8 @@ import {
   getProductDashboardMetrics,
   getTechnicalDashboardMetrics,
 } from "@/infrastructure/database/admin-metrics";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { AdminTabsList, AdminTabsTrigger } from "@/features/admin/admin-ui";
 import { ExecutiveTab } from "@/features/admin/executive-tab";
 import { OnboardingTab } from "@/features/admin/onboarding-tab";
 import { ProductTab } from "@/features/admin/product-tab";
@@ -41,12 +43,24 @@ export default async function AdminDashboardPage() {
       </div>
 
       <Tabs defaultValue="executivo" className="flex flex-col gap-6">
-        <TabsList>
-          <TabsTrigger value="executivo">Executivo</TabsTrigger>
-          <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
-          <TabsTrigger value="produto">Produto e IA</TabsTrigger>
-          <TabsTrigger value="tecnico">Técnico</TabsTrigger>
-        </TabsList>
+        <AdminTabsList>
+          <AdminTabsTrigger value="executivo">
+            <BarChart3 className="size-4" aria-hidden />
+            Executivo
+          </AdminTabsTrigger>
+          <AdminTabsTrigger value="onboarding">
+            <UserPlus className="size-4" aria-hidden />
+            Onboarding
+          </AdminTabsTrigger>
+          <AdminTabsTrigger value="produto">
+            <Sparkles className="size-4" aria-hidden />
+            Produto e IA
+          </AdminTabsTrigger>
+          <AdminTabsTrigger value="tecnico">
+            <Wrench className="size-4" aria-hidden />
+            Técnico
+          </AdminTabsTrigger>
+        </AdminTabsList>
 
         <TabsContent value="executivo">
           <ExecutiveTab metrics={executive} />
