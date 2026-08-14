@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/infrastructure/auth/supabase-server-client";
+import { isAdminEmail } from "@/lib/admin";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -32,7 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       >
         <AppSidebar userEmail={user.email ?? ""} variant="sidebar" />
         <SidebarInset>
-          <AppHeader />
+          <AppHeader isAdmin={isAdminEmail(user.email)} />
           {children}
         </SidebarInset>
       </SidebarProvider>

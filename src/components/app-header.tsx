@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home } from "lucide-react";
+import { Home, LayoutDashboard } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -25,7 +25,7 @@ function titleFor(pathname: string): string {
   return (match ? TITLES[match] : undefined) ?? "CareerTwin";
 }
 
-export function AppHeader() {
+export function AppHeader({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname() ?? "";
   const title = titleFor(pathname);
   const isDashboard = pathname === "/app/dashboard";
@@ -51,6 +51,11 @@ export function AppHeader() {
         ) : null}
       </div>
       <div className="flex items-center gap-4">
+        {isAdmin ? (
+          <Link href="/app/admin" aria-label="Dashboards administrativos" className="text-foreground hover:text-primary">
+            <LayoutDashboard className="size-6" aria-hidden />
+          </Link>
+        ) : null}
         <ThemeToggle />
       </div>
     </header>
