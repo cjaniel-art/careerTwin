@@ -27,10 +27,6 @@ const ANALYSIS_TYPE_LABELS: Record<string, string> = {
 export function ExecutiveTab({ metrics }: { metrics: ExecutiveDashboardMetrics }) {
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Usuários (total)" value={metrics.users.total} />
-      </div>
-
       <UsersChart data={metrics.users.daily} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
