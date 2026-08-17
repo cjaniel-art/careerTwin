@@ -1,18 +1,12 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ProductDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import type { ChartConfig } from "@/components/ui/chart";
-import { StatCard, BreakdownChart, MultiBarChart } from "./admin-ui";
+import { StatCard, InteractiveBarChart } from "./admin-ui";
+import { buildSeriesConfig } from "./chart-config";
 
 const ANALYSIS_TYPE_LABELS: Record<string, string> = {
   profile_analysis: "Análise de Perfil",
   target_role_analysis: "Análise por cargo-alvo",
   job_analysis: "Aderência à vaga",
 };
-
-const ANALYSES_BY_TYPE_CHART_CONFIG = {
-  completed: { label: "Concluídas", color: "hsl(var(--primary))" },
-  failed: { label: "Falhou", color: "hsl(var(--destructive))" },
-} satisfies ChartConfig;
 
 const SPECIFICITY_LABELS: Record<string, string> = {
   yes: "Sim",
@@ -28,15 +22,12 @@ const CONFIDENCE_LABELS: Record<string, string> = {
 
 const USEFULNESS_LABELS: Record<string, string> = { "1": "1", "2": "2", "3": "3", "4": "4", "5": "5" };
 
-export function ProductTab({ metrics }: { metrics: ProductDashboardMetrics }) {
-  const analysesByTypeData = Object.keys(ANALYSIS_TYPE_LABELS)
-    .map((type) => ({
-      label: ANALYSIS_TYPE_LABELS[type]!,
-      completed: metrics.completedByType[type] ?? 0,
-      failed: metrics.failedByType[type] ?? 0,
-    }))
-    .filter((row) => row.completed > 0 || row.failed > 0);
+const analysisTypeConfig = buildSeriesConfig(Object.keys(ANALYSIS_TYPE_LABELS), ANALYSIS_TYPE_LABELS);
+const usefulnessConfig = buildSeriesConfig(Object.keys(USEFULNESS_LABELS), USEFULNESS_LABELS);
+const specificityConfig = buildSeriesConfig(Object.keys(SPECIFICITY_LABELS), SPECIFICITY_LABELS);
+const confidenceConfig = buildSeriesConfig(Object.keys(CONFIDENCE_LABELS), CONFIDENCE_LABELS);
 
+export function ProductTab({ metrics }: { metrics: ProductDashboardMetrics }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -50,42 +41,12 @@ export function ProductTab({ metrics }: { metrics: ProductDashboardMetrics }) {
         <StatCard label="Ações concluídas" value={metrics.actionsCompleted} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Análises concluídas por tipo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MultiBarChart data={analysesByTypeData} config={ANALYSES_BY_TYPE_CHART_CONFIG} />
-        </CardContent>
-      </Card>
+      <InteractiveBarChart title="Análises concluídas por tipo" data={metrics.completedByTypeSeries} config={analysisTypeConfig} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Utilidade (nota 1-5)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BreakdownChart counts={metrics.usefulnessDistribution} labels={USEFULNESS_LABELS} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Especificidade percebida</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BreakdownChart counts={metrics.specificityDistribution} labels={SPECIFICITY_LABELS} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Confiança agregada</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BreakdownChart counts={metrics.confidenceDistribution} labels={CONFIDENCE_LABELS} />
-          </CardContent>
-        </Card>
+        <InteractiveBarChart title="Utilidade (nota 1-5)" data={metrics.usefulnessSeries} config={usefulnessConfig} />
+        <InteractiveBarChart title="Especificidade percebida" data={metrics.specificitySeries} config={specificityConfig} />
+        <InteractiveBarChart title="Confiança agregada" data={metrics.confidenceSeries} config={confidenceConfig} />
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OnboardingDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, BreakdownChart } from "./admin-ui";
+import { StatCard, BreakdownChart, InteractiveBarChart } from "./admin-ui";
+import { buildSeriesConfig } from "./chart-config";
 
 const ONBOARDING_STATUS_LABELS: Record<string, string> = {
   not_started: "Não iniciado",
@@ -23,6 +24,8 @@ const DOCUMENT_STATUS_LABELS: Record<string, string> = {
   deleted: "Excluído",
 };
 
+const documentStatusConfig = buildSeriesConfig(Object.keys(DOCUMENT_STATUS_LABELS), DOCUMENT_STATUS_LABELS);
+
 export function OnboardingTab({ metrics }: { metrics: OnboardingDashboardMetrics }) {
   return (
     <div className="flex flex-col gap-6">
@@ -41,14 +44,7 @@ export function OnboardingTab({ metrics }: { metrics: OnboardingDashboardMetrics
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Documentos por status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BreakdownChart counts={metrics.documentsByStatus} labels={DOCUMENT_STATUS_LABELS} />
-          </CardContent>
-        </Card>
+        <InteractiveBarChart title="Documentos por status" data={metrics.documentsSeries} config={documentStatusConfig} />
       </div>
 
       <p className="text-xs text-muted-foreground">

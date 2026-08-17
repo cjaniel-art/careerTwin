@@ -2,6 +2,11 @@ import { createSupabaseServiceClient } from "./supabase-service-client";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+export interface TimeSeriesRow {
+  date: string;
+  [category: string]: string | number;
+}
+
 function sinceIso(days: number): string {
   return new Date(Date.now() - days * DAY_MS).toISOString();
 }
@@ -41,6 +46,29 @@ function dateBuckets(days: number, granularity: "day" | "month"): string[] {
   return keys;
 }
 
+/**
+ * Agrupa linhas com timestamp + categoria em uma série temporal — um balde por
+ * data, uma coluna por categoria. Todo indicador com `created_at` próprio vira
+ * linha do tempo em vez de contagem estática (pedido explícito: "todos olhando
+ * para uma linha temporal, respeitando o filtro [de período]"). O único caso que
+ * fica de fora é o status *atual* de onboarding (user_accounts.onboarding_status)
+ * — não há histórico de quando cada usuário mudou de etapa, só o estado hoje.
+ */
+function timeSeriesByCategory(
+  rows: { createdAt: string; category: string }[],
+  buckets: string[],
+  granularity: "day" | "month",
+): TimeSeriesRow[] {
+  return buckets.map((date) => {
+    const row: TimeSeriesRow = { date };
+    for (const r of rows) {
+      if (bucketKey(r.createdAt, granularity) !== date) continue;
+      row[r.category] = ((row[r.category] as number) ?? 0) + 1;
+    }
+    return row;
+  });
+}
+
 export interface ExecutiveDashboardMetrics {
   users: { total: number; newInPeriod: number; daily: { date: string; signups: number; active: number }[] };
   activation: { byOnboardingStatus: Record<string, number>; profileAnalysesCompleted: number };
@@ -51,14 +79,16 @@ export interface ExecutiveDashboardMetrics {
    */
   value: { analysesCompleted: number; usefulAnalyses: number; analysesWithFeedback: number; recommendationsSelected: number; actionsStarted: number; actionsCompleted: number };
   retention: { activeInPeriod: number };
-  purchaseIntent: { byStatus: Record<string, number> };
-  failures: { byType: Record<string, number> };
+  purchaseIntent: { series: TimeSeriesRow[] };
+  failures: { series: TimeSeriesRow[] };
 }
 
 /** Fonte é sempre o banco operacional (analyses/user_accounts/purchase_intents), nunca eventos de analytics — ver Analytics §2 "fonte de verdade". */
 export async function getExecutiveDashboardMetrics(days: number): Promise<ExecutiveDashboardMetrics> {
   const supabase = createSupabaseServiceClient();
   const since = sinceIso(days);
+  const granularity = bucketGranularity(days);
+  const buckets = dateBuckets(days, granularity);
 
   const [
     { count: totalUsers },
@@ -81,23 +111,29 @@ export async function getExecutiveDashboardMetrics(days: number): Promise<Execut
     supabase.from("recommendations").select("*", { count: "exact", head: true }).eq("status", "selected").gte("updated_at", since),
     supabase.from("actions").select("*", { count: "exact", head: true }).eq("status", "in_progress").gte("started_at", since),
     supabase.from("actions").select("*", { count: "exact", head: true }).eq("status", "completed").gte("completed_at", since),
-    supabase.from("purchase_intents").select("status").gte("created_at", since),
-    supabase.from("analyses").select("analysis_type").in("status", ["failed_retryable", "failed_final"]).gte("created_at", since),
+    supabase.from("purchase_intents").select("status, created_at").gte("created_at", since),
+    supabase.from("analyses").select("analysis_type, created_at").in("status", ["failed_retryable", "failed_final"]).gte("created_at", since),
     // auth.users não é acessível via PostgREST comum — usa o Admin API do client de service-role.
     supabase.auth.admin.listUsers({ perPage: 1000 }),
   ]);
 
   const byOnboardingStatus = countBy((accounts ?? []).map((a) => ({ key: a.onboarding_status as string })));
   const usefulAnalyses = (feedbackRows ?? []).filter((f) => f.usefulness_score >= 4).length;
-  const byPurchaseIntentStatus = countBy((purchaseIntentRows ?? []).map((p) => ({ key: p.status as string })));
-  const byType = countBy((failedAnalysisRows ?? []).map((a) => ({ key: a.analysis_type as string })));
+  const purchaseIntentSeries = timeSeriesByCategory(
+    (purchaseIntentRows ?? []).map((p) => ({ createdAt: p.created_at as string, category: p.status as string })),
+    buckets,
+    granularity,
+  );
+  const failuresSeries = timeSeriesByCategory(
+    (failedAnalysisRows ?? []).map((a) => ({ createdAt: a.created_at as string, category: a.analysis_type as string })),
+    buckets,
+    granularity,
+  );
 
   const authUsers = authUsersPage?.users ?? [];
   const activeInPeriod = authUsers.filter((u) => u.last_sign_in_at && u.last_sign_in_at >= since).length;
   const newInPeriod = (accounts ?? []).filter((a) => (a.created_at as string) >= since).length;
 
-  const granularity = bucketGranularity(days);
-  const buckets = dateBuckets(days, granularity);
   const signupsByBucket = new Map(buckets.map((b) => [b, 0]));
   for (const a of accounts ?? []) {
     const key = bucketKey(a.created_at as string, granularity);
@@ -123,8 +159,8 @@ export async function getExecutiveDashboardMetrics(days: number): Promise<Execut
       actionsCompleted: actionsCompleted ?? 0,
     },
     retention: { activeInPeriod },
-    purchaseIntent: { byStatus: byPurchaseIntentStatus },
-    failures: { byType },
+    purchaseIntent: { series: purchaseIntentSeries },
+    failures: { series: failuresSeries },
   };
 }
 
@@ -132,36 +168,41 @@ export interface OnboardingDashboardMetrics {
   byOnboardingStatus: Record<string, number>;
   thinTwinConfirmed: number;
   targetContextConfirmed: number;
-  documentsByStatus: Record<string, number>;
+  documentsSeries: TimeSeriesRow[];
 }
 
 /** Conversão por etapa + confirmações, entre usuários/documentos criados no período — banco operacional. */
 export async function getOnboardingDashboardMetrics(days: number): Promise<OnboardingDashboardMetrics> {
   const supabase = createSupabaseServiceClient();
   const since = sinceIso(days);
+  const granularity = bucketGranularity(days);
+  const buckets = dateBuckets(days, granularity);
 
   const [{ data: accounts }, { count: thinTwinConfirmed }, { count: targetContextConfirmed }, { data: documents }] = await Promise.all([
     supabase.from("user_accounts").select("onboarding_status").gte("created_at", since),
     supabase.from("professional_profiles").select("*", { count: "exact", head: true }).eq("status", "confirmed").gte("created_at", since),
     supabase.from("target_contexts").select("*", { count: "exact", head: true }).eq("status", "confirmed").gte("created_at", since),
-    supabase.from("documents").select("status").gte("created_at", since),
+    supabase.from("documents").select("status, created_at").gte("created_at", since),
   ]);
 
   return {
     byOnboardingStatus: countBy((accounts ?? []).map((a) => ({ key: a.onboarding_status as string }))),
     thinTwinConfirmed: thinTwinConfirmed ?? 0,
     targetContextConfirmed: targetContextConfirmed ?? 0,
-    documentsByStatus: countBy((documents ?? []).map((d) => ({ key: d.status as string }))),
+    documentsSeries: timeSeriesByCategory(
+      (documents ?? []).map((d) => ({ createdAt: d.created_at as string, category: d.status as string })),
+      buckets,
+      granularity,
+    ),
   };
 }
 
 export interface ProductDashboardMetrics {
-  completedByType: Record<string, number>;
-  failedByType: Record<string, number>;
+  completedByTypeSeries: TimeSeriesRow[];
   usefulnessAverage: number | null;
-  usefulnessDistribution: Record<string, number>;
-  specificityDistribution: Record<string, number>;
-  confidenceDistribution: Record<string, number>;
+  usefulnessSeries: TimeSeriesRow[];
+  specificitySeries: TimeSeriesRow[];
+  confidenceSeries: TimeSeriesRow[];
   recommendationsSelected: number;
   actionsStarted: number;
   actionsCompleted: number;
@@ -172,18 +213,18 @@ export interface ProductDashboardMetrics {
 export async function getProductDashboardMetrics(days: number): Promise<ProductDashboardMetrics> {
   const supabase = createSupabaseServiceClient();
   const since = sinceIso(days);
+  const granularity = bucketGranularity(days);
+  const buckets = dateBuckets(days, granularity);
 
   const [
     { data: completedAnalyses },
-    { data: failedAnalyses },
     { data: feedbackRows },
     { count: recommendationsSelected },
     { count: actionsStarted },
     { count: actionsCompleted },
   ] = await Promise.all([
-    supabase.from("analyses").select("analysis_type, confidence_band").eq("status", "completed").gte("created_at", since),
-    supabase.from("analyses").select("analysis_type").in("status", ["failed_retryable", "failed_final"]).gte("created_at", since),
-    supabase.from("analysis_feedback").select("usefulness_score, specificity").gte("created_at", since),
+    supabase.from("analyses").select("analysis_type, confidence_band, created_at").eq("status", "completed").gte("created_at", since),
+    supabase.from("analysis_feedback").select("usefulness_score, specificity, created_at").gte("created_at", since),
     supabase.from("recommendations").select("*", { count: "exact", head: true }).eq("status", "selected").gte("updated_at", since),
     supabase.from("actions").select("*", { count: "exact", head: true }).eq("status", "in_progress").gte("started_at", since),
     supabase.from("actions").select("*", { count: "exact", head: true }).eq("status", "completed").gte("completed_at", since),
@@ -193,12 +234,27 @@ export async function getProductDashboardMetrics(days: number): Promise<ProductD
   const usefulnessAverage = feedback.length > 0 ? feedback.reduce((sum, f) => sum + f.usefulness_score, 0) / feedback.length : null;
 
   return {
-    completedByType: countBy((completedAnalyses ?? []).map((a) => ({ key: a.analysis_type as string }))),
-    failedByType: countBy((failedAnalyses ?? []).map((a) => ({ key: a.analysis_type as string }))),
+    completedByTypeSeries: timeSeriesByCategory(
+      (completedAnalyses ?? []).map((a) => ({ createdAt: a.created_at as string, category: a.analysis_type as string })),
+      buckets,
+      granularity,
+    ),
     usefulnessAverage,
-    usefulnessDistribution: countBy(feedback.map((f) => ({ key: String(f.usefulness_score) }))),
-    specificityDistribution: countBy(feedback.map((f) => ({ key: f.specificity as string }))),
-    confidenceDistribution: countBy((completedAnalyses ?? []).filter((a) => a.confidence_band).map((a) => ({ key: a.confidence_band as string }))),
+    usefulnessSeries: timeSeriesByCategory(
+      feedback.map((f) => ({ createdAt: f.created_at as string, category: String(f.usefulness_score) })),
+      buckets,
+      granularity,
+    ),
+    specificitySeries: timeSeriesByCategory(
+      feedback.map((f) => ({ createdAt: f.created_at as string, category: f.specificity as string })),
+      buckets,
+      granularity,
+    ),
+    confidenceSeries: timeSeriesByCategory(
+      (completedAnalyses ?? []).filter((a) => a.confidence_band).map((a) => ({ createdAt: a.created_at as string, category: a.confidence_band as string })),
+      buckets,
+      granularity,
+    ),
     recommendationsSelected: recommendationsSelected ?? 0,
     actionsStarted: actionsStarted ?? 0,
     actionsCompleted: actionsCompleted ?? 0,
@@ -207,10 +263,10 @@ export async function getProductDashboardMetrics(days: number): Promise<ProductD
 }
 
 export interface TechnicalDashboardMetrics {
-  jobsByStatus: Record<string, number>;
+  jobsSeries: TimeSeriesRow[];
   stuckJobs: number;
-  failedJobsByErrorCategory: Record<string, number>;
-  documentIssues: Record<string, number>;
+  failedJobsSeries: TimeSeriesRow[];
+  documentIssuesSeries: TimeSeriesRow[];
   pendingAccountDeletions: number;
 }
 
@@ -224,20 +280,34 @@ export async function getTechnicalDashboardMetrics(days: number): Promise<Techni
   const supabase = createSupabaseServiceClient();
   const since = sinceIso(days);
   const stuckSince = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const granularity = bucketGranularity(days);
+  const buckets = dateBuckets(days, granularity);
 
   const [{ data: jobs }, { count: stuckJobs }, { data: failedJobs }, { data: documents }, { count: pendingAccountDeletions }] = await Promise.all([
-    supabase.from("processing_jobs").select("status").gte("created_at", since),
+    supabase.from("processing_jobs").select("status, created_at").gte("created_at", since),
     supabase.from("processing_jobs").select("*", { count: "exact", head: true }).eq("status", "processing").lt("started_at", stuckSince),
-    supabase.from("processing_jobs").select("error_category").eq("status", "failed").gte("created_at", since),
-    supabase.from("documents").select("status").in("status", ["failed_retryable", "failed_final", "insufficient_content"]).gte("created_at", since),
+    supabase.from("processing_jobs").select("error_category, created_at").eq("status", "failed").gte("created_at", since),
+    supabase.from("documents").select("status, created_at").in("status", ["failed_retryable", "failed_final", "insufficient_content"]).gte("created_at", since),
     supabase.from("user_accounts").select("*", { count: "exact", head: true }).eq("status", "deletion_pending"),
   ]);
 
   return {
-    jobsByStatus: countBy((jobs ?? []).map((j) => ({ key: j.status as string }))),
+    jobsSeries: timeSeriesByCategory(
+      (jobs ?? []).map((j) => ({ createdAt: j.created_at as string, category: j.status as string })),
+      buckets,
+      granularity,
+    ),
     stuckJobs: stuckJobs ?? 0,
-    failedJobsByErrorCategory: countBy((failedJobs ?? []).map((j) => ({ key: (j.error_category as string) ?? "unknown" }))),
-    documentIssues: countBy((documents ?? []).map((d) => ({ key: d.status as string }))),
+    failedJobsSeries: timeSeriesByCategory(
+      (failedJobs ?? []).map((j) => ({ createdAt: j.created_at as string, category: (j.error_category as string) ?? "unknown" })),
+      buckets,
+      granularity,
+    ),
+    documentIssuesSeries: timeSeriesByCategory(
+      (documents ?? []).map((d) => ({ createdAt: d.created_at as string, category: d.status as string })),
+      buckets,
+      granularity,
+    ),
     pendingAccountDeletions: pendingAccountDeletions ?? 0,
   };
 }

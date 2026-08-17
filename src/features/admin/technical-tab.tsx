@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TechnicalDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, BreakdownChart } from "./admin-ui";
+import { StatCard, InteractiveBarChart } from "./admin-ui";
+import { buildSeriesConfig } from "./chart-config";
 
 const JOB_STATUS_LABELS: Record<string, string> = {
   queued: "Na fila",
@@ -32,6 +32,10 @@ const DOCUMENT_ISSUE_LABELS: Record<string, string> = {
   failed_final: "Falhou (definitivo)",
 };
 
+const jobStatusConfig = buildSeriesConfig(Object.keys(JOB_STATUS_LABELS), JOB_STATUS_LABELS);
+const errorCategoryConfig = buildSeriesConfig(Object.keys(ERROR_CATEGORY_LABELS), ERROR_CATEGORY_LABELS);
+const documentIssueConfig = buildSeriesConfig(Object.keys(DOCUMENT_ISSUE_LABELS), DOCUMENT_ISSUE_LABELS);
+
 export function TechnicalTab({ metrics }: { metrics: TechnicalDashboardMetrics }) {
   return (
     <div className="flex flex-col gap-6">
@@ -41,33 +45,11 @@ export function TechnicalTab({ metrics }: { metrics: TechnicalDashboardMetrics }
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Jobs por status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BreakdownChart counts={metrics.jobsByStatus} labels={JOB_STATUS_LABELS} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Jobs com falha, por categoria</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BreakdownChart counts={metrics.failedJobsByErrorCategory} labels={ERROR_CATEGORY_LABELS} />
-          </CardContent>
-        </Card>
+        <InteractiveBarChart title="Jobs por status" data={metrics.jobsSeries} config={jobStatusConfig} />
+        <InteractiveBarChart title="Jobs com falha, por categoria" data={metrics.failedJobsSeries} config={errorCategoryConfig} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Problemas de documento</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <BreakdownChart counts={metrics.documentIssues} labels={DOCUMENT_ISSUE_LABELS} />
-        </CardContent>
-      </Card>
+      <InteractiveBarChart title="Problemas de documento" data={metrics.documentIssuesSeries} config={documentIssueConfig} />
 
       <p className="text-xs text-muted-foreground">
         Disponibilidade, latência, fila em tempo real e custo por token exigem observabilidade dedicada

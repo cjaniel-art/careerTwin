@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ExecutiveDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, BreakdownChart } from "./admin-ui";
+import { StatCard, BreakdownChart, InteractiveBarChart } from "./admin-ui";
+import { buildSeriesConfig } from "./chart-config";
 import { UsersChart } from "./users-chart";
 
 const ONBOARDING_STATUS_LABELS: Record<string, string> = {
@@ -23,6 +24,9 @@ const ANALYSIS_TYPE_LABELS: Record<string, string> = {
   target_role_analysis: "Análise por cargo-alvo",
   job_analysis: "Aderência à vaga",
 };
+
+const purchaseIntentConfig = buildSeriesConfig(Object.keys(PURCHASE_INTENT_STATUS_LABELS), PURCHASE_INTENT_STATUS_LABELS);
+const failuresConfig = buildSeriesConfig(Object.keys(ANALYSIS_TYPE_LABELS), ANALYSIS_TYPE_LABELS);
 
 export function ExecutiveTab({ metrics, periodLabel }: { metrics: ExecutiveDashboardMetrics; periodLabel: string }) {
   return (
@@ -76,23 +80,8 @@ export function ExecutiveTab({ metrics, periodLabel }: { metrics: ExecutiveDashb
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Intenção de compra</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BreakdownChart counts={metrics.purchaseIntent.byStatus} labels={PURCHASE_INTENT_STATUS_LABELS} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Falhas críticas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BreakdownChart counts={metrics.failures.byType} labels={ANALYSIS_TYPE_LABELS} />
-          </CardContent>
-        </Card>
+        <InteractiveBarChart title="Intenção de compra" data={metrics.purchaseIntent.series} config={purchaseIntentConfig} />
+        <InteractiveBarChart title="Falhas críticas" data={metrics.failures.series} config={failuresConfig} />
       </div>
     </div>
   );
