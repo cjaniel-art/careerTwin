@@ -82,7 +82,7 @@ export default function HomePage() {
         <section className="relative ml-[calc(50%-50vw)] w-screen overflow-hidden bg-[#1E1E1E] text-white">
           {/* Header flutua transparente sobre o hero, sem fundo próprio */}
           <LandingHeader />
-          {/* Mobile: altura segue a proporção natural do asset dedicado; botão "Começe agora" vira barra fixa (ver abaixo) */}
+          {/* Mobile: altura segue a proporção natural do asset dedicado; botão "Comece agora" vira barra fixa (ver abaixo) */}
           <div className="relative md:hidden">
             <Image
               src="/landing/hero-mobile.svg"
@@ -133,7 +133,7 @@ export default function HomePage() {
                 <Button asChild className="mt-[27px] h-auto rounded-md px-4 py-2 text-sm">
                   <Link href="/cadastro">
                     <ArrowRight className="h-4 w-4" aria-hidden />
-                    Começe agora
+                    Comece agora
                   </Link>
                 </Button>
                 <p className="mt-[27px] flex items-center gap-2 text-sm font-medium text-white/80">
@@ -467,12 +467,12 @@ export default function HomePage() {
           </div>
         </section>
       </main>
-      {/* Barra fixa do "Começe agora" no mobile — fica ancorada na tela, o conteúdo da página rola por baixo dela */}
+      {/* Barra fixa do "Comece agora" no mobile — fica ancorada na tela, o conteúdo da página rola por baixo dela */}
       <div className="fixed inset-x-0 bottom-0 z-50 bg-[#020000] p-6 md:hidden">
         <Button asChild className="h-auto w-full rounded-md px-4 py-2 text-sm">
           <Link href="/cadastro">
             <ArrowRightCircle className="h-4 w-4" aria-hidden />
-            Começe agora
+            Comece agora
           </Link>
         </Button>
       </div>
