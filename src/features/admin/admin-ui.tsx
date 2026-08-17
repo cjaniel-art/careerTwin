@@ -65,7 +65,7 @@ export function BreakdownChart({ counts, labels }: { counts: Record<string, numb
   );
 }
 
-/** Padrão "Bar Chart - Multiple" do ui.shadcn — várias séries agrupadas por categoria, com legenda. */
+/** Padrão "Bar Chart - Multiple" do ui.shadcn, na variante horizontal — mesmo layout do BreakdownChart, várias séries agrupadas por categoria, com legenda. */
 export function MultiBarChart({
   data,
   config,
@@ -77,11 +77,11 @@ export function MultiBarChart({
   if (data.length === 0) return <p className="text-sm text-muted-foreground">Sem dados ainda.</p>;
 
   return (
-    <ChartContainer config={config} className="aspect-auto h-[260px] w-full">
-      <BarChart data={data} accessibilityLayer>
-        <CartesianGrid vertical={false} strokeOpacity={0.3} />
-        <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 12 }} />
-        <YAxis tickLine={false} axisLine={false} width={28} allowDecimals={false} />
+    <ChartContainer config={config} className="aspect-auto w-full" style={{ height: Math.max(100, data.length * 60) }}>
+      <BarChart data={data} layout="vertical" margin={{ left: 0, right: 12, top: 4, bottom: 4 }} accessibilityLayer>
+        <CartesianGrid horizontal={false} strokeOpacity={0.3} />
+        <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
+        <YAxis dataKey="label" type="category" tickLine={false} axisLine={false} width={150} tick={{ fontSize: 12 }} />
         <ChartTooltip content={<ChartTooltipContent />} />
         <ChartLegend content={<ChartLegendContent />} />
         {seriesKeys.map((key) => (
