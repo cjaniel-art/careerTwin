@@ -13,8 +13,11 @@ const CHART_CONFIG = {
 
 type SeriesKey = keyof typeof CHART_CONFIG;
 
+/** `value` é "AAAA-MM-DD" (balde diário) ou "AAAA-MM" (balde mensal, sem dia). */
 function formatDate(value: string): string {
-  return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  const isMonth = value.length === 7;
+  const date = new Date(`${isMonth ? `${value}-01` : value}T00:00:00`);
+  return date.toLocaleDateString("pt-BR", isMonth ? { month: "short", year: "numeric" } : { day: "2-digit", month: "short" });
 }
 
 /** Padrão "Bar Chart - Interactive" do ui.shadcn — dois totais clicáveis trocam a série exibida. */

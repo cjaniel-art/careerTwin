@@ -12,21 +12,23 @@ function countBy<T extends string>(rows: { key: T }[]): Record<string, number> {
   return counts;
 }
 
-/** Semana/mês = baldes diários; semestre/ano = baldes semanais (segunda-feira), senão o gráfico teria 180+ barras. */
-function bucketGranularity(days: number): "day" | "week" {
-  return days <= 60 ? "day" : "week";
+/**
+ * Semana/mês = baldes diários; semestre/ano = baldes mensais. Baldes semanais para
+ * períodos longos pareciam bons no papel, mas com ~26 categorias o Recharts esconde
+ * a maioria dos rótulos por colisão de texto (minTickGap) — a barra fica na categoria
+ * certa, só sem o rótulo dela visível embaixo, parecendo "desalinhada". Mensal (6-12
+ * categorias) sempre cabe um rótulo por barra.
+ */
+function bucketGranularity(days: number): "day" | "month" {
+  return days <= 60 ? "day" : "month";
 }
 
-function bucketKey(iso: string, granularity: "day" | "week"): string {
-  if (granularity === "day") return iso.slice(0, 10);
-  const d = new Date(iso);
-  const dayOfWeek = (d.getUTCDay() + 6) % 7; // segunda = 0
-  d.setUTCDate(d.getUTCDate() - dayOfWeek);
-  return d.toISOString().slice(0, 10);
+function bucketKey(iso: string, granularity: "day" | "month"): string {
+  return granularity === "day" ? iso.slice(0, 10) : iso.slice(0, 7);
 }
 
-/** Baldes cobrindo os últimos `days` dias (incluindo hoje), em ordem cronológica, sem duplicar chave de semana. */
-function dateBuckets(days: number, granularity: "day" | "week"): string[] {
+/** Baldes cobrindo os últimos `days` dias (incluindo hoje), em ordem cronológica, sem duplicar chave de mês. */
+function dateBuckets(days: number, granularity: "day" | "month"): string[] {
   const keys: string[] = [];
   const seen = new Set<string>();
   for (let i = days - 1; i >= 0; i--) {
