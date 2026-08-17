@@ -1,5 +1,5 @@
 import type { ProductDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, InteractiveBarChart } from "./admin-ui";
+import { StatCard, InteractiveBarChart, DonutTextChart } from "./admin-ui";
 import { buildSeriesConfig } from "./chart-config";
 
 const ANALYSIS_TYPE_LABELS: Record<string, string> = {
@@ -44,9 +44,9 @@ export function ProductTab({ metrics }: { metrics: ProductDashboardMetrics }) {
       <InteractiveBarChart title="Análises concluídas por tipo" data={metrics.completedByTypeSeries} config={analysisTypeConfig} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <InteractiveBarChart title="Utilidade (nota 1-5)" data={metrics.usefulnessSeries} config={usefulnessConfig} />
-        <InteractiveBarChart title="Especificidade percebida" data={metrics.specificitySeries} config={specificityConfig} />
-        <InteractiveBarChart title="Confiança agregada" data={metrics.confidenceSeries} config={confidenceConfig} />
+        <DonutTextChart title="Utilidade (nota 1-5)" data={metrics.usefulnessSeries} config={usefulnessConfig} />
+        <DonutTextChart title="Especificidade percebida" data={metrics.specificitySeries} config={specificityConfig} />
+        <DonutTextChart title="Confiança agregada" data={metrics.confidenceSeries} config={confidenceConfig} />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OnboardingDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, BreakdownChart, InteractiveBarChart } from "./admin-ui";
+import { StatCard, BreakdownChart, DonutTextChart } from "./admin-ui";
 import { buildSeriesConfig } from "./chart-config";
 
 const ONBOARDING_STATUS_LABELS: Record<string, string> = {
@@ -44,7 +44,7 @@ export function OnboardingTab({ metrics }: { metrics: OnboardingDashboardMetrics
           </CardContent>
         </Card>
 
-        <InteractiveBarChart title="Documentos por status" data={metrics.documentsSeries} config={documentStatusConfig} />
+        <DonutTextChart title="Documentos por status" data={metrics.documentsSeries} config={documentStatusConfig} />
       </div>
 
       <p className="text-xs text-muted-foreground">

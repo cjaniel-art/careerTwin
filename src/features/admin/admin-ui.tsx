@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Label, LabelList, Pie, PieChart, XAxis, YAxis } from "recharts";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -136,6 +136,73 @@ export function InteractiveBarChart({
           </ChartContainer>
         ) : (
           <p className="px-4 py-8 text-sm text-muted-foreground">Sem dados ainda.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Padrão "Pie Chart - Donut with Text" do ui.shadcn — soma cada categoria da mesma
+ * série temporal (mesma fonte de dados dos outros gráficos), com o total no centro
+ * do donut. Sem interação de hover — só para indicadores com muitas categorias, onde
+ * o cabeçalho clicável do Bar Chart - Interactive fica espremido demais.
+ */
+export function DonutTextChart({
+  title,
+  data,
+  config,
+}: {
+  title: string;
+  data: ({ date: string } & Record<string, string | number>)[];
+  config: ChartConfig;
+}) {
+  const totals = React.useMemo(
+    () =>
+      Object.keys(config)
+        .map((key) => ({
+          key,
+          label: String(config[key]?.label ?? key),
+          value: data.reduce((sum, row) => sum + Number(row[key] ?? 0), 0),
+          fill: `var(--color-${key})`,
+        }))
+        .filter((t) => t.value > 0),
+    [data, config],
+  );
+
+  const total = totals.reduce((sum, t) => sum + t.value, 0);
+
+  return (
+    <Card className="flex flex-col">
+      <CardHeader className="items-center pb-0">
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 pb-0">
+        {totals.length === 0 ? (
+          <p className="py-16 text-center text-sm text-muted-foreground">Sem dados ainda.</p>
+        ) : (
+          <ChartContainer config={config} className="mx-auto aspect-square max-h-[250px]">
+            <PieChart>
+              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <Pie data={totals} dataKey="value" nameKey="label" innerRadius={60} strokeWidth={5}>
+                <Label
+                  content={({ viewBox }) => {
+                    if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) return null;
+                    return (
+                      <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                        <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-3xl font-bold">
+                          {total.toLocaleString()}
+                        </tspan>
+                        <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) + 24} className="fill-muted-foreground text-xs">
+                          Total
+                        </tspan>
+                      </text>
+                    );
+                  }}
+                />
+              </Pie>
+            </PieChart>
+          </ChartContainer>
         )}
       </CardContent>
     </Card>

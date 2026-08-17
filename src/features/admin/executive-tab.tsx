@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ExecutiveDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, BreakdownChart, InteractiveBarChart } from "./admin-ui";
+import { StatCard, BreakdownChart, InteractiveBarChart, DonutTextChart } from "./admin-ui";
 import { buildSeriesConfig } from "./chart-config";
 import { UsersChart } from "./users-chart";
 
@@ -81,7 +81,7 @@ export function ExecutiveTab({ metrics, periodLabel }: { metrics: ExecutiveDashb
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <InteractiveBarChart title="Intenção de compra" data={metrics.purchaseIntent.series} config={purchaseIntentConfig} />
-        <InteractiveBarChart title="Falhas críticas" data={metrics.failures.series} config={failuresConfig} />
+        <DonutTextChart title="Falhas críticas" data={metrics.failures.series} config={failuresConfig} />
       </div>
     </div>
   );
