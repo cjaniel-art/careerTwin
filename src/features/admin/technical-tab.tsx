@@ -1,5 +1,5 @@
 import type { TechnicalDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, InteractiveBarChart } from "./admin-ui";
+import { StatCard, InteractiveBarChart, DonutTextChart } from "./admin-ui";
 import { buildSeriesConfig } from "./chart-config";
 
 const JOB_STATUS_LABELS: Record<string, string> = {
@@ -45,8 +45,8 @@ export function TechnicalTab({ metrics }: { metrics: TechnicalDashboardMetrics }
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <InteractiveBarChart title="Jobs por status" data={metrics.jobsSeries} config={jobStatusConfig} />
-        <InteractiveBarChart title="Jobs com falha, por categoria" data={metrics.failedJobsSeries} config={errorCategoryConfig} />
+        <DonutTextChart title="Jobs por status" data={metrics.jobsSeries} config={jobStatusConfig} />
+        <DonutTextChart title="Jobs com falha, por categoria" data={metrics.failedJobsSeries} config={errorCategoryConfig} />
       </div>
 
       <InteractiveBarChart title="Problemas de documento" data={metrics.documentIssuesSeries} config={documentIssueConfig} />
