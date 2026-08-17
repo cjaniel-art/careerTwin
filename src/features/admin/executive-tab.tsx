@@ -24,10 +24,10 @@ const ANALYSIS_TYPE_LABELS: Record<string, string> = {
   job_analysis: "Aderência à vaga",
 };
 
-export function ExecutiveTab({ metrics }: { metrics: ExecutiveDashboardMetrics }) {
+export function ExecutiveTab({ metrics, periodLabel }: { metrics: ExecutiveDashboardMetrics; periodLabel: string }) {
   return (
     <div className="flex flex-col gap-6">
-      <UsersChart data={metrics.users.daily} />
+      <UsersChart data={metrics.users.daily} periodLabel={periodLabel} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
@@ -47,9 +47,8 @@ export function ExecutiveTab({ metrics }: { metrics: ExecutiveDashboardMetrics }
           <CardHeader>
             <CardTitle className="text-base">Retenção</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <StatCard label="Ativos (7 dias)" value={metrics.retention.activeLast7Days} />
-            <StatCard label="Ativos (30 dias)" value={metrics.retention.activeLast30Days} />
+          <CardContent>
+            <StatCard label="Ativos no período" value={metrics.retention.activeInPeriod} />
           </CardContent>
         </Card>
       </div>
@@ -88,10 +87,10 @@ export function ExecutiveTab({ metrics }: { metrics: ExecutiveDashboardMetrics }
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Falhas críticas (30 dias)</CardTitle>
+            <CardTitle className="text-base">Falhas críticas</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownChart counts={metrics.failures.last30DaysByType} labels={ANALYSIS_TYPE_LABELS} />
+            <BreakdownChart counts={metrics.failures.byType} labels={ANALYSIS_TYPE_LABELS} />
           </CardContent>
         </Card>
       </div>

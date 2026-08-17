@@ -2,7 +2,7 @@
 
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 
 /** Mesmo padrão visual do ReportTabsList/ReportTabsTrigger (core-1/report/report-tabs.tsx) — abas sublinhadas em vez de pílula. */
@@ -60,6 +60,33 @@ export function BreakdownChart({ counts, labels }: { counts: Record<string, numb
         <YAxis dataKey="label" type="category" tickLine={false} axisLine={false} width={150} tick={{ fontSize: 12 }} />
         <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
         <Bar dataKey="count" fill="var(--color-count)" radius={4} barSize={16} />
+      </BarChart>
+    </ChartContainer>
+  );
+}
+
+/** Padrão "Bar Chart - Multiple" do ui.shadcn — várias séries agrupadas por categoria, com legenda. */
+export function MultiBarChart({
+  data,
+  config,
+}: {
+  data: ({ label: string } & Record<string, string | number>)[];
+  config: ChartConfig;
+}) {
+  const seriesKeys = Object.keys(config);
+  if (data.length === 0) return <p className="text-sm text-muted-foreground">Sem dados ainda.</p>;
+
+  return (
+    <ChartContainer config={config} className="aspect-auto h-[260px] w-full">
+      <BarChart data={data} accessibilityLayer>
+        <CartesianGrid vertical={false} strokeOpacity={0.3} />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 12 }} />
+        <YAxis tickLine={false} axisLine={false} width={28} allowDecimals={false} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartLegend content={<ChartLegendContent />} />
+        {seriesKeys.map((key) => (
+          <Bar key={key} dataKey={key} fill={`var(--color-${key})`} radius={4} />
+        ))}
       </BarChart>
     </ChartContainer>
   );

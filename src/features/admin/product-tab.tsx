@@ -1,12 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ProductDashboardMetrics } from "@/infrastructure/database/admin-metrics";
-import { StatCard, BreakdownChart } from "./admin-ui";
+import type { ChartConfig } from "@/components/ui/chart";
+import { StatCard, BreakdownChart, MultiBarChart } from "./admin-ui";
 
 const ANALYSIS_TYPE_LABELS: Record<string, string> = {
   profile_analysis: "Análise de Perfil",
   target_role_analysis: "Análise por cargo-alvo",
   job_analysis: "Aderência à vaga",
 };
+
+const ANALYSES_BY_TYPE_CHART_CONFIG = {
+  completed: { label: "Concluídas", color: "hsl(var(--primary))" },
+  failed: { label: "Falhou", color: "hsl(var(--destructive))" },
+} satisfies ChartConfig;
 
 const SPECIFICITY_LABELS: Record<string, string> = {
   yes: "Sim",
@@ -23,6 +29,14 @@ const CONFIDENCE_LABELS: Record<string, string> = {
 const USEFULNESS_LABELS: Record<string, string> = { "1": "1", "2": "2", "3": "3", "4": "4", "5": "5" };
 
 export function ProductTab({ metrics }: { metrics: ProductDashboardMetrics }) {
+  const analysesByTypeData = Object.keys(ANALYSIS_TYPE_LABELS)
+    .map((type) => ({
+      label: ANALYSIS_TYPE_LABELS[type]!,
+      completed: metrics.completedByType[type] ?? 0,
+      failed: metrics.failedByType[type] ?? 0,
+    }))
+    .filter((row) => row.completed > 0 || row.failed > 0);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -41,7 +55,7 @@ export function ProductTab({ metrics }: { metrics: ProductDashboardMetrics }) {
           <CardTitle className="text-base">Análises concluídas por tipo</CardTitle>
         </CardHeader>
         <CardContent>
-          <BreakdownChart counts={metrics.completedByType} labels={ANALYSIS_TYPE_LABELS} />
+          <MultiBarChart data={analysesByTypeData} config={ANALYSES_BY_TYPE_CHART_CONFIG} />
         </CardContent>
       </Card>
 

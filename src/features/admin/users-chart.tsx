@@ -18,7 +18,7 @@ function formatDate(value: string): string {
 }
 
 /** Padrão "Bar Chart - Interactive" do ui.shadcn — dois totais clicáveis trocam a série exibida. */
-export function UsersChart({ data }: { data: { date: string; signups: number; active: number }[] }) {
+export function UsersChart({ data, periodLabel }: { data: { date: string; signups: number; active: number }[]; periodLabel: string }) {
   const [activeSeries, setActiveSeries] = React.useState<SeriesKey>("signups");
 
   const totals = React.useMemo(
@@ -34,7 +34,7 @@ export function UsersChart({ data }: { data: { date: string; signups: number; ac
       <CardHeader className="flex flex-col items-stretch space-y-0 border-b border-border p-0 sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-4">
           <CardTitle className="text-base">Usuários</CardTitle>
-          <CardDescription>Últimos 30 dias</CardDescription>
+          <CardDescription>{periodLabel}</CardDescription>
         </div>
         <div className="flex">
           {(Object.keys(CHART_CONFIG) as SeriesKey[]).map((key) => (

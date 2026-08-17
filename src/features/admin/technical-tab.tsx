@@ -43,29 +43,29 @@ export function TechnicalTab({ metrics }: { metrics: TechnicalDashboardMetrics }
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Jobs por status (30 dias)</CardTitle>
+            <CardTitle className="text-base">Jobs por status</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownChart counts={metrics.jobsByStatus30Days} labels={JOB_STATUS_LABELS} />
+            <BreakdownChart counts={metrics.jobsByStatus} labels={JOB_STATUS_LABELS} />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Jobs com falha, por categoria (30 dias)</CardTitle>
+            <CardTitle className="text-base">Jobs com falha, por categoria</CardTitle>
           </CardHeader>
           <CardContent>
-            <BreakdownChart counts={metrics.failedJobsByErrorCategory30Days} labels={ERROR_CATEGORY_LABELS} />
+            <BreakdownChart counts={metrics.failedJobsByErrorCategory} labels={ERROR_CATEGORY_LABELS} />
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Problemas de documento (30 dias)</CardTitle>
+          <CardTitle className="text-base">Problemas de documento</CardTitle>
         </CardHeader>
         <CardContent>
-          <BreakdownChart counts={metrics.documentIssues30Days} labels={DOCUMENT_ISSUE_LABELS} />
+          <BreakdownChart counts={metrics.documentIssues} labels={DOCUMENT_ISSUE_LABELS} />
         </CardContent>
       </Card>
 
