@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,15 @@ function formatDate(value: string): string {
 }
 
 /** Padrão "Bar Chart - Interactive" do ui.shadcn — dois totais clicáveis trocam a série exibida. */
-export function UsersChart({ data, periodLabel }: { data: { date: string; signups: number; active: number }[]; periodLabel: string }) {
+export function UsersChart({
+  data,
+  periodLabel,
+  total,
+}: {
+  data: { date: string; signups: number; active: number }[];
+  periodLabel: string;
+  total: number;
+}) {
   const [activeSeries, setActiveSeries] = React.useState<SeriesKey>("signups");
 
   const totals = React.useMemo(
@@ -36,7 +45,10 @@ export function UsersChart({ data, periodLabel }: { data: { date: string; signup
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-col items-stretch space-y-0 border-b border-border p-0 sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-4">
-          <CardTitle className="text-base">Usuários</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base">Usuários</CardTitle>
+            <Badge variant="secondary">{total} no total</Badge>
+          </div>
           <CardDescription>{periodLabel}</CardDescription>
         </div>
         <div className="flex">

@@ -27,7 +27,7 @@ const ANALYSIS_TYPE_LABELS: Record<string, string> = {
 export function ExecutiveTab({ metrics, periodLabel }: { metrics: ExecutiveDashboardMetrics; periodLabel: string }) {
   return (
     <div className="flex flex-col gap-6">
-      <UsersChart data={metrics.users.daily} periodLabel={periodLabel} />
+      <UsersChart data={metrics.users.daily} periodLabel={periodLabel} total={metrics.users.total} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
