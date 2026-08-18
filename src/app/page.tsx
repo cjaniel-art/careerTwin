@@ -348,9 +348,9 @@ export default function HomePage() {
             </p>
 
             <div className="mt-8">
-              <div className="-mx-6 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:mx-0 lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
-                {/* Card de destaque com foto — tamanho fixo (299x470), igual ao Figma */}
-                <div className="relative h-[470px] w-[299px] shrink-0 snap-center overflow-hidden rounded-2xl bg-black">
+              <div className="-mx-6 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:mx-0 lg:px-0 lg:pb-0 xl:gap-4 xl:overflow-visible [&::-webkit-scrollbar]:hidden">
+                {/* Card de destaque com foto — tamanho fixo (299x470) até lg; encolhe a partir de xl para as 4 colunas caberem sem scroll */}
+                <div className="relative h-[470px] w-[299px] shrink-0 snap-center overflow-hidden rounded-2xl bg-black xl:h-[520px] xl:w-[220px]">
                   <Image
                     src="/landing/pricing-card-photo.svg"
                     alt=""
@@ -373,7 +373,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Plano gratuito — tamanho fixo (483x470), igual ao Figma */}
-                <div className="flex h-[470px] w-[377px] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border border-border shadow-sm lg:w-[483px]">
+                <div className="flex h-[470px] w-[377px] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border border-border shadow-sm lg:w-[483px] xl:h-[520px] xl:w-auto xl:min-w-0 xl:flex-1 xl:shrink">
                   <div className="flex flex-1 flex-col justify-between gap-8 bg-white px-6 pb-6 pt-7">
                     <div className="space-y-2">
                       <p className="text-base font-medium text-foreground">experiência gratuita</p>
@@ -408,7 +408,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Pacote em destaque — tamanho fixo (483x470), igual ao Figma */}
-                <div className="flex h-[470px] w-[377px] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border border-border shadow-sm lg:w-[483px]">
+                <div className="flex h-[470px] w-[377px] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border border-border shadow-sm lg:w-[483px] xl:h-[520px] xl:w-auto xl:min-w-0 xl:flex-1 xl:shrink">
                   <div className="flex flex-1 flex-col justify-between gap-8 bg-gradient-to-b from-[#f1f0fb] to-white px-6 pb-6 pt-7">
                     <div className="space-y-2">
                       <p className="text-base font-medium text-foreground">pacote em destaque</p>
@@ -444,7 +444,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Plano full — tamanho fixo (483x470), igual ao Figma */}
-                <div className="flex h-[470px] w-[377px] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border border-border shadow-sm lg:w-[483px]">
+                <div className="flex h-[470px] w-[377px] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border border-border shadow-sm lg:w-[483px] xl:h-[520px] xl:w-auto xl:min-w-0 xl:flex-1 xl:shrink">
                   <div className="flex flex-1 flex-col justify-between gap-8 bg-gradient-to-b from-[#f1f0fb] to-white px-6 pb-6 pt-7">
                     <div className="space-y-2">
                       <p className="text-base font-medium text-foreground">plano full</p>
@@ -479,7 +479,7 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              <div className="mt-4 flex justify-center gap-2 lg:hidden">
+              <div className="mt-4 flex justify-center gap-2 xl:hidden">
                 {[0, 1, 2, 3].map((index) => (
                   <span
                     key={index}
