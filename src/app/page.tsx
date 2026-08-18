@@ -74,6 +74,13 @@ const PRO_PLAN_FEATURES = [
   "Lacunas e recomendações",
 ];
 
+const FULL_PLAN_FEATURES = [
+  "Análises de vaga ilimitadas",
+  "Sem contador de créditos enquanto o plano estiver ativo",
+  "Diagnóstico de aderência e lacunas",
+  "Lacunas e recomendações",
+];
+
 export default function HomePage() {
   return (
     <>
@@ -435,9 +442,45 @@ export default function HomePage() {
                     </ul>
                   </div>
                 </div>
+
+                {/* Plano full — tamanho fixo (483x470), igual ao Figma */}
+                <div className="flex h-[470px] w-[377px] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border border-border shadow-sm lg:w-[483px]">
+                  <div className="flex flex-1 flex-col justify-between gap-8 bg-gradient-to-b from-[#f1f0fb] to-white px-6 pb-6 pt-7">
+                    <div className="space-y-2">
+                      <p className="text-base font-medium text-foreground">plano full</p>
+                      <div className="flex items-end gap-1.5">
+                        <p className="text-4xl font-semibold text-foreground">R$ 59,99</p>
+                        <div className="flex flex-col text-xs leading-tight text-muted-foreground">
+                          <span>Por</span>
+                          <span>mês</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-6">
+                      <p className="text-sm leading-6 text-[#514f6e]">
+                        Para quem está em busca ativa e faz várias candidaturas em paralelo — analise quantas
+                        vagas precisar, sem se preocupar com o contador de créditos.
+                      </p>
+                      <Button asChild className="h-auto w-full rounded-lg py-3 text-sm">
+                        <Link href="/cadastro">Tenho interesse</Link>
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-5 border-t border-border bg-white px-6 py-6">
+                    <p className="text-sm font-medium text-foreground">Features:</p>
+                    <ul className="space-y-3">
+                      {FULL_PLAN_FEATURES.map((feature) => (
+                        <li key={feature} className="flex items-center gap-2">
+                          <CheckCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                          <span className="text-xs text-muted-foreground">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
               <div className="mt-4 flex justify-center gap-2 lg:hidden">
-                {[0, 1, 2].map((index) => (
+                {[0, 1, 2, 3].map((index) => (
                   <span
                     key={index}
                     className={`h-[13px] w-[13px] rounded-full ${index === 0 ? "bg-primary" : "bg-[#d6d6d6]"}`}
