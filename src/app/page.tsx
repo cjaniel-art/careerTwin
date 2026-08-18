@@ -349,8 +349,8 @@ export default function HomePage() {
 
             <div className="mt-8">
               <div className="-mx-6 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:mx-0 lg:px-0 lg:pb-0 xl:gap-4 xl:overflow-visible [&::-webkit-scrollbar]:hidden">
-                {/* Card de destaque com foto — tamanho fixo (299x470) até lg; encolhe a partir de xl para as 4 colunas caberem sem scroll */}
-                <div className="relative h-[470px] w-[299px] shrink-0 snap-center overflow-hidden rounded-2xl bg-black xl:h-[520px] xl:w-[220px]">
+                {/* Card de destaque com foto — largura fixa (299px) sempre; os 3 cards de plano encolhem para caber a partir de xl */}
+                <div className="relative h-[470px] w-[299px] shrink-0 snap-center overflow-hidden rounded-2xl bg-black xl:h-[520px]">
                   <Image
                     src="/landing/pricing-card-photo.svg"
                     alt=""
